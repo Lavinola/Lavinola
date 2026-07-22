@@ -79,7 +79,15 @@ async function parsearFeed(url: string, nombreFuente: string): Promise<NoticiaFe
       Platform.OS === "web"
         ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/fetch-rss?url=${encodeURIComponent(url)}`
         : url;
-    const res = await fetch(urlAPedir);
+    // Las Edge Functions de Supabase piden por defecto la misma credencial
+    // (anon key) que usa el resto de la app en cada pedido — sin esto, la
+    // rechaza antes de llegar a nuestro código.
+    const res = await fetch(
+      urlAPedir,
+      Platform.OS === "web"
+        ? { headers: { Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}` } }
+        : undefined
+    );
     if (!res.ok) return [];
     const xml = await res.text();
     const items = xml.match(/<item[\s\S]*?<\/item>/gi) ?? [];
