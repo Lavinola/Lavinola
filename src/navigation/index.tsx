@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
+import { View, Text, StyleSheet, Platform, useWindowDimensions } from "react-native";
 import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -275,6 +275,28 @@ function ProfileStackNav() {
   );
 }
 
+/**
+ * Solo en la web y en pantallas anchas de verdad (compu) corremos la
+ * palabra hacia la derecha — en un celular (aunque sea por navegador, el
+ * ancho de pantalla es angosto) tiene que verse centrada, igual que en la
+ * app nativa.
+ */
+function EtiquetaComunidad({ color, texto }: { color: string; texto: string }) {
+  const { width } = useWindowDimensions();
+  const esPantallaAncha = Platform.OS === "web" && width > 700;
+  return (
+    <Text
+      style={[
+        tabScreenOptions.tabBarLabelStyle,
+        { color },
+        esPantallaAncha ? { transform: [{ translateX: 36 }] } : { marginLeft: 3 },
+      ]}
+    >
+      {texto}
+    </Text>
+  );
+}
+
 function iconoPorTab(routeName: string, focused: boolean) {
   const mapa: Record<string, string> = {
     Series: focused ? "tv" : "tv-outline",
@@ -369,17 +391,7 @@ export default function RootNavigation() {
           name="Comunidad"
           component={CommunityStackNav}
           options={{
-            tabBarLabel: ({ color }: { color: string }) => (
-              <Text
-                style={[
-                  tabScreenOptions.tabBarLabelStyle,
-                  { color },
-                  Platform.OS === "web" ? { transform: [{ translateX: 36 }] } : { marginLeft: 3 },
-                ]}
-              >
-                {t("Comunidad")}
-              </Text>
-            ),
+            tabBarLabel: ({ color }: { color: string }) => <EtiquetaComunidad color={color} texto={t("Comunidad")} />,
           }}
         />
         <Tab.Screen name="Explorar" component={ExploreStackNav} options={{ tabBarLabel: t("Explorar") }} />

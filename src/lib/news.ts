@@ -3,6 +3,7 @@
 // al tocar una se abre la nota original (por derechos de autor, no podemos
 // reproducir el artículo completo adentro de la app).
 
+import { Platform } from "react-native";
 export interface NoticiaFeed {
   titulo: string;
   resumen: string | null;
@@ -70,7 +71,15 @@ function imagenDeItem(xml: string): string | null {
 
 async function parsearFeed(url: string, nombreFuente: string): Promise<NoticiaFeed[]> {
   try {
-    const res = await fetch(url);
+    // En la web, el navegador bloquea pedirle datos directo a otro sitio
+    // que no nos autorizó (CORS) — para eso pasamos por nuestra propia
+    // función en el servidor, que sí puede pedirlo sin ese problema. En el
+    // celular esto no hace falta, ahí se sigue pidiendo directo.
+    const urlAPedir =
+      Platform.OS === "web"
+        ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/fetch-rss?url=${encodeURIComponent(url)}`
+        : url;
+    const res = await fetch(urlAPedir);
     if (!res.ok) return [];
     const xml = await res.text();
     const items = xml.match(/<item[\s\S]*?<\/item>/gi) ?? [];

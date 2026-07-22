@@ -48,6 +48,25 @@ export default function AuthScreen() {
 
   async function iniciarConGoogle() {
     setLoadingGoogle(true);
+
+    // En la web, el mecanismo de "abrir una ventana y volver por un link
+    // especial" (pensado para el celular) no funciona igual — ahí es más
+    // simple: mandamos la misma pestaña directo a Google, y cuando vuelve,
+    // Supabase detecta la sesión sola desde la URL (ver supabase.ts).
+    if (Platform.OS === "web") {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) {
+        Alert.alert(t("No se pudo iniciar sesión con Google"), error.message);
+        setLoadingGoogle(false);
+      }
+      // Si no hubo error, el navegador ya está yendo hacia Google — no hay
+      // nada más para hacer acá, la página se va a recargar sola al volver.
+      return;
+    }
+
     try {
       const redirectTo = Linking.createURL("auth-callback");
       const { data, error } = await supabase.auth.signInWithOAuth({
