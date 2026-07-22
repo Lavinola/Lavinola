@@ -263,7 +263,7 @@ export default function MoviesScreen({ navigation }: any) {
               </View>
               {subTab === "proximamente" && diasHasta(item.release_date) > 0 && (
                 <View style={styles.faltanCol}>
-                  <Text style={styles.faltanTexto}>{t("Faltan")}</Text>
+                  <Text style={styles.faltanTexto}>{diasHasta(item.release_date) === 1 ? t("Falta") : t("Faltan")}</Text>
                   <Text style={styles.faltanNumero}>{diasHasta(item.release_date)}</Text>
                   <Text style={styles.faltanTexto}>{diasHasta(item.release_date) === 1 ? t("día") : t("días")}</Text>
                 </View>

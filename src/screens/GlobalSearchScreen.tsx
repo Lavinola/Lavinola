@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator, Alert, Platform } from "react-native";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";
@@ -150,6 +150,8 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           value={query}
           onChangeText={buscar}
           autoFocus
+          autoComplete="off"
+          autoCorrect={false}
         />
       </View>
       <UnderlineTabs
@@ -263,7 +265,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     paddingHorizontal: 12,
   },
-  input: { flex: 1, color: theme.colors.text, paddingVertical: 10 },
+  input: { flex: 1, color: theme.colors.text, paddingVertical: 10, ...(Platform.OS === "web" ? { outlineStyle: "none" as any } : {}) },
   card: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
   poster: { width: 40, height: 60, borderRadius: 4, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },

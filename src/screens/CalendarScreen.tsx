@@ -186,7 +186,7 @@ export default function CalendarScreen({ navigation }: any) {
                   </View>
                   {!item.yaSalio && dias != null && (
                     <View style={styles.faltanCol}>
-                      <Text style={styles.faltanTexto}>{t("Faltan")}</Text>
+                      <Text style={styles.faltanTexto}>{dias === 1 ? t("Falta") : t("Faltan")}</Text>
                       <Text style={styles.faltanNumero}>{dias}</Text>
                       <Text style={styles.faltanTexto}>{dias === 1 ? t("día") : t("días")}</Text>
                     </View>

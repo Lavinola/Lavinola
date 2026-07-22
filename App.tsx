@@ -11,6 +11,21 @@ export default function App() {
     RobotoSlab_700Bold,
   });
 
+  React.useEffect(() => {
+    // El navegador le pone a los campos de texto un recuadro/borde de foco
+    // por defecto (para accesibilidad) — como ya mostramos nuestro propio
+    // estilo de foco (bordes violeta, etc.), sacamos ese recuadro extra del
+    // navegador en toda la web, no solo en un campo puntual.
+    if (Platform.OS === "web") {
+      const style = document.createElement("style");
+      style.textContent = `
+        input, textarea, select { outline: none !important; }
+        *:focus { outline: none !important; }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center" }}>

@@ -1200,6 +1200,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Suspender": { en: "Suspend", pt: "Suspender", it: "Sospendi" },
   "No se pudo cambiar": { en: "Couldn't change it", pt: "Não foi possível alterar", it: "Non è stato possibile modificare" },
   "No se pudo crear la lista": { en: "Couldn't create the list", pt: "Não foi possível criar a lista", it: "Non è stato possibile creare la lista" },
+  "Falta": { en: "In", pt: "Falta", it: "Manca" },
 };
 
 export function traducir(clave: string, idioma: Idioma): string {
