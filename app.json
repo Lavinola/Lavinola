@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Lavinola: Cine & Series",
+    "slug": "lavinola",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "lavinola",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0A0A",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lavinola.app",
+      "backgroundColor": "#0A0A0A"
+    },
+    "android": {
+      "package": "com.lavinola.app",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0A0A"
+      }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#A63FE0"
+        }
+      ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "backgroundColor": "#0A0A0A",
+      "bundler": "metro",
+      "output": "single",
+      "name": "Lavinola: Cine & Series"
+    }
+  }
+}

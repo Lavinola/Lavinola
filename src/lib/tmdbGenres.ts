@@ -1,0 +1,42 @@
+// IDs de género de TMDB — son una lista fija que TMDB no cambia, así que se
+// puede hardcodear en vez de pedirla a la API cada vez.
+export const GENEROS_SERIES: Record<number, string> = {
+  10759: "Acción y aventura",
+  16: "Animación",
+  35: "Comedia",
+  80: "Crimen",
+  99: "Documental",
+  18: "Drama",
+  10751: "Familiar",
+  10762: "Infantil",
+  9648: "Misterio",
+  10763: "Noticias",
+  10764: "Reality",
+  10765: "Ciencia ficción y fantasía",
+  10766: "Telenovela",
+  10767: "Talk show",
+  10768: "Guerra y política",
+  37: "Western",
+};
+
+export const GENEROS_PELICULAS: Record<number, string> = {
+  28: "Acción",
+  12: "Aventura",
+  16: "Animación",
+  35: "Comedia",
+  80: "Crimen",
+  99: "Documental",
+  18: "Drama",
+  10751: "Familiar",
+  14: "Fantasía",
+  36: "Historia",
+  27: "Terror",
+  10402: "Música",
+  9648: "Misterio",
+  10749: "Romance",
+  878: "Ciencia ficción",
+  10770: "Película de TV",
+  53: "Thriller",
+  10752: "Bélica",
+  37: "Western",
+};
