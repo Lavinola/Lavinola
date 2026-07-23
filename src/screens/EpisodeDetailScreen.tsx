@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   vistaCirculo: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: theme.colors.border, alignItems: "center", justifyContent: "center" },
   vistaCirculoActivo: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
   vistaCirculoDeshabilitado: { opacity: 0.35 },
-  vistaTilde: { color: "transparent", fontSize: 20, fontWeight: "700" },
+  vistaTilde: { color: theme.colors.textFaint, fontSize: 20, fontWeight: "700" },
   vistaTildeActivo: { color: theme.colors.text },
   comentariosBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 16, paddingHorizontal: 18, marginTop: 24 },
   comentariosBannerTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },
