@@ -45,6 +45,7 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [enviandoReset, setEnviandoReset] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [errorLogin, setErrorLogin] = useState("");
 
   async function iniciarConGoogle() {
     setLoadingGoogle(true);
@@ -126,6 +127,7 @@ export default function AuthScreen() {
   }
 
   async function handleSubmit() {
+    setErrorLogin("");
     if (!email.trim() || !password) {
       Alert.alert("Faltan datos", "Completá el email y la contraseña.");
       return;
@@ -182,8 +184,11 @@ export default function AuthScreen() {
       } else {
         const { error } = await conTimeout(supabase.auth.signInWithPassword({ email, password }), TIMEOUT_MS);
         if (error) {
-          if (error.message.toLowerCase().includes("email not confirmed")) {
+          const mensaje = error.message.toLowerCase();
+          if (mensaje.includes("email not confirmed")) {
             Alert.alert("Falta confirmar el mail", "Revisá tu casilla y tocá el link de confirmación antes de entrar.");
+          } else if (mensaje.includes("invalid login credentials") || mensaje.includes("invalid_credentials")) {
+            setErrorLogin(t("Email o contraseña inválida."));
           } else {
             throw error;
           }
@@ -237,7 +242,10 @@ export default function AuthScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(v) => {
+          setEmail(v);
+          if (errorLogin) setErrorLogin("");
+        }}
       />
       <View style={styles.passwordWrap}>
         <TextInput
@@ -246,12 +254,16 @@ export default function AuthScreen() {
           placeholderTextColor={theme.colors.textFaint}
           secureTextEntry={!mostrarPassword}
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(v) => {
+            setPassword(v);
+            if (errorLogin) setErrorLogin("");
+          }}
         />
         <Pressable style={styles.ojitoBtn} onPress={() => setMostrarPassword((v) => !v)} hitSlop={10}>
           <Ionicons name={mostrarPassword ? "eye-off" : "eye"} size={20} color={theme.colors.textMuted} />
         </Pressable>
       </View>
+      {!!errorLogin && <Text style={styles.errorText}>{errorLogin}</Text>}
       {isSignUp && <Text style={styles.hint}>{t("Mínimo 6 caracteres, con al menos un número.")}</Text>}
 
       {!isSignUp && (
@@ -331,6 +343,7 @@ const styles = StyleSheet.create({
   passwordInput: { paddingRight: 44 },
   ojitoBtn: { position: "absolute", right: 12, top: 0, bottom: 10, justifyContent: "center" },
   hint: { fontSize: 11, color: theme.colors.textFaint, marginTop: -6, marginBottom: 10 },
+  errorText: { fontSize: 12, color: "#FF6B6B", marginTop: -4, marginBottom: 10 },
   label: { marginBottom: 6, color: theme.colors.textMuted, fontSize: 13 },
   paisWrapper: { marginBottom: 12 },
   pickerBox: {

@@ -749,6 +749,11 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Devi essere membro per vederlo. Manda prima una richiesta.",
   },
   Entendido: { en: "Got it", pt: "Entendido", it: "Capito" },
+  "Email o contraseña inválida.": {
+    en: "Invalid email or password.",
+    pt: "E-mail ou senha inválidos.",
+    it: "Email o password non validi.",
+  },
   Creador: { en: "Creator", pt: "Criador", it: "Creatore" },
   "Creados por mí": { en: "Created by me", pt: "Criados por mim", it: "Creati da me" },
   "No creados por mí": { en: "Not created by me", pt: "Não criados por mim", it: "Non creati da me" },

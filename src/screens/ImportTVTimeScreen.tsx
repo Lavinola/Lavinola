@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, FlatList, Image, Pressable, TextInput, StyleSheet, ActivityIndicator, ScrollView, Alert, Platform } from "react-native";
+import { View, FlatList, Image, Pressable, TextInput, StyleSheet, ActivityIndicator, ScrollView, Platform } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { unzipSync, strFromU8 } from "fflate";
@@ -9,6 +9,7 @@ import { agruparPorTitulo, ResultadoMatch } from "../lib/matcher";
 import { posterUrl, searchSeries, searchMovies } from "../lib/tmdb";
 import { supabase } from "../lib/supabase";
 import { Text, AppButton } from "../components/Themed";
+import ConfirmModal from "../components/ConfirmModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -53,6 +54,7 @@ export default function ImportTVTimeScreen() {
   const [buscandoManual, setBuscandoManual] = useState(false);
   const [resueltosManualmente, setResueltosManualmente] = useState<Map<string, number[]>>(new Map());
   const [seleccionActual, setSeleccionActual] = useState<Set<number>>(new Set());
+  const [errorModal, setErrorModal] = useState<{ titulo: string; mensaje: string } | null>(null);
 
   const dudosos = resultados.filter((r) => !r.confiado);
   const confiados = resultados.filter((r) => r.confiado);
@@ -192,10 +194,10 @@ export default function ImportTVTimeScreen() {
       } catch {
         // si no se pudo leer el cuerpo, nos quedamos con e.message tal cual
       }
-      Alert.alert(
-        t("No se pudo iniciar la importación"),
-        detalle || t("Revisá tu conexión, o que la función 'process-tvtime-import' esté deployada en Supabase.")
-      );
+      setErrorModal({
+        titulo: t("No se pudo iniciar la importación"),
+        mensaje: detalle || t("Revisá tu conexión, o que la función 'process-tvtime-import' esté deployada en Supabase."),
+      });
       setEtapa("elegir_archivo");
     }
   }
@@ -335,7 +337,10 @@ export default function ImportTVTimeScreen() {
     const { data, error } = await supabase.functions.invoke("process-tvtime-import", { body: { aplicar_job_id: jobId, confirmados } });
     if (error || !data?.ok) {
       console.error("Error al iniciar la aplicación de la importación:", error ?? data);
-      Alert.alert(t("No se pudo iniciar la importación"), t("Revisá tu conexión, o que la función 'process-tvtime-import' esté deployada en Supabase."));
+      setErrorModal({
+        titulo: t("No se pudo iniciar la importación"),
+        mensaje: t("Revisá tu conexión, o que la función 'process-tvtime-import' esté deployada en Supabase."),
+      });
       setEtapa("revisar_dudosos");
     }
   }
@@ -357,7 +362,7 @@ export default function ImportTVTimeScreen() {
         setEtapa("listo");
       } else if (job.status === "aplicando_error") {
         console.error("Error al aplicar la importación:", job.error_msg);
-        Alert.alert(t("No se pudo terminar la importación"), job.error_msg ?? "");
+        setErrorModal({ titulo: t("No se pudo terminar la importación"), mensaje: job.error_msg ?? "" });
         setEtapa("revisar_dudosos");
       } else if (job.status === "aplicando") {
         const segundosSinActividad = (Date.now() - new Date(job.updated_at).getTime()) / 1000;
@@ -425,6 +430,13 @@ export default function ImportTVTimeScreen() {
           {t("Buscá el archivo que exportaste: el ZIP entero de TV Time (lo procesamos completo), o si preferís, los CSV sueltos (tracking-prod-records.csv, tracking-prod-records-v2.csv, o el de la extensión Refract) o de Letterboxd (diary.csv o watched.csv).")}
         </Text>
         <AppButton title={t("Elegir archivo")} onPress={elegirArchivo} />
+        <ConfirmModal
+          visible={!!errorModal}
+          onCerrar={() => setErrorModal(null)}
+          titulo={errorModal?.titulo ?? ""}
+          mensaje={errorModal?.mensaje}
+          botones={[{ label: t("Entendido"), onPress: () => setErrorModal(null), destacado: true }]}
+        />
       </View>
     );
   }
@@ -452,6 +464,13 @@ export default function ImportTVTimeScreen() {
             {t("{n} títulos matcheados automáticamente contra TMDB.").replace("{n}", String(confiados.length))}
           </Text>
           <AppButton title={t("Confirmar e importar")} onPress={confirmarImportacionFinal} />
+          <ConfirmModal
+            visible={!!errorModal}
+            onCerrar={() => setErrorModal(null)}
+            titulo={errorModal?.titulo ?? ""}
+            mensaje={errorModal?.mensaje}
+            botones={[{ label: t("Entendido"), onPress: () => setErrorModal(null), destacado: true }]}
+          />
         </View>
       );
     }
@@ -533,6 +552,13 @@ export default function ImportTVTimeScreen() {
         )}
         <View style={{ height: 8 }} />
         <AppButton title={t("Ninguna es correcta, omitir")} onPress={() => omitirDudoso(actual.nombreOriginal)} variant="muted" />
+        <ConfirmModal
+          visible={!!errorModal}
+          onCerrar={() => setErrorModal(null)}
+          titulo={errorModal?.titulo ?? ""}
+          mensaje={errorModal?.mensaje}
+          botones={[{ label: t("Entendido"), onPress: () => setErrorModal(null), destacado: true }]}
+        />
       </View>
     );
   }
