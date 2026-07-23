@@ -18,19 +18,35 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 const PERSPECTIVE_API_KEY = Deno.env.get("PERSPECTIVE_API_KEY");
 const UMBRAL_TOXICIDAD = 0.8;
 
+// Necesario para que la webapp pueda invocar esta función desde el navegador.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: CORS_HEADERS });
+  }
   try {
     const { text } = await req.json();
 
     if (!text || typeof text !== "string") {
-      return new Response(JSON.stringify({ permitido: false, motivo: "Texto vacío" }), { status: 400 });
+      return jsonResponse({ permitido: false, motivo: "Texto vacío" }, 400);
     }
 
     if (!PERSPECTIVE_API_KEY) {
       // Sin key configurada, no bloqueamos (dejamos que el filtro local de
       // regex en el cliente sea la única capa) — pero lo dejamos loggeado.
       console.warn("PERSPECTIVE_API_KEY no configurada, se omite el chequeo de toxicidad.");
-      return new Response(JSON.stringify({ permitido: true }), { status: 200 });
+      return jsonResponse({ permitido: true }, 200);
     }
 
     const res = await fetch(
@@ -48,7 +64,7 @@ serve(async (req) => {
 
     if (!res.ok) {
       console.error("Perspective API error", await res.text());
-      return new Response(JSON.stringify({ permitido: true }), { status: 200 }); // fail-open, no tumba el posteo por un error de red
+      return jsonResponse({ permitido: true }, 200); // fail-open, no tumba el posteo por un error de red
     }
 
     const data = await res.json();
@@ -57,16 +73,16 @@ serve(async (req) => {
 
     const permitido = toxicity < UMBRAL_TOXICIDAD && severeToxicity < UMBRAL_TOXICIDAD;
 
-    return new Response(
-      JSON.stringify({
+    return jsonResponse(
+      {
         permitido,
         motivo: permitido ? undefined : "El texto parece tóxico o agresivo — revisalo antes de publicar.",
         scores: { toxicity, severeToxicity },
-      }),
-      { status: 200 }
+      },
+      200
     );
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ permitido: true }), { status: 200 }); // fail-open
+    return jsonResponse({ permitido: true }, 200); // fail-open
   }
 });

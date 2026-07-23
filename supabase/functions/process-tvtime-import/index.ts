@@ -28,6 +28,14 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
+// Necesario para que la webapp pueda invocar esta función desde el navegador
+// (el celular no tiene este problema, ahí no aplica CORS). Mismo patrón que
+// fetch-rss.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TMDB_TOKEN = Deno.env.get("TMDB_READ_TOKEN")!;
@@ -576,11 +584,14 @@ async function relanzarse(body: Record<string, string>) {
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
   });
 }
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: CORS_HEADERS });
+  }
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return jsonResponse({ ok: false, motivo: "Sin autenticación" }, 401);
