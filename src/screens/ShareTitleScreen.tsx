@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, TextInput, FlatList, Pressable, Image, StyleSheet, Alert } from "react-native";
+import { View, TextInput, FlatList, Pressable, Image, StyleSheet } from "react-native";
+import { Alert } from "../lib/alert";
 import { supabase } from "../lib/supabase";
 import { usuariosQueSigo, UsuarioBasico } from "../lib/follows";
 import { compartirTitulo, LIMITE_NOTA } from "../lib/sharedTitles";

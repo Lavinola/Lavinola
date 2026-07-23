@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, ScrollView, Image, Pressable, StyleSheet, Alert, Dimensions } from "react-native";
+import { View, ScrollView, Image, Pressable, StyleSheet, Dimensions } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import ConfettiOverlay from "../components/ConfettiOverlay";

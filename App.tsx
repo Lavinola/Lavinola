@@ -5,6 +5,7 @@ import { useFonts, RobotoSlab_700Bold } from "@expo-google-fonts/roboto-slab";
 import RootNavigation from "./src/navigation";
 import { AppLanguageProvider } from "./src/i18n/i18n";
 import { theme } from "./src/theme";
+import GlobalAlertHost from "./src/components/GlobalAlertHost";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -38,6 +39,7 @@ export default function App() {
     <AppLanguageProvider>
       <StatusBar style="auto" />
       <RootNavigation />
+      <GlobalAlertHost />
     </AppLanguageProvider>
   );
 

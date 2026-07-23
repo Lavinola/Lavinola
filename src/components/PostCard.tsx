@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Image, Pressable, StyleSheet, Alert } from "react-native";
+import { View, Image, Pressable, StyleSheet } from "react-native";
+import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
 import ActionSheetModal from "./ActionSheetModal";

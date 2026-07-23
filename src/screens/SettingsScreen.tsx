@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Image, TextInput, Switch, Pressable, ScrollView, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { View, Image, TextInput, Switch, Pressable, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import SelectField from "../components/SelectField";
 import CountryPickerField from "../components/CountryPickerField";

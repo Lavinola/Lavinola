@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
-import { Modal, View, Image, Pressable, TextInput, StyleSheet, Alert, ActivityIndicator, Dimensions, Platform } from "react-native";
+import { Modal, View, Image, Pressable, TextInput, StyleSheet, ActivityIndicator, Dimensions, Platform } from "react-native";
+import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import ViewShot from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";

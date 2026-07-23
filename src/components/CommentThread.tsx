@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, TextInput, Pressable, Image, StyleSheet, Alert } from "react-native";
+import { View, TextInput, Pressable, Image, StyleSheet } from "react-native";
+import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Comentario,

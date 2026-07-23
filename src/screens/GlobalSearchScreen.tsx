@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator, Alert, Platform } from "react-native";
+import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator, Platform } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";

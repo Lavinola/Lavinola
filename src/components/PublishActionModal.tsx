@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Modal, TextInput, Pressable, StyleSheet, Alert } from "react-native";
+import { View, Modal, TextInput, Pressable, StyleSheet } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text, AppButton } from "./Themed";
 import { crearPost, crearPostDeLista } from "../lib/posts";
 import { supabase } from "../lib/supabase";

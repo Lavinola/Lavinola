@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Image, ScrollView, FlatList, Pressable, StyleSheet, Alert, ActivityIndicator, Dimensions } from "react-native";
+import { View, Image, ScrollView, FlatList, Pressable, StyleSheet, ActivityIndicator, Dimensions } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";

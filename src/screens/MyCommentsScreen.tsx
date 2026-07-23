@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
-import { View, FlatList, Image, Pressable, StyleSheet, Alert } from "react-native";
+import { View, FlatList, Image, Pressable, StyleSheet } from "react-native";
+import { Alert } from "../lib/alert";
 import { useFocusEffect } from "@react-navigation/native";
 import { Text } from "../components/Themed";
 import { supabase } from "../lib/supabase";

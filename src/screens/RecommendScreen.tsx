@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, TextInput, FlatList, Pressable, Image, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { View, TextInput, FlatList, Pressable, Image, StyleSheet, ActivityIndicator } from "react-native";
+import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { usuariosMutuos, UsuarioBasico } from "../lib/follows";

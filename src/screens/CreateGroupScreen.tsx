@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, TextInput, Image, Pressable, StyleSheet, Alert, ScrollView } from "react-native";
+import { View, TextInput, Image, Pressable, StyleSheet, ScrollView } from "react-native";
+import { Alert } from "../lib/alert";
 import { supabase } from "../lib/supabase";
 import { crearGrupo } from "../lib/groups";
 import { posterUrl } from "../lib/tmdb";

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, TextInput, Pressable, StyleSheet, Alert } from "react-native";
+import { View, TextInput, Pressable, StyleSheet } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import { supabase } from "../lib/supabase";
 import { crearLista, VisibilidadLista, ETIQUETAS_VISIBILIDAD } from "../lib/lists";

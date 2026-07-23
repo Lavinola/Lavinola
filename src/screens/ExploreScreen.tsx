@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, FlatList, Image, StyleSheet, Pressable, ActivityIndicator, Alert, ScrollView } from "react-native";
+import { View, FlatList, Image, StyleSheet, Pressable, ActivityIndicator, ScrollView } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { getTrendingSeries, getTrendingMovies, posterUrl } from "../lib/tmdb";

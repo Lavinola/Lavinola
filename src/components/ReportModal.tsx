@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Modal, View, Pressable, TextInput, StyleSheet, Alert } from "react-native";
+import { Modal, View, Pressable, TextInput, StyleSheet } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text, AppButton } from "./Themed";
 import { reportar, TargetReportable } from "../lib/reports";
 import { useT } from "../i18n/i18n";

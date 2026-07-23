@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, FlatList, Image, Pressable, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Themed";
 import TopPills from "../components/TopPills";

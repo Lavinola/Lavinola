@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, TextInput, Image, Pressable, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, TextInput, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import SelectField from "../components/SelectField";
 import * as ImagePicker from "expo-image-picker";

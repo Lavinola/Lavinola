@@ -1,4 +1,5 @@
-import { Alert, Linking } from "react-native";
+import { Linking } from "react-native";
+import { Alert } from "./alert";
 
 /**
  * Abre una URL de red social. Para X en particular, algunos dispositivos
