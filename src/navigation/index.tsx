@@ -308,6 +308,93 @@ function iconoPorTab(routeName: string, focused: boolean) {
   return mapa[routeName] ?? "ellipse-outline";
 }
 
+// Mapea cada pantalla del stack a una URL — así, en la web, cada vez que
+// navegás a algo se genera una entrada real en el historial del navegador.
+// Sin esto, la app entera vive en una sola entrada de historial: el botón
+// "atrás" físico de Android no tiene a dónde volver y termina cerrando la
+// webapp entera en vez de ir a la pantalla anterior. Con esto, el botón
+// atrás va retrocediendo pantalla por pantalla, como se espera.
+//
+// No hace falta mapear los parámetros de cada ruta (ids, nombres, etc.) —
+// los que no están en el path, React Navigation los agrega solo como
+// query string (?id=123&...), así que alcanza con un slug simple por
+// pantalla.
+const RUTAS_COMUNES: Record<string, string> = {
+  AgregarTitulo: "agregar",
+  DetalleTitulo: "titulo",
+  CompartirTitulo: "compartir",
+  HiloActividad: "hilo",
+  CrearGrupo: "crear-grupo",
+  AdminGrupos: "admin-grupos",
+  ModerarUsuariosGrupo: "moderar-grupo",
+  BuscarEnLobby: "buscar-lobby",
+  MiembrosGrupo: "miembros-grupo",
+  FavoritosDe: "favoritos-de",
+  DetalleGrupo: "grupo",
+  BuscarUsuarios: "buscar-usuarios",
+  Solicitudes: "solicitudes",
+  PerfilAjeno: "usuario",
+  Notificaciones: "notificaciones",
+  BuscadorGlobal: "buscar",
+  TodasLasSeries: "todas-series",
+  TodasLasPeliculas: "todas-peliculas",
+  ElegirLista: "elegir-lista",
+  GestionarFavoritas: "gestionar-favoritas",
+  DetalleLista: "lista",
+  ListasDeUsuario: "listas-usuario",
+  ElegirParaLista: "elegir-para-lista",
+  DenunciasUsuario: "denuncias-usuario",
+  Comentarios: "comentarios",
+  Actor: "actor",
+  PersonalizarCaratula: "personalizar",
+  EpisodioDetalle: "episodio",
+  ElegirGif: "elegir-gif",
+  ListaSeguidores: "seguidores",
+  MisComentarios: "mis-comentarios",
+  DescubrirMas: "descubrir-mas",
+  CrearLista: "crear-lista",
+  ElegirImagenTmdb: "elegir-imagen",
+  Recomendar: "recomendar",
+  CrearPost: "crear-post",
+};
+
+const linking = {
+  prefixes: [Linking.createURL("/")],
+  config: {
+    screens: {
+      Series: { path: "series", screens: { SeriesHome: "", ...RUTAS_COMUNES } },
+      Películas: { path: "peliculas", screens: { MoviesHome: "", ...RUTAS_COMUNES } },
+      Comunidad: { path: "comunidad", screens: { CommunityHome: "", ...RUTAS_COMUNES } },
+      Explorar: { path: "explorar", screens: { ExploreHome: "", ...RUTAS_COMUNES } },
+      Perfil: {
+        path: "perfil",
+        screens: {
+          ProfileHome: "",
+          EditarPerfil: "editar-perfil",
+          ElegirPortada: "elegir-portada",
+          Listas: "listas",
+          Favoritos: "favoritos",
+          ImportarTVTime: "importar-tvtime",
+          AdminReportes: "admin-reportes",
+          AdminModeradores: "admin-moderadores",
+          AdminDenunciasModerador: "admin-denuncias",
+          AdminSugerencias: "admin-sugerencias",
+          AdminAnuncio: "admin-anuncio",
+          AdminMetricas: "admin-metricas",
+          Anuncios: "anuncios",
+          Estadisticas: "estadisticas",
+          Ranking: "ranking",
+          SeleccionMultipleFavoritos: "seleccion-favoritos",
+          Ajustes: "ajustes",
+          Sugerir: "sugerir",
+          GestionarDescartados: "descartados",
+          ...RUTAS_COMUNES,
+        },
+      },
+    },
+  },
+};
+
 export default function RootNavigation() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -368,7 +455,7 @@ export default function RootNavigation() {
   if (!session) return <AuthScreen />;
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer theme={navigationTheme} linking={linking}>
       <Tab.Navigator
         initialRouteName="Comunidad"
         screenOptions={({ route }) => ({
