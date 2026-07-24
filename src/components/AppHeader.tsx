@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 2,
+    marginLeft: 5,
   },
   ayudaTexto: { fontSize: 7.5, fontWeight: "800", color: theme.colors.primaryLight, lineHeight: 8 },
   icono: { width: 40, height: 28 },

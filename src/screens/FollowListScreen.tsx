@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { View, FlatList, Image, Pressable, StyleSheet } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, FlatList, Image, Pressable, TextInput, StyleSheet, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { supabase } from "../lib/supabase";
@@ -21,6 +22,10 @@ export default function FollowListScreen({ route, navigation }: Props) {
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [aDejarDeSeguir, setADejarDeSeguir] = useState<UsuarioBasico | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [ordenReciente, setOrdenReciente] = useState(false); // solo aplica a tu propia lista; default alfabético
+
+  const esMiPropiaLista = !!viewerId && viewerId === userId;
 
   useEffect(() => {
     navigation.setOptions({ title: modo === "siguiendo" ? t("Siguiendo") : t("Seguidores") });
@@ -36,6 +41,33 @@ export default function FollowListScreen({ route, navigation }: Props) {
     setLista(data);
     setCargando(false);
   }
+
+  const listaFinal = useMemo(() => {
+    let resultado = [...lista];
+
+    // Búsqueda por nombre de usuario, siempre disponible.
+    const texto = busqueda.trim().toLowerCase();
+    if (texto.length > 0) {
+      resultado = resultado.filter((u) => (u.username ?? "").toLowerCase().includes(texto));
+    }
+
+    if (esMiPropiaLista) {
+      // Tu propia lista: alfabético por default, o más reciente primero si se activa el toggle.
+      if (ordenReciente) {
+        resultado.sort((a, b) => (b.followCreatedAt ?? "").localeCompare(a.followCreatedAt ?? ""));
+      } else {
+        resultado.sort((a, b) => (a.username ?? "").localeCompare(b.username ?? ""));
+      }
+    } else {
+      // Lista de otro usuario: primero la gente que vos también seguís, después el resto — alfabético dentro de cada grupo.
+      resultado.sort((a, b) => {
+        if (a.siguiendo !== b.siguiendo) return a.siguiendo ? -1 : 1;
+        return (a.username ?? "").localeCompare(b.username ?? "");
+      });
+    }
+
+    return resultado;
+  }, [lista, busqueda, esMiPropiaLista, ordenReciente]);
 
   async function toggleFollow(u: UsuarioBasico) {
     if (!viewerId || u.solicitudPendiente) return;
@@ -60,14 +92,40 @@ export default function FollowListScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.topBar}>
+        <View style={styles.buscadorConLupa}>
+          <Ionicons name="search" size={16} color={theme.colors.primaryLight} />
+          <TextInput
+            style={styles.input}
+            placeholder={t("Buscar por usuario...")}
+            placeholderTextColor={theme.colors.textFaint}
+            value={busqueda}
+            onChangeText={setBusqueda}
+            autoComplete="off"
+            autoCorrect={false}
+          />
+        </View>
+        {esMiPropiaLista && (
+          <Pressable style={styles.ordenBtn} onPress={() => setOrdenReciente((v) => !v)} hitSlop={8}>
+            <Ionicons name={ordenReciente ? "time" : "text"} size={14} color={theme.colors.primaryLight} />
+            <Text style={styles.ordenBtnTexto}>{ordenReciente ? t("Recientes") : t("A-Z")}</Text>
+          </Pressable>
+        )}
+      </View>
+
       <FlatList
-        data={lista}
+        data={listaFinal}
         keyExtractor={(u) => u.id}
         contentContainerStyle={{ padding: 12 }}
+        keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           !cargando ? (
             <Text style={styles.vacio}>
-              {modo === "siguiendo" ? t("Todavía no sigue a nadie.") : t("Todavía no tiene seguidores.")}
+              {busqueda.trim().length > 0
+                ? t("No encontramos a nadie con ese nombre.")
+                : modo === "siguiendo"
+                ? t("Todavía no sigue a nadie.")
+                : t("Todavía no tiene seguidores.")}
             </Text>
           ) : null
         }
@@ -110,6 +168,30 @@ export default function FollowListScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
+  topBar: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingTop: 10 },
+  buscadorConLupa: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 10,
+  },
+  input: { flex: 1, color: theme.colors.text, paddingVertical: 8, fontSize: 13, ...(Platform.OS === "web" ? { outlineStyle: "none" as any } : {}) },
+  ordenBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  ordenBtnTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   vacio: { textAlign: "center", color: theme.colors.textMuted, marginTop: 24 },
   card: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10, backgroundColor: theme.colors.surfaceAlt },

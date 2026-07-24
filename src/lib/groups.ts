@@ -133,6 +133,31 @@ export async function buscarGrupos(query: string, userId: string | null): Promis
   return (grupos ?? []).map((g: any) => mapGrupo(g, userId));
 }
 
+/**
+ * Grupos que le podrían interesar al usuario, para mostrar en el buscador
+ * global antes de que escriba nada: primero los que tienen gente que sigue
+ * como miembros, después los más populares (por cantidad de miembros).
+ * Nunca incluye grupos de los que ya es parte.
+ */
+export async function listarGruposRecomendados(userId: string): Promise<Grupo[]> {
+  const { data: sigo } = await supabase.from("follows").select("followee_id").eq("follower_id", userId);
+  const sigoIds = (sigo ?? []).map((f: any) => f.followee_id);
+
+  const gruposConSeguidos = new Set<string>();
+  if (sigoIds.length > 0) {
+    const { data: miembrosSeguidos } = await supabase.from("group_members").select("group_id").in("user_id", sigoIds);
+    (miembrosSeguidos ?? []).forEach((m: any) => gruposConSeguidos.add(m.group_id));
+  }
+
+  const todos = await listarGrupos(userId, "popularidad", false);
+  const candidatos = todos.filter((g) => !g.soyMiembro);
+
+  const conSeguidos = candidatos.filter((g) => gruposConSeguidos.has(g.id));
+  const populares = candidatos.filter((g) => !gruposConSeguidos.has(g.id));
+
+  return [...conSeguidos, ...populares].slice(0, 20);
+}
+
 export async function unirseAGrupo(groupId: string, userId: string) {
   await supabase.from("group_members").insert({ group_id: groupId, user_id: userId });
 }

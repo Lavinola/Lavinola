@@ -107,6 +107,8 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   temporadas: { en: "seasons", pt: "temporadas", it: "stagioni" },
   "Buscar por usuario...": { en: "Search by username...", pt: "Buscar por usuário...", it: "Cerca per utente..." },
   "No encontramos a nadie con ese nombre.": { en: "We couldn't find anyone with that name.", pt: "Não encontramos ninguém com esse nome.", it: "Non abbiamo trovato nessuno con questo nome." },
+  Recientes: { en: "Recent", pt: "Recentes", it: "Recenti" },
+  "A-Z": { en: "A-Z", pt: "A-Z", it: "A-Z" },
   "Todavía no sigue a nadie.": { en: "Not following anyone yet.", pt: "Ainda não segue ninguém.", it: "Non segue ancora nessuno." },
   "Todavía no tiene seguidores.": { en: "No followers yet.", pt: "Ainda sem seguidores.", it: "Non ha ancora follower." },
   "¿Seguro que querés dejar de seguir a {nombre}?": {

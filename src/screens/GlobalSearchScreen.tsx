@@ -6,8 +6,9 @@ import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";
 import { searchSeries, searchMovies, posterUrl } from "../lib/tmdb";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie } from "../lib/sync";
-import { buscarUsuarios, UsuarioBasico } from "../lib/follows";
-import { buscarGrupos, unirseAGrupo, Grupo } from "../lib/groups";
+import { buscarUsuarios, listarUsuariosRecomendados, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
+import { seguirRespetandoPrivacidad } from "../lib/followRequests";
+import { buscarGrupos, listarGruposRecomendados, unirseAGrupo, Grupo } from "../lib/groups";
 import { supabase } from "../lib/supabase";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -40,9 +41,20 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     supabase.auth.getUser().then(async ({ data }) => {
       const uid = data.user?.id ?? null;
       setUserId(uid);
-      if (uid) await cargarAgregados(uid);
+      if (uid) {
+        await cargarAgregados(uid);
+        if (tab !== "titulos") cargarRecomendaciones(uid, tab);
+      }
     });
   });
+
+  async function cargarRecomendaciones(uid: string, tabActual: Tab) {
+    if (tabActual === "usuarios") {
+      setUsuarios(await listarUsuariosRecomendados(uid));
+    } else if (tabActual === "grupos") {
+      setGrupos(await listarGruposRecomendados(uid));
+    }
+  }
 
   async function cargarAgregados(uid: string) {
     const [{ data: series }, { data: movies }] = await Promise.all([
@@ -59,8 +71,12 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     setQuery(texto);
     if (texto.trim().length < 2) {
       setTitulos([]);
-      setUsuarios([]);
-      setGrupos([]);
+      if (userId && tab !== "titulos") {
+        cargarRecomendaciones(userId, tab);
+      } else {
+        setUsuarios([]);
+        setGrupos([]);
+      }
       return;
     }
     setLoading(true);
@@ -104,6 +120,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   function cambiarTab(t: Tab) {
     setTab(t);
     if (query.trim().length >= 2) buscar(query);
+    else if (userId && t !== "titulos") cargarRecomendaciones(userId, t);
   }
 
   async function agregarTitulo(item: ResultadoTitulo) {
@@ -138,6 +155,21 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     if (!userId) return;
     await unirseAGrupo(g.id, userId);
     buscar(query);
+  }
+
+  async function toggleFollow(u: UsuarioBasico) {
+    if (!userId || u.solicitudPendiente) return;
+    try {
+      if (u.siguiendo) {
+        await dejarDeSeguir(userId, u.id);
+      } else {
+        await seguirRespetandoPrivacidad(userId, u.id);
+      }
+      if (query.trim().length >= 2) buscar(query);
+      else cargarRecomendaciones(userId, "usuarios");
+    } catch (e: any) {
+      Alert.alert("No se pudo actualizar", e.message);
+    }
   }
 
   return (
@@ -215,14 +247,26 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           keyExtractor={(u) => u.id}
           contentContainerStyle={{ padding: 12 }}
           renderItem={({ item }) => (
-            <Pressable style={styles.card} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
-              {item.avatar_url ? (
-                <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, { backgroundColor: theme.colors.surfaceAlt }]} />
-              )}
-              <Text style={styles.nombre}>{item.username ?? "Usuario"}</Text>
-            </Pressable>
+            <View style={styles.card}>
+              <Pressable style={styles.cardInfo} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
+                {item.avatar_url ? (
+                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, { backgroundColor: theme.colors.surfaceAlt }]} />
+                )}
+                <Text style={styles.nombre}>{item.username ?? "Usuario"}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.followBtn, (item.siguiendo || item.solicitudPendiente) && styles.followBtnActivo]}
+                onPress={() => toggleFollow(item)}
+                disabled={item.solicitudPendiente}
+                hitSlop={8}
+              >
+                <Text style={[styles.followBtnTexto, (item.siguiendo || item.solicitudPendiente) && styles.followBtnTextoActivo]}>
+                  {item.solicitudPendiente ? t("Solicitud enviada") : item.siguiendo ? t("Siguiendo") : t("Seguir")}
+                </Text>
+              </Pressable>
+            </View>
           )}
         />
       )}
@@ -268,6 +312,11 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, color: theme.colors.text, paddingVertical: 10, ...(Platform.OS === "web" ? { outlineStyle: "none" as any } : {}) },
   card: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
+  cardInfo: { flexDirection: "row", alignItems: "center", flex: 1 },
+  followBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 10 },
+  followBtnTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
+  followBtnActivo: { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border },
+  followBtnTextoActivo: { color: theme.colors.textMuted },
   poster: { width: 40, height: 60, borderRadius: 4, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
   nombre: { flex: 1, fontSize: 15 },
