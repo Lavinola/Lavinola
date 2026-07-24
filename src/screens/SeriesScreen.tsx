@@ -371,10 +371,10 @@ function FilaSerie({
             navigation.navigate("DetalleTitulo", { tmdbId: item.tmdb_id, tipo: "series" });
           }}
         >
-          <Text style={styles.filaTitulo} numberOfLines={1}>
+          <Text style={styles.filaTitulo} numberOfLines={2}>
             {item.name}
           </Text>
-          <Text style={styles.filaFlecha}>›</Text>
+          <Text style={[styles.filaFlecha, { marginTop: 2 }]}>›</Text>
         </Pressable>
         {marcando ? (
           <Animated.Text style={[styles.filaSubMarcada, { opacity: opacidad }]}>
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   filaSerieMarcada: { backgroundColor: theme.colors.primary },
   filaPoster: { width: 46, height: 69, borderRadius: 4, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },
   filaInfo: { flex: 1 },
-  filaTituloRow: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start" },
+  filaTituloRow: { flexDirection: "row", alignItems: "flex-start" },
   filaTitulo: { fontSize: 15, fontWeight: "600", flexShrink: 1 },
   filaFlecha: { fontSize: 18, color: theme.colors.textMuted, marginLeft: 3 },
   filaSub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2, flexShrink: 1 },
