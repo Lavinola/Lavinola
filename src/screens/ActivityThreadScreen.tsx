@@ -94,7 +94,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       const { data: perfilPropio } = await supabase.from("profiles").select("content_language").eq("id", uid).maybeSingle();
       setIdiomaUsuario(idiomaCorto(perfilPropio?.content_language));
     }
-    await cargar();
+    await cargar(uid);
     if (uid) {
       marcarChatLeido(chatId, uid);
       marcarNotificacionesDeChatComoLeidas(uid, chatId);
@@ -119,10 +119,11 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     setBloqueado(!!bloqueo);
   }
 
-  async function cargar() {
-    const data = await cargarMensajesChat(chatId, userId ?? undefined);
+  async function cargar(uidParam?: string | null) {
+    const uid = uidParam !== undefined ? uidParam : userId;
+    const data = await cargarMensajesChat(chatId, uid ?? undefined);
     setMensajes(data);
-    if (userId) marcarChatLeido(chatId, userId);
+    if (uid) marcarChatLeido(chatId, uid);
 
     // Traemos nombre/poster de cada título, grupo o lista recomendado en el hilo.
     for (const m of data) {
