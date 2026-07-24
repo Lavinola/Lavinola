@@ -749,6 +749,71 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Devi essere membro per vederlo. Manda prima una richiesta.",
   },
   Entendido: { en: "Got it", pt: "Entendido", it: "Capito" },
+  "¡Bienvenido a Lavinola!": {
+    en: "Welcome to Lavinola!",
+    pt: "Bem-vindo ao Lavinola!",
+    it: "Benvenuto su Lavinola!",
+  },
+  "Un repaso rápido de lo que podés hacer:": {
+    en: "A quick rundown of what you can do:",
+    pt: "Um resumo rápido do que você pode fazer:",
+    it: "Una rapida panoramica di cosa puoi fare:",
+  },
+  "Trackeá lo que ves": {
+    en: "Track what you watch",
+    pt: "Registre o que você assiste",
+    it: "Traccia ciò che guardi",
+  },
+  "Marcá series y películas como vistas o pendientes. Lavinola calcula sola tu progreso y estado.": {
+    en: "Mark shows and movies as watched or pending. Lavinola calculates your progress and status automatically.",
+    pt: "Marque séries e filmes como assistidos ou pendentes. O Lavinola calcula seu progresso e status automaticamente.",
+    it: "Segna serie e film come visti o da vedere. Lavinola calcola da sola i tuoi progressi e il tuo stato.",
+  },
+  "No te pierdas estrenos": {
+    en: "Never miss a premiere",
+    pt: "Não perca as estreias",
+    it: "Non perderti le anteprime",
+  },
+  "La pestaña Próximamente te avisa cuándo sale el siguiente capítulo de tus series.": {
+    en: "The Upcoming tab lets you know when the next episode of your shows is coming out.",
+    pt: "A aba Em breve avisa quando sai o próximo episódio das suas séries.",
+    it: "La scheda Prossimamente ti avvisa quando esce il prossimo episodio delle tue serie.",
+  },
+  "Sumate a la comunidad": {
+    en: "Join the community",
+    pt: "Participe da comunidade",
+    it: "Unisciti alla community",
+  },
+  "Seguí a otros usuarios, comentá, y creá o unite a grupos temáticos en la pestaña Comunidad.": {
+    en: "Follow other users, comment, and create or join themed groups in the Community tab.",
+    pt: "Siga outros usuários, comente, e crie ou entre em grupos temáticos na aba Comunidade.",
+    it: "Segui altri utenti, commenta, e crea o unisciti a gruppi tematici nella scheda Community.",
+  },
+  "Armá tus listas": {
+    en: "Build your lists",
+    pt: "Monte suas listas",
+    it: "Crea le tue liste",
+  },
+  "Agrupá títulos en listas propias y compartilas con quien quieras.": {
+    en: "Group titles into your own lists and share them with whoever you want.",
+    pt: "Agrupe títulos em listas próprias e compartilhe com quem quiser.",
+    it: "Raggruppa i titoli in liste tue e condividile con chi vuoi.",
+  },
+  "¿Venís de TV Time o Letterboxd?": {
+    en: "Coming from TV Time or Letterboxd?",
+    pt: "Vindo do TV Time ou Letterboxd?",
+    it: "Vieni da TV Time o Letterboxd?",
+  },
+  "Importá tu historial completo desde Ajustes → Importar datos.": {
+    en: "Import your full history from Settings → Import data.",
+    pt: "Importe seu histórico completo em Ajustes → Importar dados.",
+    it: "Importa la tua cronologia completa da Impostazioni → Importa dati.",
+  },
+  "¡Empezar!": {
+    en: "Let's go!",
+    pt: "Vamos lá!",
+    it: "Iniziamo!",
+  },
   "Email o contraseña inválida.": {
     en: "Invalid email or password.",
     pt: "E-mail ou senha inválidos.",

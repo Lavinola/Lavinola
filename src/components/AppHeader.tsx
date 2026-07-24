@@ -6,6 +6,7 @@ import { Text } from "./Themed";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { contarNoLeidas } from "../lib/notificationsFeed";
+import { abrirAyuda } from "../lib/onboarding";
 import { theme } from "../theme";
 
 export default function AppHeader({ navigation }: { navigation: any }) {
@@ -27,8 +28,11 @@ export default function AppHeader({ navigation }: { navigation: any }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8, height: 56 + insets.top }]}>
-      <View style={styles.lado}>
+      <View style={[styles.lado, { flexDirection: "row", alignItems: "center" }]}>
         <Image source={require("../../assets/logo-wordmark.png")} style={styles.wordmark} resizeMode="contain" />
+        <Pressable onPress={abrirAyuda} hitSlop={10} style={styles.ayudaBtn}>
+          <Text style={styles.ayudaTexto}>?</Text>
+        </Pressable>
       </View>
 
       <View style={styles.centro}>
@@ -66,6 +70,17 @@ const styles = StyleSheet.create({
   lado: { flex: 1, justifyContent: "center" },
   centro: { alignItems: "center", justifyContent: "center" },
   wordmark: { width: 110, height: 30 },
+  ayudaBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
+  },
+  ayudaTexto: { fontSize: 12, fontWeight: "800", color: theme.colors.primaryLight, lineHeight: 14 },
   icono: { width: 40, height: 28 },
   campanaBtn: { padding: 10 },
   badge: {

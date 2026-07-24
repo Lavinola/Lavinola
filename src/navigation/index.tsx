@@ -45,6 +45,7 @@ import CustomizeArtworkScreen from "../screens/CustomizeArtworkScreen";
 import EpisodeDetailScreen from "../screens/EpisodeDetailScreen";
 import FadeInView from "../components/FadeInView";
 import AppHeader from "../components/AppHeader";
+import GlobalOnboardingHost from "../components/GlobalOnboardingHost";
 import GifPickerScreen from "../screens/GifPickerScreen";
 import AdminSuggestionsScreen from "../screens/AdminSuggestionsScreen";
 import AdminBroadcastScreen from "../screens/AdminBroadcastScreen";
@@ -455,35 +456,38 @@ export default function RootNavigation() {
   if (!session) return <AuthScreen />;
 
   return (
-    <NavigationContainer theme={navigationTheme} linking={linking}>
-      <Tab.Navigator
-        initialRouteName="Comunidad"
-        screenOptions={({ route }) => ({
-          ...tabScreenOptions,
-          tabBarIcon: ({ focused, color, size }) => {
-            if (route.name === "Comunidad") {
-              return (
-                <View style={styles.comunidadCirculo}>
-                  <Ionicons name={focused ? "people" : "people-outline"} size={26} color="#FFFFFF" />
-                </View>
-              );
-            }
-            return <Ionicons name={iconoPorTab(route.name, focused) as any} size={size} color={color} />;
-          },
-        })}
-      >
-        <Tab.Screen name="Series" component={SeriesStackNav} options={{ tabBarLabel: t("Series") }} />
-        <Tab.Screen name="Películas" component={MoviesStackNav} options={{ tabBarLabel: t("Películas") }} />
-        <Tab.Screen
-          name="Comunidad"
-          component={CommunityStackNav}
-          options={{
-            tabBarLabel: ({ color }: { color: string }) => <EtiquetaComunidad color={color} texto={t("Comunidad")} />,
-          }}
-        />
-        <Tab.Screen name="Explorar" component={ExploreStackNav} options={{ tabBarLabel: t("Explorar") }} />
-        <Tab.Screen name="Perfil" component={ProfileStackNav} options={{ tabBarLabel: t("Perfil") }} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <>
+      <NavigationContainer theme={navigationTheme} linking={linking}>
+        <Tab.Navigator
+          initialRouteName="Comunidad"
+          screenOptions={({ route }) => ({
+            ...tabScreenOptions,
+            tabBarIcon: ({ focused, color, size }) => {
+              if (route.name === "Comunidad") {
+                return (
+                  <View style={styles.comunidadCirculo}>
+                    <Ionicons name={focused ? "people" : "people-outline"} size={26} color="#FFFFFF" />
+                  </View>
+                );
+              }
+              return <Ionicons name={iconoPorTab(route.name, focused) as any} size={size} color={color} />;
+            },
+          })}
+        >
+          <Tab.Screen name="Series" component={SeriesStackNav} options={{ tabBarLabel: t("Series") }} />
+          <Tab.Screen name="Películas" component={MoviesStackNav} options={{ tabBarLabel: t("Películas") }} />
+          <Tab.Screen
+            name="Comunidad"
+            component={CommunityStackNav}
+            options={{
+              tabBarLabel: ({ color }: { color: string }) => <EtiquetaComunidad color={color} texto={t("Comunidad")} />,
+            }}
+          />
+          <Tab.Screen name="Explorar" component={ExploreStackNav} options={{ tabBarLabel: t("Explorar") }} />
+          <Tab.Screen name="Perfil" component={ProfileStackNav} options={{ tabBarLabel: t("Perfil") }} />
+        </Tab.Navigator>
+      </NavigationContainer>
+      <GlobalOnboardingHost />
+    </>
   );
 }
