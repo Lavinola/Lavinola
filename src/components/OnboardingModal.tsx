@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Modal, View, Pressable, ScrollView, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
 import { theme } from "../theme";
 import { useT } from "../i18n/i18n";
+import OnboardingDetalleModal from "./OnboardingDetalleModal";
 
 interface Props {
   visible: boolean;
@@ -18,6 +19,7 @@ interface Punto {
 
 export default function OnboardingModal({ visible, onCerrar }: Props) {
   const { t } = useT();
+  const [verDetalle, setVerDetalle] = useState(false);
 
   const puntos: Punto[] = [
     {
@@ -69,11 +71,17 @@ export default function OnboardingModal({ visible, onCerrar }: Props) {
             ))}
           </ScrollView>
 
+          <Pressable style={styles.verMasBtn} onPress={() => setVerDetalle(true)}>
+            <Text style={styles.verMasTexto}>{t("Ver más")}</Text>
+          </Pressable>
+
           <Pressable style={styles.boton} onPress={onCerrar}>
             <Text style={styles.botonTexto}>{t("¡Empezar!")}</Text>
           </Pressable>
         </Pressable>
       </Pressable>
+
+      <OnboardingDetalleModal visible={verDetalle} onCerrar={() => setVerDetalle(false)} />
     </Modal>
   );
 }
@@ -114,4 +122,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   botonTexto: { fontSize: 15, fontWeight: "800", color: "#000000" },
+  verMasBtn: { alignSelf: "center", paddingVertical: 8, paddingHorizontal: 10, marginTop: 4 },
+  verMasTexto: { fontSize: 13, fontWeight: "700", color: theme.colors.primaryLight, textDecorationLine: "underline" },
 });

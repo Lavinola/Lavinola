@@ -814,6 +814,107 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "Vamos lá!",
     it: "Iniziamo!",
   },
+  "Ver más": { en: "See more", pt: "Ver mais", it: "Vedi di più" },
+  "Cómo usar Lavinola": {
+    en: "How to use Lavinola",
+    pt: "Como usar o Lavinola",
+    it: "Come usare Lavinola",
+  },
+  "Trackear series y películas": {
+    en: "Tracking shows and movies",
+    pt: "Registrar séries e filmes",
+    it: "Tracciare serie e film",
+  },
+  "Buscá un título desde la lupa arriba, o mirá lo que está en tendencia en Explorar.": {
+    en: "Search for a title using the magnifying glass up top, or check what's trending in Explore.",
+    pt: "Busque um título pela lupa no topo, ou veja o que está em alta em Explorar.",
+    it: "Cerca un titolo con la lente in alto, o guarda cosa è di tendenza in Esplora.",
+  },
+  "Tocá el círculo con el tilde en su ficha para marcarlo como visto.": {
+    en: "Tap the circle with the checkmark on its page to mark it as watched.",
+    pt: "Toque no círculo com o tique na ficha para marcar como assistido.",
+    it: "Tocca il cerchio con il segno di spunta nella scheda per segnarlo come visto.",
+  },
+  "En series, marcar un capítulo salta solo al siguiente — no hace falta ir tocando uno por uno.": {
+    en: "For shows, marking one episode automatically jumps to the next one — no need to tap through each one.",
+    pt: "Em séries, marcar um episódio pula sozinho para o próximo — não precisa tocar um por um.",
+    it: "Nelle serie, segnare un episodio passa da solo al successivo — non serve toccarli uno per uno.",
+  },
+  "El estado (al día, viendo, sin comenzar, abandonada, terminada) se calcula solo, no hay que tocarlo a mano.": {
+    en: "The status (up to date, watching, not started, dropped, finished) is calculated automatically — no manual input needed.",
+    pt: "O status (em dia, assistindo, sem começar, abandonada, terminada) é calculado sozinho, não precisa mexer.",
+    it: "Lo stato (aggiornato, in corso, non iniziato, abbandonato, finito) si calcola da solo, non serve toccarlo a mano.",
+  },
+  "Calendario de estrenos": {
+    en: "Premiere calendar",
+    pt: "Calendário de estreias",
+    it: "Calendario delle anteprime",
+  },
+  "Dentro de Series o Películas, arriba tenés dos pestañas: Lista Pendiente y Próximamente.": {
+    en: "Inside Shows or Movies, up top you'll find two tabs: Pending List and Upcoming.",
+    pt: "Dentro de Séries ou Filmes, no topo tem duas abas: Lista Pendente e Em breve.",
+    it: "Dentro Serie o Film, in alto trovi due schede: Lista in sospeso e Prossimamente.",
+  },
+  "Próximamente agrupa por fecha los capítulos que van a salir de las series que seguís.": {
+    en: "Upcoming groups by date the episodes coming out for the shows you follow.",
+    pt: "Em breve agrupa por data os episódios que vão sair das séries que você segue.",
+    it: "Prossimamente raggruppa per data gli episodi in uscita delle serie che segui.",
+  },
+  "Para seguir a alguien: Comunidad → buscador de usuarios → entrá a su perfil → Seguir.": {
+    en: "To follow someone: Community → user search → go to their profile → Follow.",
+    pt: "Para seguir alguém: Comunidade → buscador de usuários → entre no perfil → Seguir.",
+    it: "Per seguire qualcuno: Community → cerca utenti → vai al profilo → Segui.",
+  },
+  "Para comentar: entrá al detalle de cualquier título, capítulo o dentro de un grupo, y escribí abajo del todo.": {
+    en: "To comment: go into the detail of any title, episode, or inside a group, and write at the very bottom.",
+    pt: "Para comentar: entre no detalhe de qualquer título, episódio ou dentro de um grupo, e escreva lá embaixo.",
+    it: "Per commentare: entra nel dettaglio di un titolo, episodio o in un gruppo, e scrivi in fondo.",
+  },
+  "Para crear un grupo: pestaña Comunidad → botón de crear grupo → elegí nombre, descripción y foto.": {
+    en: "To create a group: Community tab → create group button → choose a name, description, and photo.",
+    pt: "Para criar um grupo: aba Comunidade → botão de criar grupo → escolha nome, descrição e foto.",
+    it: "Per creare un gruppo: scheda Community → pulsante crea gruppo → scegli nome, descrizione e foto.",
+  },
+  "Podés compartir un título puntual con alguien que sigas desde el ícono de enviar en su ficha.": {
+    en: "You can share a specific title with someone you follow using the send icon on its page.",
+    pt: "Você pode compartilhar um título específico com alguém que segue pelo ícone de enviar na ficha.",
+    it: "Puoi condividere un titolo specifico con qualcuno che segui tramite l'icona di invio nella scheda.",
+  },
+  "Perfil → Listas → Crear lista nueva, le ponés un título.": {
+    en: "Profile → Lists → Create new list, give it a title.",
+    pt: "Perfil → Listas → Criar lista nova, dê um título a ela.",
+    it: "Profilo → Liste → Crea nuova lista, dalle un titolo.",
+  },
+  "Desde la ficha de cualquier título, tocá los tres puntitos → Agregar a lista.": {
+    en: "From any title's page, tap the three dots → Add to list.",
+    pt: "Na ficha de qualquer título, toque nos três pontinhos → Adicionar à lista.",
+    it: "Dalla scheda di un titolo, tocca i tre puntini → Aggiungi alla lista.",
+  },
+  "Las listas se pueden compartir, y quien las sigue recibe aviso si agregás algo nuevo.": {
+    en: "Lists can be shared, and followers get notified when you add something new.",
+    pt: "As listas podem ser compartilhadas, e quem segue recebe aviso quando você adiciona algo novo.",
+    it: "Le liste possono essere condivise, e chi le segue riceve un avviso se aggiungi qualcosa di nuovo.",
+  },
+  "Importar desde TV Time o Letterboxd": {
+    en: "Importing from TV Time or Letterboxd",
+    pt: "Importar do TV Time ou Letterboxd",
+    it: "Importare da TV Time o Letterboxd",
+  },
+  "Perfil → Ajustes → Importar datos.": {
+    en: "Profile → Settings → Import data.",
+    pt: "Perfil → Ajustes → Importar dados.",
+    it: "Profilo → Impostazioni → Importa dati.",
+  },
+  "Subís el archivo (ZIP completo de TV Time, o los CSV sueltos de TV Time/Letterboxd).": {
+    en: "Upload the file (full TV Time ZIP, or the loose TV Time/Letterboxd CSVs).",
+    pt: "Envie o arquivo (ZIP completo do TV Time, ou os CSV soltos do TV Time/Letterboxd).",
+    it: "Carica il file (ZIP completo di TV Time, o i CSV singoli di TV Time/Letterboxd).",
+  },
+  "Lavinola identifica tus títulos solo contra TMDB — si hay dudas en algún caso puntual, te va a preguntar cuál es el correcto.": {
+    en: "Lavinola matches your titles against TMDB automatically — if there's doubt in a specific case, it'll ask you which one is correct.",
+    pt: "O Lavinola identifica seus títulos sozinho contra o TMDB — se houver dúvida em algum caso pontual, vai perguntar qual é o correto.",
+    it: "Lavinola identifica i tuoi titoli da sola confrontandoli con TMDB — in caso di dubbio ti chiederà quale sia quello corretto.",
+  },
   "Email o contraseña inválida.": {
     en: "Invalid email or password.",
     pt: "E-mail ou senha inválidos.",
