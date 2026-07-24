@@ -30,12 +30,12 @@ export default function OnboardingModal({ visible, onCerrar }: Props) {
     {
       icono: "calendar",
       titulo: t("No te pierdas estrenos"),
-      texto: t("La pestaña Próximamente te avisa cuándo sale el siguiente capítulo de tus series."),
+      texto: t("Las pestañas Próximamente te avisan cuando sale la siguiente película o el siguiente capítulo de tus series."),
     },
     {
       icono: "people",
       titulo: t("Sumate a la comunidad"),
-      texto: t("Seguí a otros usuarios, comentá, y creá o unite a grupos temáticos en la pestaña Comunidad."),
+      texto: t("Seguí a otros usuarios, publicá en el Lobby, comentá, y creá o unite a grupos temáticos."),
     },
     {
       icono: "list",
@@ -61,7 +61,7 @@ export default function OnboardingModal({ visible, onCerrar }: Props) {
             {puntos.map((p, i) => (
               <View key={i} style={styles.fila}>
                 <View style={styles.iconoWrap}>
-                  <Ionicons name={p.icono} size={20} color={theme.colors.primaryLight} />
+                  <Ionicons name={p.icono} size={15} color={theme.colors.primaryLight} />
                 </View>
                 <View style={styles.filaTexto}>
                   <Text style={styles.filaTitulo}>{p.titulo}</Text>
@@ -72,7 +72,7 @@ export default function OnboardingModal({ visible, onCerrar }: Props) {
           </ScrollView>
 
           <Pressable style={styles.verMasBtn} onPress={() => setVerDetalle(true)}>
-            <Text style={styles.verMasTexto}>{t("Ver más")}</Text>
+            <Text style={styles.verMasTexto}>{t("Cómo funciona")}</Text>
           </Pressable>
 
           <Pressable style={styles.boton} onPress={onCerrar}>
@@ -94,34 +94,34 @@ const styles = StyleSheet.create({
     maxHeight: "85%",
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
-    padding: 22,
+    padding: 16,
     alignItems: "center",
   },
-  logo: { width: 56, height: 40, marginBottom: 10 },
-  titulo: { fontSize: 19, fontWeight: "800", color: theme.colors.text, textAlign: "center" },
-  subtitulo: { fontSize: 13, color: theme.colors.textMuted, textAlign: "center", marginTop: 4, marginBottom: 16 },
+  logo: { width: 40, height: 29, marginBottom: 6 },
+  titulo: { fontSize: 16, fontWeight: "800", color: theme.colors.text, textAlign: "center" },
+  subtitulo: { fontSize: 11.5, color: theme.colors.textMuted, textAlign: "center", marginTop: 2, marginBottom: 10 },
   lista: { alignSelf: "stretch" },
-  fila: { flexDirection: "row", alignItems: "flex-start", marginBottom: 16, gap: 12 },
+  fila: { flexDirection: "row", alignItems: "flex-start", marginBottom: 9, gap: 9 },
   iconoWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: theme.colors.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
   },
   filaTexto: { flex: 1 },
-  filaTitulo: { fontSize: 14, fontWeight: "700", color: theme.colors.text, marginBottom: 2 },
-  filaDetalle: { fontSize: 12.5, color: theme.colors.textMuted, lineHeight: 18 },
+  filaTitulo: { fontSize: 12.5, fontWeight: "700", color: theme.colors.text, marginBottom: 1 },
+  filaDetalle: { fontSize: 10.5, color: theme.colors.textMuted, lineHeight: 13.5 },
   boton: {
     alignSelf: "stretch",
     backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.md,
-    paddingVertical: 13,
+    paddingVertical: 10,
     alignItems: "center",
-    marginTop: 6,
+    marginTop: 4,
   },
-  botonTexto: { fontSize: 15, fontWeight: "800", color: "#000000" },
-  verMasBtn: { alignSelf: "center", paddingVertical: 8, paddingHorizontal: 10, marginTop: 4 },
-  verMasTexto: { fontSize: 13, fontWeight: "700", color: theme.colors.primaryLight, textDecorationLine: "underline" },
+  botonTexto: { fontSize: 14, fontWeight: "800", color: "#000000" },
+  verMasBtn: { alignSelf: "center", paddingVertical: 4, paddingHorizontal: 10, marginTop: 2 },
+  verMasTexto: { fontSize: 12, fontWeight: "700", color: theme.colors.primaryLight, textDecorationLine: "underline" },
 });

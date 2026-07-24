@@ -774,20 +774,20 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "Não perca as estreias",
     it: "Non perderti le anteprime",
   },
-  "La pestaña Próximamente te avisa cuándo sale el siguiente capítulo de tus series.": {
-    en: "The Upcoming tab lets you know when the next episode of your shows is coming out.",
-    pt: "A aba Em breve avisa quando sai o próximo episódio das suas séries.",
-    it: "La scheda Prossimamente ti avvisa quando esce il prossimo episodio delle tue serie.",
+  "Las pestañas Próximamente te avisan cuando sale la siguiente película o el siguiente capítulo de tus series.": {
+    en: "The Upcoming tabs let you know when the next movie or the next episode of your shows is coming out.",
+    pt: "As abas Em breve avisam quando sai o próximo filme ou o próximo episódio das suas séries.",
+    it: "Le schede Prossimamente ti avvisano quando esce il prossimo film o il prossimo episodio delle tue serie.",
   },
   "Sumate a la comunidad": {
     en: "Join the community",
     pt: "Participe da comunidade",
     it: "Unisciti alla community",
   },
-  "Seguí a otros usuarios, comentá, y creá o unite a grupos temáticos en la pestaña Comunidad.": {
-    en: "Follow other users, comment, and create or join themed groups in the Community tab.",
-    pt: "Siga outros usuários, comente, e crie ou entre em grupos temáticos na aba Comunidade.",
-    it: "Segui altri utenti, commenta, e crea o unisciti a gruppi tematici nella scheda Community.",
+  "Seguí a otros usuarios, publicá en el Lobby, comentá, y creá o unite a grupos temáticos.": {
+    en: "Follow other users, post in the Lobby, comment, and create or join themed groups.",
+    pt: "Siga outros usuários, publique no Lobby, comente, e crie ou entre em grupos temáticos.",
+    it: "Segui altri utenti, pubblica nella Lobby, commenta, e crea o unisciti a gruppi tematici.",
   },
   "Armá tus listas": {
     en: "Build your lists",
@@ -815,6 +815,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Iniziamo!",
   },
   "Ver más": { en: "See more", pt: "Ver mais", it: "Vedi di più" },
+  "Cómo funciona": { en: "How it works", pt: "Como funciona", it: "Come funziona" },
   "Cómo usar Lavinola": {
     en: "How to use Lavinola",
     pt: "Como usar o Lavinola",
@@ -914,6 +915,101 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     en: "Lavinola matches your titles against TMDB automatically — if there's doubt in a specific case, it'll ask you which one is correct.",
     pt: "O Lavinola identifica seus títulos sozinho contra o TMDB — se houver dúvida em algum caso pontual, vai perguntar qual é o correto.",
     it: "Lavinola identifica i tuoi titoli da sola confrontandoli con TMDB — in caso di dubbio ti chiederà quale sia quello corretto.",
+  },
+  "Editá tu foto de perfil, banner, nombre y una frase corta de alguna película que te represente.": {
+    en: "Edit your profile photo, banner, name, and a short quote from a movie that represents you.",
+    pt: "Edite sua foto de perfil, banner, nome e uma frase curta de algum filme que te represente.",
+    it: "Modifica la tua foto profilo, banner, nome e una breve citazione di un film che ti rappresenta.",
+  },
+  "Estadísticas: tiempo total dedicado a series y películas, cantidad de capítulos vistos, y más.": {
+    en: "Stats: total time spent on shows and movies, number of episodes watched, and more.",
+    pt: "Estatísticas: tempo total dedicado a séries e filmes, quantidade de episódios assistidos, e mais.",
+    it: "Statistiche: tempo totale dedicato a serie e film, numero di episodi visti, e altro.",
+  },
+  "Guardá tus series y películas preferidas en Favoritos.": {
+    en: "Save your favorite shows and movies to Favorites.",
+    pt: "Salve suas séries e filmes preferidos em Favoritos.",
+    it: "Salva le tue serie e i tuoi film preferiti nei Preferiti.",
+  },
+  "Armá listas propias para agrupar títulos, y compartilas con quien quieras.": {
+    en: "Build your own lists to group titles, and share them with whoever you want.",
+    pt: "Monte suas próprias listas para agrupar títulos, e compartilhe com quem quiser.",
+    it: "Crea le tue liste per raggruppare i titoli, e condividile con chi vuoi.",
+  },
+  "Descubrí películas y series en tendencia, y recomendaciones para vos.": {
+    en: "Discover trending movies and shows, and recommendations picked for you.",
+    pt: "Descubra filmes e séries em alta, e recomendações para você.",
+    it: "Scopri film e serie di tendenza, e consigli pensati per te.",
+  },
+  "Top mensual: lo más visto y mejor calificado del mes.": {
+    en: "Monthly top: the most watched and best rated of the month.",
+    pt: "Top mensal: o mais assistido e mais bem avaliado do mês.",
+    it: "Top del mese: il più visto e meglio valutato del mese.",
+  },
+  "Noticias: enterate de estrenos y novedades del mundo del cine y las series.": {
+    en: "News: find out about premieres and news from the world of movies and shows.",
+    pt: "Notícias: fique por dentro de estreias e novidades do mundo do cinema e das séries.",
+    it: "Notizie: scopri anteprime e novità dal mondo del cinema e delle serie.",
+  },
+  "Lobby: mirá lo que están comentando y compartiendo otros usuarios.": {
+    en: "Lobby: see what other users are commenting on and sharing.",
+    pt: "Lobby: veja o que outros usuários estão comentando e compartilhando.",
+    it: "Lobby: guarda cosa stanno commentando e condividendo altri utenti.",
+  },
+  "Grupos: creá o sumate a comunidades temáticas para hablar de tus series y películas favoritas.": {
+    en: "Groups: create or join themed communities to talk about your favorite shows and movies.",
+    pt: "Grupos: crie ou entre em comunidades temáticas para falar sobre suas séries e filmes favoritos.",
+    it: "Gruppi: crea o unisciti a community tematiche per parlare delle tue serie e film preferiti.",
+  },
+  "Chats: compartí un título puntual con alguien que sigas.": {
+    en: "Chats: share a specific title with someone you follow.",
+    pt: "Chats: compartilhe um título específico com alguém que você segue.",
+    it: "Chat: condividi un titolo specifico con qualcuno che segui.",
+  },
+  "Lista Pendiente: las películas que marcaste para ver, todavía no vistas.": {
+    en: "Pending List: the movies you marked to watch, not seen yet.",
+    pt: "Lista Pendente: os filmes que você marcou para ver, ainda não assistidos.",
+    it: "Lista in sospeso: i film che hai segnato da vedere, non ancora visti.",
+  },
+  "Próximamente: películas marcadas que aún no se estrenaron, ordenadas por fecha.": {
+    en: "Upcoming: marked movies that haven't premiered yet, sorted by date.",
+    pt: "Em breve: filmes marcados que ainda não estrearam, ordenados por data.",
+    it: "Prossimamente: film segnati che non sono ancora usciti, ordinati per data.",
+  },
+  "Lista Pendiente: tus series con capítulos por ver, con acceso directo al próximo.": {
+    en: "Pending List: your shows with episodes left to watch, with direct access to the next one.",
+    pt: "Lista Pendente: suas séries com episódios por ver, com acesso direto ao próximo.",
+    it: "Lista in sospeso: le tue serie con episodi da vedere, con accesso diretto al prossimo.",
+  },
+  "Próximamente: calendario con los estrenos de los capítulos de las series que seguís.": {
+    en: "Upcoming: a calendar with the release dates of episodes for the shows you follow.",
+    pt: "Em breve: calendário com as estreias dos episódios das séries que você segue.",
+    it: "Prossimamente: calendario con le uscite degli episodi delle serie che segui.",
+  },
+  "Detalle de películas o series": {
+    en: "Movie or show details",
+    pt: "Detalhe de filmes ou séries",
+    it: "Dettaglio di film o serie",
+  },
+  "Poder ver en qué plataforma verlo, el puntaje de Lavinola e IMDb, sinopsis, trailer y reparto. Podés cambiarle la tapa y el banner a tu gusto.": {
+    en: "See which platform to watch it on, the Lavinola and IMDb score, synopsis, trailer, and cast. You can change its cover and banner however you like.",
+    pt: "Veja em qual plataforma assistir, a nota do Lavinola e do IMDb, sinopse, trailer e elenco. Você pode trocar a capa e o banner como quiser.",
+    it: "Scopri su quale piattaforma vederlo, il punteggio Lavinola e IMDb, la trama, il trailer e il cast. Puoi cambiare copertina e banner come preferisci.",
+  },
+  "Podés comentar o leer comentarios de ese título. También podés ver quiénes tienen esa película o serie en sus favoritos.": {
+    en: "You can comment or read comments on that title. You can also see who has that movie or show in their favorites.",
+    pt: "Você pode comentar ou ler comentários daquele título. Também pode ver quem tem esse filme ou série nos favoritos.",
+    it: "Puoi commentare o leggere i commenti su quel titolo. Puoi anche vedere chi ha quel film o serie tra i preferiti.",
+  },
+  "Con la flechita violeta podés recomendarle la película o serie a alguien o publicar tu review en el Lobby.": {
+    en: "With the little purple arrow you can recommend the movie or show to someone, or post your review in the Lobby.",
+    pt: "Com a setinha roxa você pode recomendar o filme ou série para alguém, ou publicar sua resenha no Lobby.",
+    it: "Con la freccetta viola puoi consigliare il film o la serie a qualcuno, o pubblicare la tua recensione nella Lobby.",
+  },
+  "Una vez que la terminás, la podés calificar, elegir cómo te sentiste y tu actor/actriz favorito. También podés modificar la fecha en que la viste.": {
+    en: "Once you finish it, you can rate it, choose how it made you feel and your favorite actor/actress. You can also edit the date you watched it.",
+    pt: "Depois de terminar, você pode avaliar, escolher como se sentiu e seu ator/atriz favorito. Também pode editar a data em que assistiu.",
+    it: "Una volta finito, puoi valutarlo, scegliere come ti sei sentito e il tuo attore/attrice preferito. Puoi anche modificare la data in cui l'hai visto.",
   },
   "Email o contraseña inválida.": {
     en: "Invalid email or password.",

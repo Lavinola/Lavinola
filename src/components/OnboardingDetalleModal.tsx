@@ -19,36 +19,51 @@ export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
 
   const secciones: Seccion[] = [
     {
-      titulo: t("Trackear series y películas"),
+      titulo: t("Perfil"),
       pasos: [
-        t("Buscá un título desde la lupa arriba, o mirá lo que está en tendencia en Explorar."),
-        t("Tocá el círculo con el tilde en su ficha para marcarlo como visto."),
-        t("En series, marcar un capítulo salta solo al siguiente — no hace falta ir tocando uno por uno."),
-        t("El estado (al día, viendo, sin comenzar, abandonada, terminada) se calcula solo, no hay que tocarlo a mano."),
+        t("Editá tu foto de perfil, banner, nombre y una frase corta de alguna película que te represente."),
+        t("Estadísticas: tiempo total dedicado a series y películas, cantidad de capítulos vistos, y más."),
+        t("Guardá tus series y películas preferidas en Favoritos."),
+        t("Armá listas propias para agrupar títulos, y compartilas con quien quieras."),
       ],
     },
     {
-      titulo: t("Calendario de estrenos"),
+      titulo: t("Explorar"),
       pasos: [
-        t("Dentro de Series o Películas, arriba tenés dos pestañas: Lista Pendiente y Próximamente."),
-        t("Próximamente agrupa por fecha los capítulos que van a salir de las series que seguís."),
+        t("Descubrí películas y series en tendencia, y recomendaciones para vos."),
+        t("Top mensual: lo más visto y mejor calificado del mes."),
+        t("Noticias: enterate de estrenos y novedades del mundo del cine y las series."),
       ],
     },
     {
       titulo: t("Comunidad"),
       pasos: [
-        t("Para seguir a alguien: Comunidad → buscador de usuarios → entrá a su perfil → Seguir."),
-        t("Para comentar: entrá al detalle de cualquier título, capítulo o dentro de un grupo, y escribí abajo del todo."),
-        t("Para crear un grupo: pestaña Comunidad → botón de crear grupo → elegí nombre, descripción y foto."),
-        t("Podés compartir un título puntual con alguien que sigas desde el ícono de enviar en su ficha."),
+        t("Lobby: mirá lo que están comentando y compartiendo otros usuarios."),
+        t("Grupos: creá o sumate a comunidades temáticas para hablar de tus series y películas favoritas."),
+        t("Chats: compartí un título puntual con alguien que sigas."),
       ],
     },
     {
-      titulo: t("Listas"),
+      titulo: t("Películas"),
       pasos: [
-        t("Perfil → Listas → Crear lista nueva, le ponés un título."),
-        t("Desde la ficha de cualquier título, tocá los tres puntitos → Agregar a lista."),
-        t("Las listas se pueden compartir, y quien las sigue recibe aviso si agregás algo nuevo."),
+        t("Lista Pendiente: las películas que marcaste para ver, todavía no vistas."),
+        t("Próximamente: películas marcadas que aún no se estrenaron, ordenadas por fecha."),
+      ],
+    },
+    {
+      titulo: t("Series"),
+      pasos: [
+        t("Lista Pendiente: tus series con capítulos por ver, con acceso directo al próximo."),
+        t("Próximamente: calendario con los estrenos de los capítulos de las series que seguís."),
+      ],
+    },
+    {
+      titulo: t("Detalle de películas o series"),
+      pasos: [
+        t("Poder ver en qué plataforma verlo, el puntaje de Lavinola e IMDb, sinopsis, trailer y reparto. Podés cambiarle la tapa y el banner a tu gusto."),
+        t("Podés comentar o leer comentarios de ese título. También podés ver quiénes tienen esa película o serie en sus favoritos."),
+        t("Con la flechita violeta podés recomendarle la película o serie a alguien o publicar tu review en el Lobby."),
+        t("Una vez que la terminás, la podés calificar, elegir cómo te sentiste y tu actor/actriz favorito. También podés modificar la fecha en que la viste."),
       ],
     },
     {
