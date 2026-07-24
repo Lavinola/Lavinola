@@ -117,7 +117,8 @@ export default function AuthScreen() {
     }
     setEnviandoReset(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: "lavinola://reset-password" });
+      const redirectTo = Platform.OS === "web" ? window.location.origin : "lavinola://reset-password";
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
       if (error) throw error;
       Alert.alert("Listo", "Te mandamos un mail para elegir una contraseña nueva. Revisá tu bandeja de entrada (y spam).");
     } catch (e: any) {
