@@ -28,7 +28,7 @@ export default function AppHeader({ navigation }: { navigation: any }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8, height: 56 + insets.top }]}>
-      <View style={[styles.lado, { flexDirection: "row", alignItems: "center" }]}>
+      <View style={[styles.lado, { flexDirection: "row", alignItems: "flex-end", justifyContent: "flex-start" }]}>
         <Pressable onPress={abrirAyuda} hitSlop={10} style={styles.ayudaBtn}>
           <Text style={styles.ayudaTexto}>?</Text>
         </Pressable>
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 4,
+    marginRight: 2,
   },
   ayudaTexto: { fontSize: 7.5, fontWeight: "800", color: theme.colors.primaryLight, lineHeight: 8 },
   icono: { width: 40, height: 28 },
