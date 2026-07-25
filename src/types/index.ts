@@ -6,7 +6,7 @@ export type SeriesStatusFilter =
   | "abandonada";
 
 // Umbral fijo para MVP (ver spec). A futuro: configurable por usuario.
-export const ABANDONADA_UMBRAL_DIAS = 60; // 2 meses
+export const ABANDONADA_UMBRAL_DIAS = 20;
 
 export interface Profile {
   id: string;
@@ -52,8 +52,8 @@ export interface UserMovie {
  * - terminada: 100% visto + status Ended/Canceled
  * - al_dia: 100% visto + status Returning Series
  * - sin_comenzar: 0 episodios vistos
- * - viendo: parcial + actividad hace < 2 meses
- * - abandonada: parcial + actividad hace > 2 meses
+ * - viendo: parcial + actividad hace < 20 días
+ * - abandonada: parcial + actividad hace > 20 días
  */
 export function computeSeriesStatus(params: {
   episodesWatched: number;

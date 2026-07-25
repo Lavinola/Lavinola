@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Image, TextInput, Switch, Pressable, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Image, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import SelectField from "../components/SelectField";
@@ -211,12 +211,7 @@ function TabCuenta({ navigation }: any) {
             {t("Si lo activás, vas a tener que aprobar cada solicitud de seguimiento. Solo tus seguidores van a poder ver tu actividad.")}
           </Text>
         </View>
-        <Switch
-          value={!!perfil?.is_private}
-          onValueChange={togglePrivado}
-          trackColor={{ false: "#555555", true: theme.colors.primary }}
-          thumbColor={perfil?.is_private ? theme.colors.primaryLight : "#CCCCCC"}
-        />
+        <ToggleSwitch value={!!perfil?.is_private} onValueChange={togglePrivado} />
       </View>
 
       <View style={{ height: 24 }} />
@@ -350,11 +345,9 @@ function TabAplicacion({ navigation }: any) {
           <Text style={styles.switchLabel}>{t("Mostrar en tu idioma")}</Text>
           <Text style={styles.switchHint}>{t("Los títulos se muestran en inglés por defecto.")}</Text>
         </View>
-        <Switch
+        <ToggleSwitch
           value={p.show_titles_in_own_language !== false}
           onValueChange={(v) => actualizar({ show_titles_in_own_language: v })}
-          trackColor={{ false: "#555555", true: theme.colors.primary }}
-          thumbColor={p.show_titles_in_own_language !== false ? theme.colors.primaryLight : "#CCCCCC"}
         />
       </View>
 
@@ -411,15 +404,37 @@ function SwitchLinea({ etiqueta, valor, onCambiar }: { etiqueta: string; valor: 
   return (
     <View style={styles.switchRow}>
       <Text style={[styles.switchLabel, { flex: 1 }]}>{etiqueta}</Text>
-      <Switch
-        value={!!valor}
-        onValueChange={onCambiar}
-        trackColor={{ false: "#555555", true: theme.colors.primary }}
-        thumbColor={valor ? theme.colors.primaryLight : "#CCCCCC"}
-      />
+      <ToggleSwitch value={!!valor} onValueChange={onCambiar} />
     </View>
   );
 }
+
+/**
+ * Switch propio en vez del <Switch> nativo: en la web (sobre todo en Chrome
+ * de Android), el circulito del Switch nativo termina tomando un color por
+ * defecto del sistema (verde en muchos Samsung) sin importar qué thumbColor
+ * le pongamos — no hay forma confiable de controlarlo. Este es 100% nuestro,
+ * así que el circulito siempre queda violeta cuando está activado, en
+ * cualquier plataforma y navegador.
+ */
+function ToggleSwitch({ value, onValueChange }: { value: boolean; onValueChange: (v: boolean) => void }) {
+  return (
+    <Pressable
+      onPress={() => onValueChange(!value)}
+      style={[toggleStyles.track, { backgroundColor: value ? theme.colors.primary : "#555555" }]}
+      hitSlop={8}
+    >
+      <View style={[toggleStyles.thumb, value ? toggleStyles.thumbActivo : toggleStyles.thumbInactivo]} />
+    </Pressable>
+  );
+}
+
+const toggleStyles = StyleSheet.create({
+  track: { width: 44, height: 26, borderRadius: 13, padding: 2, justifyContent: "center" },
+  thumb: { width: 22, height: 22, borderRadius: 11 },
+  thumbActivo: { backgroundColor: theme.colors.primaryLight, alignSelf: "flex-end" },
+  thumbInactivo: { backgroundColor: "#CCCCCC", alignSelf: "flex-start" },
+});
 
 const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 48 },

@@ -9,6 +9,8 @@ import SelectField from "../components/SelectField";
 import { supabase } from "../lib/supabase";
 import { idiomaSugeridoPorPais, IDIOMAS } from "../lib/languages";
 import { useT } from "../i18n/i18n";
+import { useDisponibilidadUsername } from "../lib/username";
+import UsernameEstadoIndicador from "../components/UsernameEstadoIndicador";
 import { theme } from "../theme";
 
 // Si Supabase no responde en este tiempo, avisamos en vez de dejar el botón
@@ -39,6 +41,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState("");
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [username, setUsername] = useState("");
+  const estadoUsername = useDisponibilidadUsername(username);
   const [country, setCountry] = useState("AR");
   const [idiomaElegido, setIdiomaElegido] = useState("es-419");
   const [idiomaTocadoAMano, setIdiomaTocadoAMano] = useState(false);
@@ -140,6 +143,14 @@ export default function AuthScreen() {
         Alert.alert("Falta el usuario", "Elegí un nombre de usuario.");
         return;
       }
+      if (estadoUsername === "ocupado") {
+        Alert.alert("Usuario ocupado", "Ese nombre de usuario ya lo tiene otra persona, probá con otro.");
+        return;
+      }
+      if (estadoUsername === "invalido") {
+        Alert.alert("Usuario inválido", "Solo se permiten letras, números, puntos o guiones bajos.");
+        return;
+      }
       if (!passwordValida(password)) {
         Alert.alert("Contraseña débil", "Tiene que tener al menos 6 caracteres y un número.");
         return;
@@ -227,14 +238,17 @@ export default function AuthScreen() {
       </View>
 
       {isSignUp && (
-        <TextInput
-          style={styles.input}
-          placeholder={t("Nombre de usuario")}
-          placeholderTextColor={theme.colors.textFaint}
-          autoCapitalize="none"
-          value={username}
-          onChangeText={setUsername}
-        />
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder={t("Nombre de usuario")}
+            placeholderTextColor={theme.colors.textFaint}
+            autoCapitalize="none"
+            value={username}
+            onChangeText={setUsername}
+          />
+          <UsernameEstadoIndicador estado={estadoUsername} />
+        </>
       )}
 
       <TextInput

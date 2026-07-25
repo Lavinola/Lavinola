@@ -10,6 +10,8 @@ import { supabase } from "../lib/supabase";
 import { getPerfil, actualizarPerfil, getCoverPosterPath, PerfilCompleto } from "../lib/profile";
 import { posterUrl } from "../lib/tmdb";
 import { useT } from "../i18n/i18n";
+import { useDisponibilidadUsername } from "../lib/username";
+import UsernameEstadoIndicador from "../components/UsernameEstadoIndicador";
 import { theme } from "../theme";
 
 const FRASE_MAX = 110; // aprox. lo que entra en dos renglones en el ancho del perfil
@@ -25,6 +27,7 @@ export default function EditProfileScreen({ navigation }: any) {
   const { t } = useT();
   const [perfil, setPerfil] = useState<PerfilCompleto | null>(null);
   const [username, setUsername] = useState("");
+  const estadoUsername = useDisponibilidadUsername(username, perfil?.username);
   const [displayName, setDisplayName] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [gender, setGender] = useState("");
@@ -91,6 +94,14 @@ export default function EditProfileScreen({ navigation }: any) {
 
   async function guardar() {
     if (!userId) return;
+    if (estadoUsername === "ocupado") {
+      Alert.alert(t("Usuario ocupado"), t("Ese nombre de usuario ya lo tiene otra persona, probá con otro."));
+      return;
+    }
+    if (estadoUsername === "invalido") {
+      Alert.alert(t("Usuario inválido"), t("Solo se permiten letras, números, puntos o guiones bajos."));
+      return;
+    }
     setGuardando(true);
     try {
       const usernameLimpio = username.trim().toLowerCase().replace(/\s/g, "");
@@ -153,6 +164,7 @@ export default function EditProfileScreen({ navigation }: any) {
         placeholderTextColor={theme.colors.textFaint}
         autoCapitalize="none"
       />
+      <UsernameEstadoIndicador estado={estadoUsername} />
 
       <Text style={styles.label}>{t("Nombre para mostrar")}</Text>
       <TextInput
