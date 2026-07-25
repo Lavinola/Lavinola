@@ -10,7 +10,7 @@ import { supabase } from "../lib/supabase";
 import { getPerfil, actualizarPerfil, PerfilCompleto } from "../lib/profile";
 import { setTmdbLanguage } from "../lib/tmdb";
 import { IDIOMAS } from "../lib/languages";
-import { exportarDatosJSON, exportarDatosCSV } from "../lib/dataExport";
+import { exportarDatosZip } from "../lib/dataExport";
 import TopPills from "../components/TopPills";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -211,7 +211,12 @@ function TabCuenta({ navigation }: any) {
             {t("Si lo activás, vas a tener que aprobar cada solicitud de seguimiento. Solo tus seguidores van a poder ver tu actividad.")}
           </Text>
         </View>
-        <Switch value={!!perfil?.is_private} onValueChange={togglePrivado} trackColor={{ false: "#555555", true: theme.colors.primary }} />
+        <Switch
+          value={!!perfil?.is_private}
+          onValueChange={togglePrivado}
+          trackColor={{ false: "#555555", true: theme.colors.primary }}
+          thumbColor={perfil?.is_private ? theme.colors.primaryLight : "#CCCCCC"}
+        />
       </View>
 
       <View style={{ height: 24 }} />
@@ -260,18 +265,17 @@ function TabAplicacion({ navigation }: any) {
   const [userId, setUserId] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
-  const [exportando, setExportando] = useState<"json" | "csv" | null>(null);
+  const [exportando, setExportando] = useState(false);
 
-  async function exportar(formato: "json" | "csv") {
+  async function exportar() {
     if (!userId) return;
-    setExportando(formato);
+    setExportando(true);
     try {
-      if (formato === "json") await exportarDatosJSON(userId);
-      else await exportarDatosCSV(userId);
+      await exportarDatosZip(userId);
     } catch (e: any) {
       Alert.alert("No se pudo exportar", e.message ?? "Probá de nuevo.");
     } finally {
-      setExportando(null);
+      setExportando(false);
     }
   }
 
@@ -350,6 +354,7 @@ function TabAplicacion({ navigation }: any) {
           value={p.show_titles_in_own_language !== false}
           onValueChange={(v) => actualizar({ show_titles_in_own_language: v })}
           trackColor={{ false: "#555555", true: theme.colors.primary }}
+          thumbColor={p.show_titles_in_own_language !== false ? theme.colors.primaryLight : "#CCCCCC"}
         />
       </View>
 
@@ -385,9 +390,12 @@ function TabAplicacion({ navigation }: any) {
       <Text style={styles.seccionTitulo}>{t("Tus datos")}</Text>
       <Text style={styles.switchHint}>{t("Descargá una copia de todo lo que guardaste en Lavinola.")}</Text>
       <View style={{ height: 8 }} />
-      <AppButton title={exportando === "json" ? t("Preparando...") : t("Descargar en JSON")} onPress={() => exportar("json")} variant="outline" disabled={!!exportando} />
-      <View style={{ height: 8 }} />
-      <AppButton title={exportando === "csv" ? t("Preparando...") : t("Descargar en CSV")} onPress={() => exportar("csv")} variant="outline" disabled={!!exportando} />
+      <AppButton title={exportando ? t("Preparando...") : t("Descargar todos mis datos (ZIP)")} onPress={exportar} variant="outline" disabled={exportando} />
+
+      <View style={{ height: 4 }} />
+      <Pressable onPress={() => navigation.navigate("PoliticaPrivacidad")}>
+        <Text style={styles.link}>{t("Política de privacidad")}</Text>
+      </Pressable>
 
       <View style={styles.tmdbFooter}>
         <Image source={require("../../assets/tmdb-logo.png")} style={styles.tmdbFooterLogo} resizeMode="contain" />
@@ -403,7 +411,12 @@ function SwitchLinea({ etiqueta, valor, onCambiar }: { etiqueta: string; valor: 
   return (
     <View style={styles.switchRow}>
       <Text style={[styles.switchLabel, { flex: 1 }]}>{etiqueta}</Text>
-      <Switch value={!!valor} onValueChange={onCambiar} trackColor={{ false: "#555555", true: theme.colors.primary }} />
+      <Switch
+        value={!!valor}
+        onValueChange={onCambiar}
+        trackColor={{ false: "#555555", true: theme.colors.primary }}
+        thumbColor={valor ? theme.colors.primaryLight : "#CCCCCC"}
+      />
     </View>
   );
 }

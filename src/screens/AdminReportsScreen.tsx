@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, SectionList, Pressable, StyleSheet } from "react-native";
 import { supabase } from "../lib/supabase";
+import { eliminarMensajeChat } from "../lib/chats";
 import { Text, AppButton } from "../components/Themed";
 import { theme } from "../theme";
 import { formatearFechaHora } from "../lib/dates";
@@ -50,17 +51,22 @@ export default function AdminReportsScreen({ navigation }: any) {
     const idsPost = filas.filter((r) => r.target_type === "post").map((r) => r.target_id);
     const idsGroup = filas.filter((r) => r.target_type === "group").map((r) => r.target_id);
     const idsList = filas.filter((r) => r.target_type === "list").map((r) => r.target_id);
+    const idsSharedTitle = filas.filter((r) => r.target_type === "shared_title").map((r) => r.target_id);
 
-    const [{ data: comentarios }, { data: posts }, { data: grupos }, { data: listas }] = await Promise.all([
+    const [{ data: comentarios }, { data: posts }, { data: grupos }, { data: listas }, { data: mensajes }] = await Promise.all([
       idsComment.length ? supabase.from("comentarios").select("id, content, user_id").in("id", idsComment) : Promise.resolve({ data: [] as any[] }),
       idsPost.length ? supabase.from("posts").select("id, content, user_id").in("id", idsPost) : Promise.resolve({ data: [] as any[] }),
       idsGroup.length ? supabase.from("groups").select("id, name, creator_id").in("id", idsGroup) : Promise.resolve({ data: [] as any[] }),
       idsList.length ? supabase.from("lists").select("id, title, user_id").in("id", idsList) : Promise.resolve({ data: [] as any[] }),
+      idsSharedTitle.length
+        ? supabase.from("chat_messages").select("id, content, sender_id, item_type, tmdb_id, shared_group_id, shared_list_id, deleted").in("id", idsSharedTitle)
+        : Promise.resolve({ data: [] as any[] }),
     ]);
     const comentarioMap = new Map((comentarios ?? []).map((c: any) => [c.id, c]));
     const postMap = new Map((posts ?? []).map((p: any) => [p.id, p]));
     const grupoMap = new Map((grupos ?? []).map((g: any) => [g.id, g]));
     const listaMap = new Map((listas ?? []).map((l: any) => [l.id, l]));
+    const mensajeMap = new Map((mensajes ?? []).map((m: any) => [m.id, m]));
 
     const previos: { reportadoId: string | null; contenido: string | null }[] = filas.map((r) => {
       if (r.target_type === "user") return { reportadoId: r.target_id, contenido: null };
@@ -79,6 +85,22 @@ export default function AdminReportsScreen({ navigation }: any) {
       if (r.target_type === "list") {
         const l = listaMap.get(r.target_id);
         return { reportadoId: l?.user_id ?? null, contenido: l ? `Lista: ${l.title}` : "(lista ya borrada)" };
+      }
+      if (r.target_type === "shared_title") {
+        const m = mensajeMap.get(r.target_id);
+        if (!m) return { reportadoId: null, contenido: "(mensaje ya borrado)" };
+        if (m.deleted) return { reportadoId: m.sender_id ?? null, contenido: "(mensaje ya borrado)" };
+        const queCompartio = m.tmdb_id
+          ? `Compartió un ${m.item_type === "movie" ? "película" : "serie"} (TMDB #${m.tmdb_id})`
+          : m.shared_group_id
+          ? "Compartió un grupo"
+          : m.shared_list_id
+          ? "Compartió una lista"
+          : "Mensaje de chat";
+        return {
+          reportadoId: m.sender_id ?? null,
+          contenido: m.content ? `${queCompartio} — nota: "${m.content}"` : queCompartio,
+        };
       }
       return { reportadoId: null, contenido: null };
     });
@@ -110,8 +132,12 @@ export default function AdminReportsScreen({ navigation }: any) {
 
   async function confirmarBorrado() {
     if (!confirmBorrar) return;
-    const tabla = confirmBorrar.targetType === "post" ? "posts" : "comentarios";
-    await supabase.from(tabla).delete().eq("id", confirmBorrar.targetId);
+    if (confirmBorrar.targetType === "shared_title") {
+      await eliminarMensajeChat(confirmBorrar.targetId);
+    } else {
+      const tabla = confirmBorrar.targetType === "post" ? "posts" : "comentarios";
+      await supabase.from(tabla).delete().eq("id", confirmBorrar.targetId);
+    }
     await resolver(confirmBorrar.reportId, "reviewed");
     setConfirmBorrar(null);
   }
@@ -161,7 +187,7 @@ export default function AdminReportsScreen({ navigation }: any) {
             )}
             <Text style={styles.fecha}>{formatearFechaHora(item.created_at)}</Text>
             <View style={styles.accionesRow}>
-              {(item.target_type === "comment" || item.target_type === "post") && (
+              {(item.target_type === "comment" || item.target_type === "post" || item.target_type === "shared_title") && (
                 <Pressable style={styles.btnBorrar} onPress={() => pedirBorrado(item.target_id, item.target_type, item.id)}>
                   <Text style={styles.btnBorrarTexto}>{t("Borrar contenido")}</Text>
                 </Pressable>

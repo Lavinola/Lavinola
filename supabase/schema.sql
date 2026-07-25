@@ -1112,7 +1112,10 @@ create table if not exists chats (
 );
 alter table chats enable row level security;
 drop policy if exists "chats_select" on chats;
-create policy "chats_select" on chats for select using (auth.uid() = user_a or auth.uid() = user_b);
+create policy "chats_select" on chats for select using (
+  auth.uid() = user_a or auth.uid() = user_b
+  or exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+);
 
 create table if not exists chat_messages (
   id uuid primary key default gen_random_uuid(),
@@ -1129,6 +1132,7 @@ alter table chat_messages enable row level security;
 drop policy if exists "chat_messages_select" on chat_messages;
 create policy "chat_messages_select" on chat_messages for select using (
   exists (select 1 from chats where chats.id = chat_messages.chat_id and (chats.user_a = auth.uid() or chats.user_b = auth.uid()))
+  or exists (select 1 from profiles where id = auth.uid() and is_admin = true)
 );
 drop policy if exists "chat_messages_insert" on chat_messages;
 create policy "chat_messages_insert" on chat_messages for insert with check (

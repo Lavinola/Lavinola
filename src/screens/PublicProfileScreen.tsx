@@ -599,6 +599,15 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
               },
             ]
           : []),
+        ...(soyAdmin
+          ? [
+              {
+                label: t("Ver chats"),
+                icono: "chatbubbles-outline" as const,
+                onPress: () => navigation.navigate("AdminChatsUsuario", { userId: targetId, username: perfil.username }),
+              },
+            ]
+          : []),
         { label: t("Bloquear"), icono: "ban-outline", destructivo: true, onPress: () => setConfirmBloquearVisible(true) },
         { label: t("Denunciar"), icono: "flag-outline", destructivo: true, onPress: () => setDenunciaVisible(true) },
       ]}

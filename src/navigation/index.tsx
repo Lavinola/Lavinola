@@ -33,6 +33,9 @@ import FavoritesScreen from "../screens/FavoritesScreen";
 import AdminReportsScreen from "../screens/AdminReportsScreen";
 import AdminModeratorsScreen from "../screens/AdminModeratorsScreen";
 import UserReportsScreen from "../screens/UserReportsScreen";
+import AdminUserChatsScreen from "../screens/AdminUserChatsScreen";
+import AdminVerChatScreen from "../screens/AdminVerChatScreen";
+import PrivacyPolicyScreen from "../screens/PrivacyPolicyScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import ChooseCoverPhotoScreen from "../screens/ChooseCoverPhotoScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -183,6 +186,8 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
         component={UserReportsScreen}
         options={({ route }: any) => ({ title: route.params?.modo === "hechas" ? t("Denuncias realizadas") : t("Denuncias recibidas") })}
       />
+      <Stack.Screen name="AdminChatsUsuario" component={AdminUserChatsScreen} />
+      <Stack.Screen name="AdminVerChat" component={AdminVerChatScreen} />
       <Stack.Screen name="Comentarios" component={CommentsScreen} options={{ title: t("Comentarios/Posts") }} />
       <Stack.Screen name="Actor" component={ActorDetailScreen} options={{ title: t("Actor/Actriz") }} />
       <Stack.Screen name="PersonalizarCaratula" component={CustomizeArtworkScreen} options={{ title: t("Personalizar") }} />
@@ -269,6 +274,7 @@ function ProfileStackNav() {
       <ProfileStack.Screen name="Ranking" component={RankingScreen} options={{ title: t("Comparar") }} />
       <ProfileStack.Screen name="SeleccionMultipleFavoritos" component={MultiSelectFavoritesScreen} options={{ title: t("Agregar favoritos") }} />
       <ProfileStack.Screen name="Ajustes" component={SettingsScreen} options={{ title: t("Ajustes") }} />
+      <ProfileStack.Screen name="PoliticaPrivacidad" component={PrivacyPolicyScreen} options={{ title: t("Política de privacidad") }} />
       <ProfileStack.Screen name="Sugerir" component={SuggestScreen} options={{ title: t("Sugerir mejora") }} />
       <ProfileStack.Screen name="GestionarDescartados" component={ManageDislikedScreen} options={{ title: t("No me interesa") }} />
       {pantallasComunes(ProfileStack, t)}
@@ -357,6 +363,8 @@ const RUTAS_COMUNES: Record<string, string> = {
   ElegirImagenTmdb: "elegir-imagen",
   Recomendar: "recomendar",
   CrearPost: "crear-post",
+  AdminChatsUsuario: "admin-chats-usuario",
+  AdminVerChat: "admin-ver-chat",
 };
 
 const linking = {
@@ -387,6 +395,7 @@ const linking = {
           Ranking: "ranking",
           SeleccionMultipleFavoritos: "seleccion-favoritos",
           Ajustes: "ajustes",
+          PoliticaPrivacidad: "politica-privacidad",
           Sugerir: "sugerir",
           GestionarDescartados: "descartados",
           ...RUTAS_COMUNES,

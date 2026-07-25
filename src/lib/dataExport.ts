@@ -3,6 +3,7 @@ import { fetchAllRows } from "./pagination";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
+import { zipSync, strToU8 } from "fflate";
 
 /** Junta todos los datos personales del usuario desde las distintas tablas. */
 async function recolectarDatos(userId: string) {
@@ -110,6 +111,42 @@ async function compartirArchivo(nombre: string, contenido: string, mimeType: str
   await Sharing.shareAsync(uri, { mimeType, dialogTitle: "Descargar mis datos de Lavinola" });
 }
 
+/** Uint8Array → base64, en tandas chicas para no reventar la pila con archivos grandes. */
+function bytesABase64(bytes: Uint8Array): string {
+  const TAMANIO_TANDA = 8192;
+  let binario = "";
+  for (let i = 0; i < bytes.length; i += TAMANIO_TANDA) {
+    const tanda = bytes.subarray(i, i + TAMANIO_TANDA);
+    binario += String.fromCharCode(...tanda);
+  }
+  return btoa(binario);
+}
+
+/** Igual que compartirArchivo, pero para contenido binario (por ejemplo, un ZIP). */
+async function compartirArchivoBinario(nombre: string, bytes: Uint8Array, mimeType: string) {
+  if (Platform.OS === "web") {
+    const blob = new Blob([bytes as BlobPart], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nombre;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  const uri = FileSystem.cacheDirectory + nombre;
+  await FileSystem.writeAsStringAsync(uri, bytesABase64(bytes), { encoding: "base64" });
+
+  const disponible = await Sharing.isAvailableAsync();
+  if (!disponible) {
+    throw new Error("Tu dispositivo no permite compartir archivos.");
+  }
+  await Sharing.shareAsync(uri, { mimeType, dialogTitle: "Descargar mis datos de Lavinola" });
+}
+
 export async function exportarDatosJSON(userId: string) {
   const datos = await recolectarDatos(userId);
   const contenido = JSON.stringify(datos, null, 2);
@@ -120,4 +157,27 @@ export async function exportarDatosCSV(userId: string) {
   const datos = await recolectarDatos(userId);
   const contenido = armarCSVCompleto(datos);
   await compartirArchivo(`lavinola-datos-${userId.slice(0, 8)}.csv`, contenido, "text/csv");
+}
+
+/**
+ * Descarga TODO en un solo ZIP: el JSON completo + un CSV limpio por cada
+ * tabla (a diferencia del CSV "todo junto" de arriba, estos sí se pueden
+ * abrir directo en Excel/Sheets sin manoseo, porque cada uno tiene un único
+ * encabezado). Pensado para reemplazar tener que elegir entre JSON o CSV.
+ */
+export async function exportarDatosZip(userId: string) {
+  const datos = await recolectarDatos(userId);
+
+  const archivos: Record<string, Uint8Array> = {
+    "datos-completos.json": strToU8(JSON.stringify(datos, null, 2)),
+    "series.csv": strToU8(aCSV(datos.series, ["tmdb_id", "nombre", "calificacion", "donde_lo_vio", "ultima_actividad"])),
+    "peliculas.csv": strToU8(aCSV(datos.peliculas, ["tmdb_id", "nombre", "vista", "calificacion", "donde_la_vio", "vista_el"])),
+    "episodios_vistos.csv": strToU8(aCSV(datos.episodios_vistos, ["serie_tmdb_id", "temporada", "episodio", "visto_el", "calificacion"])),
+    "favoritos.csv": strToU8(aCSV(datos.favoritos, ["item_type", "tmdb_id"])),
+    "comentarios.csv": strToU8(aCSV(datos.comentarios, ["target_type", "target_id", "content", "created_at"])),
+    "listas.csv": strToU8(aCSV(datos.listas, ["title", "created_at"])),
+  };
+
+  const zip = zipSync(archivos, { level: 6 });
+  await compartirArchivoBinario(`lavinola-datos-${userId.slice(0, 8)}.zip`, zip, "application/zip");
 }

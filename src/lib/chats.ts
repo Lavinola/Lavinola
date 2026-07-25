@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { moderarTexto } from "./moderation";
 
 export interface ChatResumen {
   chatId: string;
@@ -183,6 +184,13 @@ export async function obtenerUltimaLecturaDelOtro(chatId: string, otroUserId: st
 }
 
 export async function enviarMensajeTexto(chatId: string, senderId: string, content: string, gifUrl?: string | null) {
+  if (content.trim()) {
+    const resultado = await moderarTexto(content);
+    if (!resultado.permitido) {
+      throw new Error(resultado.motivo ?? "Este mensaje no cumple las normas de la comunidad.");
+    }
+  }
+
   const { error } = await supabase.from("chat_messages").insert({
     chat_id: chatId,
     sender_id: senderId,
@@ -202,6 +210,13 @@ export async function enviarRecomendacionAUsuario(
   seasonNumber?: number | null,
   episodeNumber?: number | null
 ) {
+  if (nota?.trim()) {
+    const resultado = await moderarTexto(nota);
+    if (!resultado.permitido) {
+      throw new Error(resultado.motivo ?? "Este mensaje no cumple las normas de la comunidad.");
+    }
+  }
+
   const { error } = await supabase.from("chat_messages").insert({
     chat_id: chatId,
     sender_id: senderId,
@@ -216,6 +231,13 @@ export async function enviarRecomendacionAUsuario(
 }
 
 export async function enviarRecomendacionDeGrupoAUsuario(chatId: string, senderId: string, groupId: string, nota?: string | null) {
+  if (nota?.trim()) {
+    const resultado = await moderarTexto(nota);
+    if (!resultado.permitido) {
+      throw new Error(resultado.motivo ?? "Este mensaje no cumple las normas de la comunidad.");
+    }
+  }
+
   const { error } = await supabase.from("chat_messages").insert({
     chat_id: chatId,
     sender_id: senderId,
@@ -227,6 +249,13 @@ export async function enviarRecomendacionDeGrupoAUsuario(chatId: string, senderI
 }
 
 export async function enviarRecomendacionDeListaAUsuario(chatId: string, senderId: string, listId: string, nota?: string | null) {
+  if (nota?.trim()) {
+    const resultado = await moderarTexto(nota);
+    if (!resultado.permitido) {
+      throw new Error(resultado.motivo ?? "Este mensaje no cumple las normas de la comunidad.");
+    }
+  }
+
   const { error } = await supabase.from("chat_messages").insert({
     chat_id: chatId,
     sender_id: senderId,
@@ -289,4 +318,71 @@ export async function desbloquearChat(userId: string, chatId: string) {
 export async function estaChatBloqueado(chatId: string): Promise<boolean> {
   const { data } = await supabase.from("chat_blocks").select("chat_id").eq("chat_id", chatId).maybeSingle();
   return !!data;
+}
+
+// ---------- Vista de admin (solo lectura, para moderación) ----------
+// A diferencia de listarChats/cargarMensajesChat, estas dos NUNCA filtran por
+// cleared_at ni hidden_at de nadie — el admin tiene que poder ver el
+// historial real completo, incluso lo que un usuario "vació" de su propia
+// vista, porque de eso se trata investigar un reporte o una sospecha.
+// Requiere que la política RLS de `chats`/`chat_messages` en schema.sql
+// tenga el bypass de is_admin (ya agregado).
+
+export interface ChatResumenAdmin {
+  chatId: string;
+  otroUserId: string;
+  otroUsername: string | null;
+  otroAvatarUrl: string | null;
+  cantidadMensajes: number;
+  ultimoMensajeFecha: string | null;
+}
+
+/** Todos los chats de un usuario puntual, para el panel de admin. */
+export async function listarChatsDeUsuarioParaAdmin(userId: string): Promise<ChatResumenAdmin[]> {
+  const { data: chats, error } = await supabase
+    .from("chats")
+    .select("id, user_a, user_b, profiles_a:profiles!chats_user_a_fkey(id,username,avatar_url), profiles_b:profiles!chats_user_b_fkey(id,username,avatar_url)")
+    .or(`user_a.eq.${userId},user_b.eq.${userId}`);
+  if (error) throw error;
+  if (!chats || chats.length === 0) return [];
+
+  const chatIds = chats.map((c: any) => c.id);
+  const { data: mensajes } = await supabase.from("chat_messages").select("chat_id, created_at").in("chat_id", chatIds);
+
+  const porChat: Record<string, { cantidad: number; ultimo: string | null }> = {};
+  (mensajes ?? []).forEach((m: any) => {
+    const actual = porChat[m.chat_id] ?? { cantidad: 0, ultimo: null };
+    actual.cantidad += 1;
+    if (!actual.ultimo || m.created_at > actual.ultimo) actual.ultimo = m.created_at;
+    porChat[m.chat_id] = actual;
+  });
+
+  const resultado: ChatResumenAdmin[] = (chats as any[]).map((c) => {
+    const soyA = c.user_a === userId;
+    const otro = soyA ? c.profiles_b : c.profiles_a;
+    const info = porChat[c.id] ?? { cantidad: 0, ultimo: null };
+    return {
+      chatId: c.id,
+      otroUserId: otro?.id,
+      otroUsername: otro?.username ?? null,
+      otroAvatarUrl: otro?.avatar_url ?? null,
+      cantidadMensajes: info.cantidad,
+      ultimoMensajeFecha: info.ultimo,
+    };
+  });
+
+  resultado.sort((a, b) => (b.ultimoMensajeFecha ?? "").localeCompare(a.ultimoMensajeFecha ?? ""));
+  return resultado;
+}
+
+/** Historial completo y sin filtrar de un chat puntual, para el admin. */
+export async function cargarMensajesChatParaAdmin(chatId: string): Promise<MensajeChat[]> {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("id, sender_id, kind, content, gif_url, item_type, tmdb_id, season_number, episode_number, shared_group_id, shared_list_id, created_at, edited_at, deleted")
+    .eq("chat_id", chatId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+
+  return (data ?? []).map((m: any) => ({ ...m, reacciones: {}, mi_reaccion: null }));
 }

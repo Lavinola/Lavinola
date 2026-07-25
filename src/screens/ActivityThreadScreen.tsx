@@ -21,6 +21,7 @@ import { calcularCompatibilidad } from "../lib/favorites";
 import ChatOptionsMenu from "../components/ChatOptionsMenu";
 import AdminBadge from "../components/AdminBadge";
 import ActionSheetModal from "../components/ActionSheetModal";
+import ReportModal from "../components/ReportModal";
 import ConfirmModal from "../components/ConfirmModal";
 import { posterUrl } from "../lib/tmdb";
 import { formatearFechaHora } from "../lib/dates";
@@ -57,6 +58,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [otroLastReadAt, setOtroLastReadAt] = useState<string | null>(null);
   const [mensajeMenuAccion, setMensajeMenuAccion] = useState<MensajeChat | null>(null);
+  const [reportarMensajeVisible, setReportarMensajeVisible] = useState(false);
   const [reaccionPickerMensajeId, setReaccionPickerMensajeId] = useState<string | null>(null);
   const [traducciones, setTraducciones] = useState<Record<string, string>>({});
   const [traduciendoId, setTraduciendoId] = useState<string | null>(null);
@@ -199,9 +201,12 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
   }
 
   function tocarMensaje(m: MensajeChat) {
-    if (m.sender_id !== userId || m.deleted || m.kind !== "text") return;
-    const dentroDeLaHora = Date.now() - new Date(m.created_at).getTime() < 60 * 60 * 1000;
-    if (!dentroDeLaHora) return;
+    if (m.deleted) return;
+    if (m.sender_id === userId) {
+      if (m.kind !== "text") return;
+      const dentroDeLaHora = Date.now() - new Date(m.created_at).getTime() < 60 * 60 * 1000;
+      if (!dentroDeLaHora) return;
+    }
     setMensajeMenuAccion(m);
     setMenuMensajeVisible(true);
   }
@@ -472,11 +477,26 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     <ActionSheetModal
       visible={menuMensajeVisible}
       onCerrar={() => setMenuMensajeVisible(false)}
-      opciones={[
-        { label: t("Editar"), icono: "create-outline", onPress: empezarAEditar },
-        { label: t("Eliminar"), icono: "trash-outline", destructivo: true, onPress: () => { setMenuMensajeVisible(false); setConfirmEliminarMsgVisible(true); } },
-      ]}
+      opciones={
+        mensajeMenuAccion?.sender_id === userId
+          ? [
+              { label: t("Editar"), icono: "create-outline", onPress: empezarAEditar },
+              { label: t("Eliminar"), icono: "trash-outline", destructivo: true, onPress: () => { setMenuMensajeVisible(false); setConfirmEliminarMsgVisible(true); } },
+            ]
+          : [
+              { label: t("Reportar"), icono: "flag-outline", destructivo: true, onPress: () => { setMenuMensajeVisible(false); setReportarMensajeVisible(true); } },
+            ]
+      }
     />
+    {mensajeMenuAccion && userId && (
+      <ReportModal
+        visible={reportarMensajeVisible}
+        onCerrar={() => setReportarMensajeVisible(false)}
+        reporterId={userId}
+        targetType="shared_title"
+        targetId={mensajeMenuAccion.id}
+      />
+    )}
     <ConfirmModal
       visible={confirmEliminarMsgVisible}
       onCerrar={() => setConfirmEliminarMsgVisible(false)}
