@@ -6,6 +6,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
 import { notificarAgregadoALista } from "../lib/lists";
+import ActionSheetModal from "../components/ActionSheetModal";
+import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
 interface ItemConEnLista {
@@ -13,13 +15,42 @@ interface ItemConEnLista {
   nombre: string;
   poster_path: string | null;
   enLista: boolean;
+  fechaLanzamiento: string | null;
+  ultimaVez: string | null;
+}
+
+type Orden = "alfabetico_asc" | "alfabetico_desc" | "fecha_desc" | "fecha_asc" | "ultimo_visto";
+
+function ordenarItems(items: ItemConEnLista[], orden: Orden): ItemConEnLista[] {
+  const arr = [...items];
+  switch (orden) {
+    case "alfabetico_desc":
+      arr.sort((a, b) => b.nombre.localeCompare(a.nombre));
+      break;
+    case "fecha_desc":
+      arr.sort((a, b) => (b.fechaLanzamiento ?? "").localeCompare(a.fechaLanzamiento ?? ""));
+      break;
+    case "fecha_asc":
+      arr.sort((a, b) => (a.fechaLanzamiento ?? "").localeCompare(b.fechaLanzamiento ?? ""));
+      break;
+    case "ultimo_visto":
+      arr.sort((a, b) => (b.ultimaVez ?? "").localeCompare(a.ultimaVez ?? ""));
+      break;
+    case "alfabetico_asc":
+    default:
+      arr.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
+  return arr;
 }
 
 export default function ChooseForListScreen({ route }: any) {
+  const { t } = useT();
   const { listId, tipo } = route.params as { listId: string; tipo: "series" | "movie" };
   const [items, setItems] = useState<ItemConEnLista[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [loading, setLoading] = useState(true);
+  const [orden, setOrden] = useState<Orden>("alfabetico_asc");
+  const [ordenModalVisible, setOrdenModalVisible] = useState(false);
   const agregadosEnSesionRef = useRef<{ nombre: string }[]>([]);
 
   useFocusEffect(
@@ -51,24 +82,33 @@ export default function ChooseForListScreen({ route }: any) {
 
     let lista: ItemConEnLista[] = [];
     if (tipo === "series") {
-      const { data } = await supabase.from("user_series").select("series_tmdb_id, series_cache(name, poster_path)").eq("user_id", uid);
+      const { data } = await supabase
+        .from("user_series")
+        .select("series_tmdb_id, last_watched_at, series_cache(name, poster_path, first_air_date)")
+        .eq("user_id", uid);
       lista = (data ?? []).map((r: any) => ({
         tmdb_id: r.series_tmdb_id,
         nombre: r.series_cache?.name ?? "—",
         poster_path: r.series_cache?.poster_path ?? null,
         enLista: idsEnLista.has(r.series_tmdb_id),
+        fechaLanzamiento: r.series_cache?.first_air_date ?? null,
+        ultimaVez: r.last_watched_at ?? null,
       }));
     } else {
-      const { data } = await supabase.from("user_movies").select("movie_tmdb_id, movies_cache(title, poster_path)").eq("user_id", uid);
+      const { data } = await supabase
+        .from("user_movies")
+        .select("movie_tmdb_id, watched_at, movies_cache(title, poster_path, release_date)")
+        .eq("user_id", uid);
       lista = (data ?? []).map((r: any) => ({
         tmdb_id: r.movie_tmdb_id,
         nombre: r.movies_cache?.title ?? "—",
         poster_path: r.movies_cache?.poster_path ?? null,
         enLista: idsEnLista.has(r.movie_tmdb_id),
+        fechaLanzamiento: r.movies_cache?.release_date ?? null,
+        ultimaVez: r.watched_at ?? null,
       }));
     }
-    lista.sort((a, b) => Number(b.enLista) - Number(a.enLista) || a.nombre.localeCompare(b.nombre));
-    setItems(lista);
+    setItems(ordenarItems(lista, orden));
     setLoading(false);
   }
 
@@ -83,17 +123,29 @@ export default function ChooseForListScreen({ route }: any) {
     setItems((prev) => prev.map((i) => (i.tmdb_id === item.tmdb_id ? { ...i, enLista: !i.enLista } : i)));
   }
 
+  function cambiarOrden(nuevo: Orden) {
+    setOrden(nuevo);
+    setItems((prev) => ordenarItems(prev, nuevo));
+    setOrdenModalVisible(false);
+  }
+
   const filtrados = busqueda.trim() ? items.filter((i) => i.nombre.toLowerCase().includes(busqueda.trim().toLowerCase())) : items;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <TextInput
-        style={styles.buscador}
-        placeholder={tipo === "series" ? "Buscar en tus series..." : "Buscar en tus películas..."}
-        placeholderTextColor={theme.colors.textFaint}
-        value={busqueda}
-        onChangeText={setBusqueda}
-      />
+      <View style={styles.filaBusqueda}>
+        <TextInput
+          style={styles.buscador}
+          placeholder={tipo === "series" ? t("Buscar en tus series...") : t("Buscar en tus películas...")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={busqueda}
+          onChangeText={setBusqueda}
+        />
+        <Pressable style={styles.ordenBtn} onPress={() => setOrdenModalVisible(true)}>
+          <Ionicons name="swap-vertical" size={18} color={theme.colors.primaryLight} />
+          <Text style={styles.ordenBtnTexto}>{t("Ordenar")}</Text>
+        </Pressable>
+      </View>
       {loading ? (
         <ActivityIndicator style={{ marginTop: 32 }} />
       ) : (
@@ -103,7 +155,7 @@ export default function ChooseForListScreen({ route }: any) {
           keyExtractor={(i) => String(i.tmdb_id)}
           ListEmptyComponent={
             <Text style={styles.vacio}>
-              {tipo === "series" ? "Todavía no agregaste ninguna serie a tu perfil." : "Todavía no agregaste ninguna película a tu perfil."}
+              {tipo === "series" ? t("Todavía no agregaste ninguna serie a tu perfil.") : t("Todavía no agregaste ninguna película a tu perfil.")}
             </Text>
           }
           renderItem={({ item }) => (
@@ -121,12 +173,36 @@ export default function ChooseForListScreen({ route }: any) {
           )}
         />
       )}
+
+      <ActionSheetModal
+        visible={ordenModalVisible}
+        onCerrar={() => setOrdenModalVisible(false)}
+        opciones={[
+          { label: t("Alfabético (A-Z)"), icono: "text-outline", onPress: () => cambiarOrden("alfabetico_asc") },
+          { label: t("Alfabético (Z-A)"), icono: "text-outline", onPress: () => cambiarOrden("alfabetico_desc") },
+          { label: t("Fecha de lanzamiento (más nueva primero)"), icono: "calendar-outline", onPress: () => cambiarOrden("fecha_desc") },
+          { label: t("Fecha de lanzamiento (más vieja primero)"), icono: "calendar-outline", onPress: () => cambiarOrden("fecha_asc") },
+          { label: t("Lo último que has visto"), icono: "time-outline", onPress: () => cambiarOrden("ultimo_visto") },
+        ]}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  buscador: { margin: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10 },
+  filaBusqueda: { flexDirection: "row", alignItems: "center", gap: 8, margin: 12 },
+  buscador: { flex: 1, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10 },
+  ordenBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  ordenBtnTexto: { fontSize: 12.5, fontWeight: "700", color: theme.colors.primaryLight },
   vacio: { textAlign: "center", color: theme.colors.textMuted, marginTop: 24, paddingHorizontal: 24 },
   fila: { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12 },
   poster: { width: 42, height: 63, borderRadius: 4, marginRight: 12 },

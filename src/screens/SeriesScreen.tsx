@@ -55,6 +55,7 @@ function ListaPendiente({ navigation }: any) {
   const ordenViendoRef = useRef<number[]>([]);
   const [abandonadaAbierta, setAbandonadaAbierta] = useState(false);
   const [sinComenzarAbierta, setSinComenzarAbierta] = useState(false);
+  const [viendoAbierta, setViendoAbierta] = useState(true);
   const [confirmAnteriores, setConfirmAnteriores] = useState<{
     item: SerieListado;
     anteriores: { season_number: number; episode_number: number }[];
@@ -207,7 +208,7 @@ function ListaPendiente({ navigation }: any) {
 
   const secciones = [
     { titulo: t("Historial de visualización"), tipo: "historial" as const, esconderSiVacia: true, colapsable: false },
-    { titulo: t("Ver a continuación"), tipo: "viendo" as const, esconderSiVacia: false, colapsable: false },
+    { titulo: t("Ver a continuación"), tipo: "viendo" as const, esconderSiVacia: false, colapsable: true },
     { titulo: t("Sin ver por un tiempo"), tipo: "abandonada" as const, esconderSiVacia: true, colapsable: true },
     { titulo: t("Sin comenzar"), tipo: "sin_comenzar" as const, esconderSiVacia: true, colapsable: true },
   ].filter(
@@ -232,7 +233,7 @@ function ListaPendiente({ navigation }: any) {
     <SectionList
       ref={listRef}
       sections={secciones.map((s) => {
-        const abierta = s.tipo === "abandonada" ? abandonadaAbierta : s.tipo === "sin_comenzar" ? sinComenzarAbierta : true;
+        const abierta = s.tipo === "abandonada" ? abandonadaAbierta : s.tipo === "sin_comenzar" ? sinComenzarAbierta : s.tipo === "viendo" ? viendoAbierta : true;
         const datosCompletos = s.tipo === "historial" ? historialOrdenado : s.tipo === "viendo" ? viendo : s.tipo === "abandonada" ? abandonadas : sinComenzar;
         return { ...s, data: s.colapsable && !abierta ? [] : datosCompletos, cantidad: datosCompletos.length };
       })}
@@ -246,14 +247,19 @@ function ListaPendiente({ navigation }: any) {
             style={styles.seccionTituloBtn}
             onPress={() => {
               if (section.tipo === "abandonada") setAbandonadaAbierta((v) => !v);
-              else setSinComenzarAbierta((v) => !v);
+              else if (section.tipo === "sin_comenzar") setSinComenzarAbierta((v) => !v);
+              else setViendoAbierta((v) => !v);
             }}
           >
             <Text style={styles.seccionTituloEnBoton}>
               {section.titulo} ({(section as any).cantidad})
             </Text>
             <Ionicons
-              name={(section.tipo === "abandonada" ? abandonadaAbierta : sinComenzarAbierta) ? "chevron-up" : "chevron-down"}
+              name={
+                (section.tipo === "abandonada" ? abandonadaAbierta : section.tipo === "sin_comenzar" ? sinComenzarAbierta : viendoAbierta)
+                  ? "chevron-up"
+                  : "chevron-down"
+              }
               size={18}
               color={theme.colors.textMuted}
             />

@@ -8,6 +8,7 @@ import { posterUrl } from "../lib/tmdb";
 import { listarFavoritos, toggleFavorito } from "../lib/favorites";
 import { fetchAllRows } from "../lib/pagination";
 import { computeSeriesStatus } from "../types";
+import ActionSheetModal from "../components/ActionSheetModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -16,6 +17,32 @@ interface ItemConFavorito {
   nombre: string;
   poster_path: string | null;
   favorito: boolean;
+  fechaLanzamiento: string | null;
+  ultimaVez: string | null;
+}
+
+type Orden = "alfabetico_asc" | "alfabetico_desc" | "fecha_desc" | "fecha_asc" | "ultimo_visto";
+
+/** Favoritas siempre primero (arriba de todo), el resto después — ambos grupos ordenados según el criterio elegido. */
+function ordenarItems(items: ItemConFavorito[], orden: Orden): ItemConFavorito[] {
+  function comparar(a: ItemConFavorito, b: ItemConFavorito): number {
+    switch (orden) {
+      case "alfabetico_desc":
+        return b.nombre.localeCompare(a.nombre);
+      case "fecha_desc":
+        return (b.fechaLanzamiento ?? "").localeCompare(a.fechaLanzamiento ?? "");
+      case "fecha_asc":
+        return (a.fechaLanzamiento ?? "").localeCompare(b.fechaLanzamiento ?? "");
+      case "ultimo_visto":
+        return (b.ultimaVez ?? "").localeCompare(a.ultimaVez ?? "");
+      case "alfabetico_asc":
+      default:
+        return a.nombre.localeCompare(b.nombre);
+    }
+  }
+  const favoritas = items.filter((i) => i.favorito).sort(comparar);
+  const resto = items.filter((i) => !i.favorito).sort(comparar);
+  return [...favoritas, ...resto];
 }
 
 export default function ManageFavoritesScreen({ route }: any) {
@@ -25,6 +52,8 @@ export default function ManageFavoritesScreen({ route }: any) {
   const [busqueda, setBusqueda] = useState("");
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [orden, setOrden] = useState<Orden>("alfabetico_asc");
+  const [ordenModalVisible, setOrdenModalVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -53,7 +82,7 @@ export default function ManageFavoritesScreen({ route }: any) {
         fetchAllRows((desde, hasta) =>
           supabase
             .from("user_series")
-            .select("series_tmdb_id, last_watched_at, custom_poster_path, series_cache(name, poster_path, status, total_episodes)")
+            .select("series_tmdb_id, last_watched_at, custom_poster_path, series_cache(name, poster_path, status, total_episodes, first_air_date)")
             .eq("user_id", uid)
             .range(desde, hasta)
         ),
@@ -83,13 +112,14 @@ export default function ManageFavoritesScreen({ route }: any) {
           nombre: r.series_cache?.name ?? "—",
           poster_path: r.custom_poster_path ?? r.series_cache?.poster_path ?? null,
           favorito: favoritosIds.has(r.series_tmdb_id),
+          fechaLanzamiento: r.series_cache?.first_air_date ?? null,
+          ultimaVez: r.last_watched_at ?? null,
         }));
-      lista.sort((a, b) => Number(b.favorito) - Number(a.favorito) || a.nombre.localeCompare(b.nombre));
-      setItems(lista);
+      setItems(ordenarItems(lista, orden));
     } else {
       const [favs, movieRows] = await Promise.all([
         listarFavoritos(uid),
-        supabase.from("user_movies").select("movie_tmdb_id, custom_poster_path, movies_cache(title, poster_path)").eq("user_id", uid).eq("watched", true),
+        supabase.from("user_movies").select("movie_tmdb_id, custom_poster_path, watched_at, movies_cache(title, poster_path, release_date)").eq("user_id", uid).eq("watched", true),
       ]);
       const favoritosIds = new Set(favs.filter((f) => f.item_type === "movie").map((f) => f.tmdb_id));
       const lista: ItemConFavorito[] = (movieRows.data ?? []).map((r: any) => ({
@@ -97,9 +127,10 @@ export default function ManageFavoritesScreen({ route }: any) {
         nombre: r.movies_cache?.title ?? "—",
         poster_path: r.custom_poster_path ?? r.movies_cache?.poster_path ?? null,
         favorito: favoritosIds.has(r.movie_tmdb_id),
+        fechaLanzamiento: r.movies_cache?.release_date ?? null,
+        ultimaVez: r.watched_at ?? null,
       }));
-      lista.sort((a, b) => Number(b.favorito) - Number(a.favorito) || a.nombre.localeCompare(b.nombre));
-      setItems(lista);
+      setItems(ordenarItems(lista, orden));
     }
     setLoading(false);
   }
@@ -107,7 +138,13 @@ export default function ManageFavoritesScreen({ route }: any) {
   async function toggle(item: ItemConFavorito) {
     if (!userId) return;
     await toggleFavorito(userId, tipo, item.tmdb_id, item.favorito);
-    setItems((prev) => prev.map((i) => (i.tmdb_id === item.tmdb_id ? { ...i, favorito: !i.favorito } : i)));
+    setItems((prev) => ordenarItems(prev.map((i) => (i.tmdb_id === item.tmdb_id ? { ...i, favorito: !i.favorito } : i)), orden));
+  }
+
+  function cambiarOrden(nuevo: Orden) {
+    setOrden(nuevo);
+    setItems((prev) => ordenarItems(prev, nuevo));
+    setOrdenModalVisible(false);
   }
 
   const filtrados = busqueda.trim()
@@ -116,13 +153,19 @@ export default function ManageFavoritesScreen({ route }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <TextInput
-        style={styles.buscador}
-        placeholder={tipo === "series" ? t("Buscar en tus series...") : t("Buscar en tus películas...")}
-        placeholderTextColor={theme.colors.textFaint}
-        value={busqueda}
-        onChangeText={setBusqueda}
-      />
+      <View style={styles.filaBusqueda}>
+        <TextInput
+          style={styles.buscador}
+          placeholder={tipo === "series" ? t("Buscar en tus series...") : t("Buscar en tus películas...")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={busqueda}
+          onChangeText={setBusqueda}
+        />
+        <Pressable style={styles.ordenBtn} onPress={() => setOrdenModalVisible(true)}>
+          <Ionicons name="swap-vertical" size={18} color={theme.colors.primaryLight} />
+          <Text style={styles.ordenBtnTexto}>{t("Ordenar")}</Text>
+        </Pressable>
+      </View>
       {loading ? (
         <ActivityIndicator style={{ marginTop: 32 }} />
       ) : (
@@ -150,12 +193,36 @@ export default function ManageFavoritesScreen({ route }: any) {
           )}
         />
       )}
+
+      <ActionSheetModal
+        visible={ordenModalVisible}
+        onCerrar={() => setOrdenModalVisible(false)}
+        opciones={[
+          { label: t("Alfabético (A-Z)"), icono: "text-outline", onPress: () => cambiarOrden("alfabetico_asc") },
+          { label: t("Alfabético (Z-A)"), icono: "text-outline", onPress: () => cambiarOrden("alfabetico_desc") },
+          { label: t("Fecha de lanzamiento (más nueva primero)"), icono: "calendar-outline", onPress: () => cambiarOrden("fecha_desc") },
+          { label: t("Fecha de lanzamiento (más vieja primero)"), icono: "calendar-outline", onPress: () => cambiarOrden("fecha_asc") },
+          { label: t("Lo último que has visto"), icono: "time-outline", onPress: () => cambiarOrden("ultimo_visto") },
+        ]}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  buscador: { margin: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10 },
+  filaBusqueda: { flexDirection: "row", alignItems: "center", gap: 8, margin: 12 },
+  buscador: { flex: 1, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10 },
+  ordenBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  ordenBtnTexto: { fontSize: 12.5, fontWeight: "700", color: theme.colors.primaryLight },
   vacio: { textAlign: "center", color: theme.colors.textMuted, marginTop: 24 },
   fila: { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12 },
   poster: { width: 42, height: 63, borderRadius: 4, marginRight: 12 },
