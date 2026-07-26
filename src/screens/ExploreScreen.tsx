@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, FlatList, Image, StyleSheet, Pressable, ActivityIndicator, ScrollView } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { getTrendingSeries, getTrendingMovies, posterUrl } from "../lib/tmdb";
 import { recomendarSeries, recomendarPeliculas, marcarNoMeInteresa } from "../lib/recommendations";
 import { syncSeries, syncMovie, seguirSerie, agregarPelicula } from "../lib/sync";
@@ -54,20 +55,57 @@ interface ItemFila {
 
 function Descubrir({ navigation }: any) {
   const { t } = useT();
-  const [seriesModa, setSeriesModa] = useState<ItemFila[]>([]);
-  const [peliculasModa, setPeliculasModa] = useState<ItemFila[]>([]);
-  const [seriesRecomendadas, setSeriesRecomendadas] = useState<ItemFila[]>([]);
-  const [peliculasRecomendadas, setPeliculasRecomendadas] = useState<ItemFila[]>([]);
+  // "Crudos" = tal cual viene de TMDB, sin filtrar todavía. Los filtramos
+  // en un paso aparte (según idsSeriesAgregadas/idsPeliculasAgregadas) para
+  // poder refrescar SOLO qué está agregado cada vez que se vuelve a esta
+  // pestaña, sin tener que pedirle de nuevo tendencias/recomendaciones a
+  // TMDB (son las llamadas caras) cada vez.
+  const [crudosSeriesModa, setCrudosSeriesModa] = useState<ItemFila[]>([]);
+  const [crudosPeliculasModa, setCrudosPeliculasModa] = useState<ItemFila[]>([]);
+  const [crudosSeriesRecomendadas, setCrudosSeriesRecomendadas] = useState<ItemFila[]>([]);
+  const [crudosPeliculasRecomendadas, setCrudosPeliculasRecomendadas] = useState<ItemFila[]>([]);
+  const [idsSeriesAgregadas, setIdsSeriesAgregadas] = useState<Set<number>>(new Set());
+  const [idsPeliculasAgregadas, setIdsPeliculasAgregadas] = useState<Set<number>>(new Set());
+  // Solo para mostrar el tilde en el momento — a propósito NO se usa para
+  // filtrar acá. El título recién desaparece de esta pantalla la próxima
+  // vez que se entra a Descubrir (ver refrescarAgregados), no al toque.
+  const [agregadosEnSesion, setAgregadosEnSesion] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [descartarItem, setDescartarItem] = useState<ItemFila | null>(null);
-  const [agregados, setAgregados] = useState<Set<string>>(new Set());
+
+  // Las listas que realmente se muestran: las crudas, sacando lo que ya
+  // está agregado — nunca tienen que aparecer títulos que ya tenés.
+  const seriesModa = crudosSeriesModa.filter((s) => !idsSeriesAgregadas.has(s.id));
+  const peliculasModa = crudosPeliculasModa.filter((p) => !idsPeliculasAgregadas.has(p.id));
+  const seriesRecomendadas = crudosSeriesRecomendadas.filter((s) => !idsSeriesAgregadas.has(s.id));
+  const peliculasRecomendadas = crudosPeliculasRecomendadas.filter((p) => !idsPeliculasAgregadas.has(p.id));
 
   useEffect(() => {
-    cargar();
+    cargarTodo();
   }, []);
 
-  async function cargar() {
+  // Cada vez que se vuelve a esta pestaña (no solo la primera vez que se
+  // monta), refrescamos qué está agregado — así, si agregaste algo desde
+  // otra pantalla (buscador, detalle de un título, etc.) y volvés acá, ya
+  // no lo vas a ver más en Tendencia/Recomendadas.
+  useFocusEffect(
+    useCallback(() => {
+      refrescarAgregados();
+    }, [userId])
+  );
+
+  async function refrescarAgregados() {
+    if (!userId) return;
+    const [{ data: misSeries }, { data: misPeliculas }] = await Promise.all([
+      supabase.from("user_series").select("series_tmdb_id").eq("user_id", userId),
+      supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", userId),
+    ]);
+    setIdsSeriesAgregadas(new Set((misSeries ?? []).map((s: any) => s.series_tmdb_id)));
+    setIdsPeliculasAgregadas(new Set((misPeliculas ?? []).map((p: any) => p.movie_tmdb_id)));
+  }
+
+  async function cargarTodo() {
     setLoading(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -81,21 +119,19 @@ function Descubrir({ navigation }: any) {
         uid ? recomendarPeliculas(uid) : Promise.resolve([]),
       ]);
 
-      let idsSeriesAgregadas = new Set<number>();
-      let idsPeliculasAgregadas = new Set<number>();
       if (uid) {
         const [{ data: misSeries }, { data: misPeliculas }] = await Promise.all([
           supabase.from("user_series").select("series_tmdb_id").eq("user_id", uid),
           supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", uid),
         ]);
-        idsSeriesAgregadas = new Set((misSeries ?? []).map((s: any) => s.series_tmdb_id));
-        idsPeliculasAgregadas = new Set((misPeliculas ?? []).map((p: any) => p.movie_tmdb_id));
+        setIdsSeriesAgregadas(new Set((misSeries ?? []).map((s: any) => s.series_tmdb_id)));
+        setIdsPeliculasAgregadas(new Set((misPeliculas ?? []).map((p: any) => p.movie_tmdb_id)));
       }
 
-      setSeriesModa((trendSeries.results ?? []).map(mapSerie).filter((s: ItemFila) => !idsSeriesAgregadas.has(s.id)));
-      setPeliculasModa((trendMovies.results ?? []).map(mapPelicula).filter((p: ItemFila) => !idsPeliculasAgregadas.has(p.id)));
-      setSeriesRecomendadas((recSeries ?? []).map(mapSerie).filter((s: ItemFila) => !idsSeriesAgregadas.has(s.id)));
-      setPeliculasRecomendadas((recMovies ?? []).map(mapPelicula).filter((p: ItemFila) => !idsPeliculasAgregadas.has(p.id)));
+      setCrudosSeriesModa((trendSeries.results ?? []).map(mapSerie));
+      setCrudosPeliculasModa((trendMovies.results ?? []).map(mapPelicula));
+      setCrudosSeriesRecomendadas((recSeries ?? []).map(mapSerie));
+      setCrudosPeliculasRecomendadas((recMovies ?? []).map(mapPelicula));
     } catch (e) {
       console.error(e);
     } finally {
@@ -123,11 +159,12 @@ function Descubrir({ navigation }: any) {
 
   async function agregarRapido(item: ItemFila) {
     if (!userId) return;
-    const clave = `${item.tipo}-${item.id}`;
     try {
       if (item.tipo === "series") await seguirSerie(userId, item.id);
       else await agregarPelicula(userId, item.id);
-      setAgregados((prev) => new Set(prev).add(clave));
+      // Queda visible con el tilde por ahora — desaparece recién la próxima
+      // vez que se entra a esta pestaña (así no se siente que "salta" la fila).
+      setAgregadosEnSesion((prev) => new Set(prev).add(`${item.tipo}-${item.id}`));
     } catch (e: any) {
       console.error("Error al agregar rápido:", e);
       Alert.alert("No se pudo agregar", e.message ?? "Revisá tu conexión y probá de nuevo.");
@@ -142,7 +179,7 @@ function Descubrir({ navigation }: any) {
   async function confirmarDescarte() {
     if (!userId || !descartarItem) return;
     await marcarNoMeInteresa(userId, descartarItem.tipo, descartarItem.id);
-    cargar();
+    cargarTodo();
   }
 
   if (loading) return <ActivityIndicator style={{ marginTop: 32 }} />;
@@ -155,7 +192,7 @@ function Descubrir({ navigation }: any) {
         items={peliculasModa}
         onPress={abrir}
         onAgregar={agregarRapido}
-        agregados={agregados}
+        agregadosEnSesion={agregadosEnSesion}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "movie", ordenInicial: "tendencias" })}
       />
       <FilaHorizontal
@@ -164,7 +201,7 @@ function Descubrir({ navigation }: any) {
         onPress={abrir}
         onLongPress={descartar}
         onAgregar={agregarRapido}
-        agregados={agregados}
+        agregadosEnSesion={agregadosEnSesion}
         vacioTexto={t("Agregá algunas películas para que empecemos a recomendarte.")}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "movie", ordenInicial: "recomendado" })}
       />
@@ -173,7 +210,7 @@ function Descubrir({ navigation }: any) {
         items={seriesModa}
         onPress={abrir}
         onAgregar={agregarRapido}
-        agregados={agregados}
+        agregadosEnSesion={agregadosEnSesion}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "series", ordenInicial: "tendencias" })}
       />
       <FilaHorizontal
@@ -182,7 +219,7 @@ function Descubrir({ navigation }: any) {
         onPress={abrir}
         onLongPress={descartar}
         onAgregar={agregarRapido}
-        agregados={agregados}
+        agregadosEnSesion={agregadosEnSesion}
         vacioTexto={t("Agregá algunas series para que empecemos a recomendarte.")}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "series", ordenInicial: "recomendado" })}
       />
@@ -207,7 +244,7 @@ function FilaHorizontal({
   onPress,
   onLongPress,
   onAgregar,
-  agregados,
+  agregadosEnSesion,
   vacioTexto,
   onVerMas,
 }: {
@@ -216,7 +253,7 @@ function FilaHorizontal({
   onPress: (item: ItemFila) => void;
   onLongPress?: (item: ItemFila) => void;
   onAgregar: (item: ItemFila) => void;
-  agregados: Set<string>;
+  agregadosEnSesion: Set<string>;
   vacioTexto?: string;
   onVerMas: () => void;
 }) {
@@ -238,7 +275,7 @@ function FilaHorizontal({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 8 }}
         renderItem={({ item }) => {
-          const yaAgregado = agregados.has(`${item.tipo}-${item.id}`);
+          const yaAgregado = agregadosEnSesion.has(`${item.tipo}-${item.id}`);
           return (
             <View style={styles.card}>
               <Pressable onPress={() => onPress(item)} onLongPress={onLongPress ? () => onLongPress(item) : undefined}>
