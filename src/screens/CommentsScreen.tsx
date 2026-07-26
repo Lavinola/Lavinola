@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import PostCard from "../components/PostCard";
 import UnderlineTabs from "../components/UnderlineTabs";
 import { listarPostsDeTitulo, Post } from "../lib/posts";
+import { contarComentarios } from "../lib/comments";
 import { posterUrl, getMovieReviews, getSeriesReviews } from "../lib/tmdb";
 import { traducirTexto, idiomaCorto } from "../lib/translate";
 import { supabase } from "../lib/supabase";
@@ -26,6 +27,7 @@ export default function CommentsScreen({ route, navigation }: any) {
   const [subTab, setSubTab] = useState<"todos" | "siguiendo" | "yo">("todos");
   const [siguiendoIds, setSiguiendoIds] = useState<Set<string>>(new Set());
   const [miUserId, setMiUserId] = useState<string | null>(null);
+  const [conteoComentarios, setConteoComentarios] = useState({ todos: 0, siguiendo: 0, yo: 0 });
   const [fuente, setFuente] = useState<"lavinola" | "tmdb">("lavinola");
   const [anchoToggle, setAnchoToggle] = useState(0);
   const animFuente = useRef(new Animated.Value(0)).current;
@@ -54,6 +56,20 @@ export default function CommentsScreen({ route, navigation }: any) {
     if (fuente !== "tmdb" || !esTitulo || reseñasTmdb.length > 0) return;
     cargarReseñasTmdb();
   }, [fuente]);
+
+  useEffect(() => {
+    if (!esTitulo) return;
+    cargarConteoComentarios();
+  }, [siguiendoIds, miUserId]);
+
+  async function cargarConteoComentarios() {
+    const [todos, siguiendo, yo] = await Promise.all([
+      contarComentarios(targetType, targetId),
+      contarComentarios(targetType, targetId, { soloEntreIds: Array.from(siguiendoIds) }),
+      miUserId ? contarComentarios(targetType, targetId, { soloAutorId: miUserId }) : Promise.resolve(0),
+    ]);
+    setConteoComentarios({ todos, siguiendo, yo });
+  }
 
   async function cargarReseñasTmdb() {
     setCargandoReseñas(true);
@@ -273,9 +289,12 @@ export default function CommentsScreen({ route, navigation }: any) {
             <View style={styles.tabsWrap}>
               <UnderlineTabs
                 opciones={[
-                  { key: "todos", label: t("Todos") },
-                  { key: "siguiendo", label: t("Siguiendo") },
-                  { key: "yo", label: t("Yo") },
+                  { key: "todos", label: `${t("Todos")} (${posts.length + conteoComentarios.todos})` },
+                  {
+                    key: "siguiendo",
+                    label: `${t("Siguiendo")} (${posts.filter((p) => siguiendoIds.has(p.user_id)).length + conteoComentarios.siguiendo})`,
+                  },
+                  { key: "yo", label: `${t("Yo")} (${posts.filter((p) => p.user_id === miUserId).length + conteoComentarios.yo})` },
                 ]}
                 valor={subTab}
                 onCambiar={setSubTab}

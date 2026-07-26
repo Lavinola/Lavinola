@@ -8,7 +8,7 @@ import { posterUrl } from "../lib/tmdb";
 import { listarFavoritos, toggleFavorito } from "../lib/favorites";
 import { fetchAllRows } from "../lib/pagination";
 import { computeSeriesStatus } from "../types";
-import ActionSheetModal from "../components/ActionSheetModal";
+import OrdenTitulosModal, { CriterioOrdenTitulos } from "../components/OrdenTitulosModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -21,24 +21,14 @@ interface ItemConFavorito {
   ultimaVez: string | null;
 }
 
-type Orden = "alfabetico_asc" | "alfabetico_desc" | "fecha_desc" | "fecha_asc" | "ultimo_visto";
-
 /** Favoritas siempre primero (arriba de todo), el resto después — ambos grupos ordenados según el criterio elegido. */
-function ordenarItems(items: ItemConFavorito[], orden: Orden): ItemConFavorito[] {
+function ordenarItems(items: ItemConFavorito[], criterio: CriterioOrdenTitulos, ascendente: boolean): ItemConFavorito[] {
   function comparar(a: ItemConFavorito, b: ItemConFavorito): number {
-    switch (orden) {
-      case "alfabetico_desc":
-        return b.nombre.localeCompare(a.nombre);
-      case "fecha_desc":
-        return (b.fechaLanzamiento ?? "").localeCompare(a.fechaLanzamiento ?? "");
-      case "fecha_asc":
-        return (a.fechaLanzamiento ?? "").localeCompare(b.fechaLanzamiento ?? "");
-      case "ultimo_visto":
-        return (b.ultimaVez ?? "").localeCompare(a.ultimaVez ?? "");
-      case "alfabetico_asc":
-      default:
-        return a.nombre.localeCompare(b.nombre);
-    }
+    let cmp = 0;
+    if (criterio === "alfabetico") cmp = a.nombre.localeCompare(b.nombre);
+    else if (criterio === "fecha") cmp = (a.fechaLanzamiento ?? "").localeCompare(b.fechaLanzamiento ?? "");
+    else cmp = (a.ultimaVez ?? "").localeCompare(b.ultimaVez ?? "");
+    return ascendente ? cmp : -cmp;
   }
   const favoritas = items.filter((i) => i.favorito).sort(comparar);
   const resto = items.filter((i) => !i.favorito).sort(comparar);
@@ -52,7 +42,8 @@ export default function ManageFavoritesScreen({ route }: any) {
   const [busqueda, setBusqueda] = useState("");
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const [orden, setOrden] = useState<Orden>("alfabetico_asc");
+  const [orden, setOrden] = useState<CriterioOrdenTitulos>("alfabetico");
+  const [ascendente, setAscendente] = useState(true);
   const [ordenModalVisible, setOrdenModalVisible] = useState(false);
 
   useFocusEffect(
@@ -115,7 +106,7 @@ export default function ManageFavoritesScreen({ route }: any) {
           fechaLanzamiento: r.series_cache?.first_air_date ?? null,
           ultimaVez: r.last_watched_at ?? null,
         }));
-      setItems(ordenarItems(lista, orden));
+      setItems(ordenarItems(lista, orden, ascendente));
     } else {
       const [favs, movieRows] = await Promise.all([
         listarFavoritos(uid),
@@ -130,7 +121,7 @@ export default function ManageFavoritesScreen({ route }: any) {
         fechaLanzamiento: r.movies_cache?.release_date ?? null,
         ultimaVez: r.watched_at ?? null,
       }));
-      setItems(ordenarItems(lista, orden));
+      setItems(ordenarItems(lista, orden, ascendente));
     }
     setLoading(false);
   }
@@ -138,13 +129,17 @@ export default function ManageFavoritesScreen({ route }: any) {
   async function toggle(item: ItemConFavorito) {
     if (!userId) return;
     await toggleFavorito(userId, tipo, item.tmdb_id, item.favorito);
-    setItems((prev) => ordenarItems(prev.map((i) => (i.tmdb_id === item.tmdb_id ? { ...i, favorito: !i.favorito } : i)), orden));
+    // A propósito NO reordenamos acá — si moviéramos la fila arriba de todo
+    // al toque, el FlatList saltaría al principio y perderías el lugar en el
+    // que estabas scrolleando. El reacomodo (favoritas arriba) se aplica
+    // recién la próxima vez que se cargue la pantalla o cambies el orden.
+    setItems((prev) => prev.map((i) => (i.tmdb_id === item.tmdb_id ? { ...i, favorito: !i.favorito } : i)));
   }
 
-  function cambiarOrden(nuevo: Orden) {
-    setOrden(nuevo);
-    setItems((prev) => ordenarItems(prev, nuevo));
-    setOrdenModalVisible(false);
+  function cambiarOrden(nuevoCriterio: CriterioOrdenTitulos, nuevaAscendente: boolean) {
+    setOrden(nuevoCriterio);
+    setAscendente(nuevaAscendente);
+    setItems((prev) => ordenarItems(prev, nuevoCriterio, nuevaAscendente));
   }
 
   const filtrados = busqueda.trim()
@@ -194,16 +189,12 @@ export default function ManageFavoritesScreen({ route }: any) {
         />
       )}
 
-      <ActionSheetModal
+      <OrdenTitulosModal
         visible={ordenModalVisible}
         onCerrar={() => setOrdenModalVisible(false)}
-        opciones={[
-          { label: t("Alfabético (A-Z)"), icono: "text-outline", onPress: () => cambiarOrden("alfabetico_asc") },
-          { label: t("Alfabético (Z-A)"), icono: "text-outline", onPress: () => cambiarOrden("alfabetico_desc") },
-          { label: t("Fecha de lanzamiento (más nueva primero)"), icono: "calendar-outline", onPress: () => cambiarOrden("fecha_desc") },
-          { label: t("Fecha de lanzamiento (más vieja primero)"), icono: "calendar-outline", onPress: () => cambiarOrden("fecha_asc") },
-          { label: t("Lo último que has visto"), icono: "time-outline", onPress: () => cambiarOrden("ultimo_visto") },
-        ]}
+        orden={orden}
+        ascendente={ascendente}
+        onCambiar={cambiarOrden}
       />
     </View>
   );

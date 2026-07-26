@@ -13,8 +13,6 @@ import MoodPicker from "../components/MoodPicker";
 import ActionSheetModal from "../components/ActionSheetModal";
 import ConfirmModal from "../components/ConfirmModal";
 import CastVotePicker from "../components/CastVotePicker";
-import { contarComentarios } from "../lib/comments";
-import { contarPostsDeTitulo } from "../lib/posts";
 import { supabase } from "../lib/supabase";
 import { calificarEpisodio, promedioEpisodio, guardarPlataformaEpisodio } from "../lib/ratings";
 import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl } from "../lib/tmdb";
@@ -57,7 +55,6 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   const [imdb, setImdb] = useState<NotaImdb | null>(null);
   const [providers, setProviders] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [cantidadComentarios, setCantidadComentarios] = useState(0);
   const [fechaVista, setFechaVista] = useState<string | null>(null);
   const [primeraFechaVista, setPrimeraFechaVista] = useState<string | null>(null);
   const [vecesVista, setVecesVista] = useState(1);
@@ -123,9 +120,6 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
     setReparto((credits.cast ?? []).slice(0, 15));
 
     setPromedio(await promedioEpisodio(seriesTmdbId, seasonNumber, episodeNumber));
-    const cantComentarios = await contarComentarios("episode", targetId);
-    const cantPosts = await contarPostsDeTitulo("episode", seriesTmdbId, seasonNumber, episodeNumber);
-    setCantidadComentarios(cantComentarios + cantPosts);
 
     try {
       const externos = await getEpisodeExternalIds(seriesTmdbId, seasonNumber, episodeNumber);
@@ -381,7 +375,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
             style={styles.comentariosBanner}
             onPress={() => navigation.navigate("Comentarios", { targetType: "episode", targetId })}
           >
-            <Text style={styles.comentariosBannerTexto}>{t("COMENTARIOS/POSTS")} ({cantidadComentarios})</Text>
+            <Text style={styles.comentariosBannerTexto}>{t("COMENTARIOS/POSTS")}</Text>
             <Text style={styles.comentariosBannerFlecha}>›</Text>
           </Pressable>
 

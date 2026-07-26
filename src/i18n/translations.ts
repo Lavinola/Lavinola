@@ -1573,6 +1573,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Hai saltato {n} titoli perché nessuna opzione corrispondeva.",
   },
   "Fecha de lanzamiento": { en: "Release date", pt: "Data de lançamento", it: "Data di uscita" },
+  "Ordenar por:": { en: "Sort by:", pt: "Ordenar por:", it: "Ordina per:" },
   "No vistas": { en: "Unwatched", pt: "Não vistas", it: "Non viste" },
   Vistas: { en: "Watched", pt: "Vistas", it: "Viste" },
   Finalizadas: { en: "Finished", pt: "Finalizadas", it: "Finite" },

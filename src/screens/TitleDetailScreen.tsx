@@ -15,8 +15,6 @@ import ConfirmModal from "../components/ConfirmModal";
 import TopPills from "../components/TopPills";
 import MoodPicker from "../components/MoodPicker";
 import CastVotePicker from "../components/CastVotePicker";
-import { contarComentarios } from "../lib/comments";
-import { contarPostsDeTitulo } from "../lib/posts";
 import {
   getSeriesWatchProviders,
   getMovieWatchProviders,
@@ -432,7 +430,6 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   const [puedeCalificar, setPuedeCalificar] = useState(false);
   const [reparto, setReparto] = useState<any[]>([]);
   const [imdb, setImdb] = useState<NotaImdb | null>(null);
-  const [cantidadComentarios, setCantidadComentarios] = useState(0);
   const [cantidadFavoritos, setCantidadFavoritos] = useState(0);
   const [trailer, setTrailer] = useState<{ key: string; name: string } | null>(null);
   const [recomendados, setRecomendados] = useState<any[]>([]);
@@ -503,9 +500,6 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
 
     const credits = tipo === "series" ? await getSeriesCredits(tmdbId) : await getMovieCredits(tmdbId);
     setReparto((credits.cast ?? []).slice(0, 15));
-    const cantComentarios = await contarComentarios(tipo, String(tmdbId));
-    const cantPosts = await contarPostsDeTitulo(tipo, tmdbId);
-    setCantidadComentarios(cantComentarios + cantPosts);
     setCantidadFavoritos(await contarFavoritosDeTitulo(tipo, tmdbId));
 
     const videos = tipo === "series" ? await getSeriesVideos(tmdbId) : await getMovieVideos(tmdbId);
@@ -700,7 +694,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
           style={styles.comentariosBanner}
           onPress={() => navigation.navigate("Comentarios", { targetType: tipo, targetId: String(tmdbId) })}
         >
-          <Text style={styles.comentariosBannerTexto}>{t("COMENTARIOS/POSTS")} ({cantidadComentarios})</Text>
+          <Text style={styles.comentariosBannerTexto}>{t("COMENTARIOS/POSTS")}</Text>
           <Text style={styles.comentariosBannerFlecha}>›</Text>
         </Pressable>
       </View>

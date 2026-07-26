@@ -6,7 +6,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
 import { notificarAgregadoALista } from "../lib/lists";
-import ActionSheetModal from "../components/ActionSheetModal";
+import OrdenTitulosModal, { CriterioOrdenTitulos } from "../components/OrdenTitulosModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -19,27 +19,15 @@ interface ItemConEnLista {
   ultimaVez: string | null;
 }
 
-type Orden = "alfabetico_asc" | "alfabetico_desc" | "fecha_desc" | "fecha_asc" | "ultimo_visto";
-
-function ordenarItems(items: ItemConEnLista[], orden: Orden): ItemConEnLista[] {
+function ordenarItems(items: ItemConEnLista[], criterio: CriterioOrdenTitulos, ascendente: boolean): ItemConEnLista[] {
   const arr = [...items];
-  switch (orden) {
-    case "alfabetico_desc":
-      arr.sort((a, b) => b.nombre.localeCompare(a.nombre));
-      break;
-    case "fecha_desc":
-      arr.sort((a, b) => (b.fechaLanzamiento ?? "").localeCompare(a.fechaLanzamiento ?? ""));
-      break;
-    case "fecha_asc":
-      arr.sort((a, b) => (a.fechaLanzamiento ?? "").localeCompare(b.fechaLanzamiento ?? ""));
-      break;
-    case "ultimo_visto":
-      arr.sort((a, b) => (b.ultimaVez ?? "").localeCompare(a.ultimaVez ?? ""));
-      break;
-    case "alfabetico_asc":
-    default:
-      arr.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }
+  arr.sort((a, b) => {
+    let cmp = 0;
+    if (criterio === "alfabetico") cmp = a.nombre.localeCompare(b.nombre);
+    else if (criterio === "fecha") cmp = (a.fechaLanzamiento ?? "").localeCompare(b.fechaLanzamiento ?? "");
+    else cmp = (a.ultimaVez ?? "").localeCompare(b.ultimaVez ?? "");
+    return ascendente ? cmp : -cmp;
+  });
   return arr;
 }
 
@@ -49,7 +37,8 @@ export default function ChooseForListScreen({ route }: any) {
   const [items, setItems] = useState<ItemConEnLista[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [loading, setLoading] = useState(true);
-  const [orden, setOrden] = useState<Orden>("alfabetico_asc");
+  const [orden, setOrden] = useState<CriterioOrdenTitulos>("alfabetico");
+  const [ascendente, setAscendente] = useState(true);
   const [ordenModalVisible, setOrdenModalVisible] = useState(false);
   const agregadosEnSesionRef = useRef<{ nombre: string }[]>([]);
 
@@ -108,7 +97,7 @@ export default function ChooseForListScreen({ route }: any) {
         ultimaVez: r.watched_at ?? null,
       }));
     }
-    setItems(ordenarItems(lista, orden));
+    setItems(ordenarItems(lista, orden, ascendente));
     setLoading(false);
   }
 
@@ -123,10 +112,10 @@ export default function ChooseForListScreen({ route }: any) {
     setItems((prev) => prev.map((i) => (i.tmdb_id === item.tmdb_id ? { ...i, enLista: !i.enLista } : i)));
   }
 
-  function cambiarOrden(nuevo: Orden) {
-    setOrden(nuevo);
-    setItems((prev) => ordenarItems(prev, nuevo));
-    setOrdenModalVisible(false);
+  function cambiarOrden(nuevoCriterio: CriterioOrdenTitulos, nuevaAscendente: boolean) {
+    setOrden(nuevoCriterio);
+    setAscendente(nuevaAscendente);
+    setItems((prev) => ordenarItems(prev, nuevoCriterio, nuevaAscendente));
   }
 
   const filtrados = busqueda.trim() ? items.filter((i) => i.nombre.toLowerCase().includes(busqueda.trim().toLowerCase())) : items;
@@ -174,16 +163,12 @@ export default function ChooseForListScreen({ route }: any) {
         />
       )}
 
-      <ActionSheetModal
+      <OrdenTitulosModal
         visible={ordenModalVisible}
         onCerrar={() => setOrdenModalVisible(false)}
-        opciones={[
-          { label: t("Alfabético (A-Z)"), icono: "text-outline", onPress: () => cambiarOrden("alfabetico_asc") },
-          { label: t("Alfabético (Z-A)"), icono: "text-outline", onPress: () => cambiarOrden("alfabetico_desc") },
-          { label: t("Fecha de lanzamiento (más nueva primero)"), icono: "calendar-outline", onPress: () => cambiarOrden("fecha_desc") },
-          { label: t("Fecha de lanzamiento (más vieja primero)"), icono: "calendar-outline", onPress: () => cambiarOrden("fecha_asc") },
-          { label: t("Lo último que has visto"), icono: "time-outline", onPress: () => cambiarOrden("ultimo_visto") },
-        ]}
+        orden={orden}
+        ascendente={ascendente}
+        onCambiar={cambiarOrden}
       />
     </View>
   );

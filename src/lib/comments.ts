@@ -31,12 +31,18 @@ const NIVEL_COLAPSO = 4; // a partir de este nivel de anidamiento, la UI colapsa
  * Las respuestas se piden aparte con `cargarRespuestas` cuando el usuario las abre,
  * para no traer el árbol entero de una.
  */
-export async function contarComentarios(targetType: string, targetId: string): Promise<number> {
-  const { count } = await supabase
-    .from("comentarios")
-    .select("*", { count: "exact", head: true })
-    .eq("target_type", targetType)
-    .eq("target_id", targetId);
+export async function contarComentarios(
+  targetType: string,
+  targetId: string,
+  opciones?: { soloAutorId?: string; soloEntreIds?: string[] }
+): Promise<number> {
+  let query = supabase.from("comentarios").select("*", { count: "exact", head: true }).eq("target_type", targetType).eq("target_id", targetId);
+  if (opciones?.soloAutorId) query = query.eq("user_id", opciones.soloAutorId);
+  if (opciones?.soloEntreIds) {
+    if (opciones.soloEntreIds.length === 0) return 0; // nadie a quien seguís comentó, evitamos un .in() vacío
+    query = query.in("user_id", opciones.soloEntreIds);
+  }
+  const { count } = await query;
   return count ?? 0;
 }
 
