@@ -837,6 +837,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Solo lettere, numeri, punti o trattini bassi",
   },
   "Usuario inválido": { en: "Invalid username", pt: "Usuário inválido", it: "Nome utente non valido" },
+  "Agregar +": { en: "Add +", pt: "Adicionar +", it: "Aggiungi +" },
   Desbloquear: { en: "Unblock", pt: "Desbloquear", it: "Sblocca" },
   "¿Por cuánto tiempo?": { en: "For how long?", pt: "Por quanto tempo?", it: "Per quanto tempo?" },
   Siempre: { en: "Always", pt: "Sempre", it: "Sempre" },

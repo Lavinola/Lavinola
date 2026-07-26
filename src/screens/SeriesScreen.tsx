@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
 import { marcarEpisodioVisto, episodiosAnterioresNoVistos, marcarVariosEpisodios, getProximoEpisodio } from "../lib/episodes";
 import ConfirmModal from "../components/ConfirmModal";
+import AgregarButton from "../components/AgregarButton";
 import CalificarModal from "../components/CalificarModal";
 import { listarSeriesConEstado, historialReciente, SerieListado, EventoHistorial } from "../lib/seriesList";
 import TopPills from "../components/TopPills";
@@ -288,6 +289,11 @@ function ListaPendiente({ navigation }: any) {
         }
         return <FilaSerie item={s} onTocarTilde={() => tocarSiguienteCapitulo(s)} navigation={navigation} />;
       }}
+      ListFooterComponent={
+        <View style={{ padding: 12, alignItems: "flex-start" }}>
+          <AgregarButton navigation={navigation} />
+        </View>
+      }
     />
     <ConfirmModal
       visible={!!confirmAnteriores}

@@ -9,6 +9,7 @@ import { listarSeriesConEstado, progresoDeSeries, SerieListado, ProgresoSerie } 
 import { listarFavoritos, moverFavorito, Favorito } from "../lib/favorites";
 import SeriesProgressBar from "../components/SeriesProgressBar";
 import RatingStars from "../components/RatingStars";
+import AgregarButton from "../components/AgregarButton";
 import FiltroSeriesModal, { OrdenSeries, CategoriaSerie, CATEGORIAS_SERIE } from "../components/FiltroSeriesModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -188,6 +189,8 @@ export default function AllSeriesScreen({ route, navigation }: any) {
             </Pressable>
           </>
         )}
+        <View style={{ flex: 1 }} />
+        {!modoReordenar && !soloFavoritas && <AgregarButton navigation={navigation} />}
       </View>
 
       {loading ? (
@@ -312,7 +315,7 @@ export default function AllSeriesScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", padding: 12, gap: 6 },
+  topRow: { flexDirection: "row", justifyContent: "flex-start", alignItems: "center", padding: 12, gap: 6 },
   filtrosBtn: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: theme.colors.primary, borderRadius: theme.radius.pill, paddingVertical: 8, paddingHorizontal: 12 },
   filtrosBtnTexto: { color: "#000000", fontWeight: "700", fontSize: 13 },
   iconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center" },

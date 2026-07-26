@@ -22,6 +22,7 @@ function diasHasta(fecha: string | null): number {
   return Math.max(0, Math.round((destino.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)));
 }
 import TopPills from "../components/TopPills";
+import AgregarButton from "../components/AgregarButton";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -176,16 +177,19 @@ export default function MoviesScreen({ navigation }: any) {
 
       {subTab === "pendiente" && (
         <View style={styles.vistaToggleRow}>
-          <Pressable onPress={() => setOrdenModalVisible(true)} style={styles.vistaToggleBtn}>
-            <Ionicons name="swap-vertical" size={18} color={theme.colors.textMuted} />
-          </Pressable>
-          <Pressable onPress={() => setVista(vista === "grilla" ? "lista" : "grilla")} style={styles.vistaToggleBtn}>
-            <Ionicons name={vista === "grilla" ? "list" : "grid"} size={18} color={theme.colors.textMuted} />
-          </Pressable>
-          <Pressable onPress={() => setFiltroVisible(true)} style={styles.vistaToggleBtn}>
-            <Ionicons name="options" size={18} color={theme.colors.textMuted} />
-            {(generoId !== null || plataformas.length > 0) && <View style={styles.filtroPuntito} />}
-          </Pressable>
+          <AgregarButton navigation={navigation} />
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <Pressable onPress={() => setOrdenModalVisible(true)} style={styles.vistaToggleBtn}>
+              <Ionicons name="swap-vertical" size={18} color={theme.colors.textMuted} />
+            </Pressable>
+            <Pressable onPress={() => setVista(vista === "grilla" ? "lista" : "grilla")} style={styles.vistaToggleBtn}>
+              <Ionicons name={vista === "grilla" ? "list" : "grid"} size={18} color={theme.colors.textMuted} />
+            </Pressable>
+            <Pressable onPress={() => setFiltroVisible(true)} style={styles.vistaToggleBtn}>
+              <Ionicons name="options" size={18} color={theme.colors.textMuted} />
+              {(generoId !== null || plataformas.length > 0) && <View style={styles.filtroPuntito} />}
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -324,7 +328,7 @@ export default function MoviesScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  vistaToggleRow: { flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 12, paddingTop: 8, gap: 12 },
+  vistaToggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12, paddingTop: 8, gap: 12 },
   vistaToggleBtn: { padding: 6 },
   filtroPuntito: { position: "absolute", top: 4, right: 4, width: 7, height: 7, borderRadius: 4, backgroundColor: theme.colors.primary },
   vacio: { textAlign: "center", marginTop: 32, color: theme.colors.textMuted },

@@ -9,6 +9,7 @@ import { posterUrl } from "../lib/tmdb";
 import { listarFavoritos, moverFavorito, Favorito } from "../lib/favorites";
 import FiltroPeliculasModal, { OrdenPeliculas, FiltroEstadoPelicula } from "../components/FiltroPeliculasModal";
 import RatingStars from "../components/RatingStars";
+import AgregarButton from "../components/AgregarButton";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -212,6 +213,8 @@ export default function AllMoviesScreen({ route, navigation }: any) {
             </Pressable>
           </>
         )}
+        <View style={{ flex: 1 }} />
+        {!modoReordenar && !soloFavoritas && <AgregarButton navigation={navigation} />}
       </View>
 
       {loading ? (
@@ -333,7 +336,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", padding: 12, gap: 10 },
+  topRow: { flexDirection: "row", justifyContent: "flex-start", alignItems: "center", padding: 12, gap: 10 },
   filtrosBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: theme.colors.primary, borderRadius: theme.radius.pill, paddingVertical: 8, paddingHorizontal: 18 },
   filtrosBtnTexto: { color: "#000000", fontWeight: "700", fontSize: 13 },
   iconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center" },
