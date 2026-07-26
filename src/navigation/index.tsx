@@ -371,12 +371,13 @@ const linking = {
   prefixes: [Linking.createURL("/")],
   config: {
     screens: {
-      Series: { path: "series", screens: { SeriesHome: "", ...RUTAS_COMUNES } },
-      Películas: { path: "peliculas", screens: { MoviesHome: "", ...RUTAS_COMUNES } },
-      Comunidad: { path: "comunidad", screens: { CommunityHome: "", ...RUTAS_COMUNES } },
-      Explorar: { path: "explorar", screens: { ExploreHome: "", ...RUTAS_COMUNES } },
+      Series: { path: "series", initialRouteName: "SeriesHome", screens: { SeriesHome: "", ...RUTAS_COMUNES } },
+      Películas: { path: "peliculas", initialRouteName: "MoviesHome", screens: { MoviesHome: "", ...RUTAS_COMUNES } },
+      Comunidad: { path: "comunidad", initialRouteName: "CommunityHome", screens: { CommunityHome: "", ...RUTAS_COMUNES } },
+      Explorar: { path: "explorar", initialRouteName: "ExploreHome", screens: { ExploreHome: "", ...RUTAS_COMUNES } },
       Perfil: {
         path: "perfil",
+        initialRouteName: "ProfileHome",
         screens: {
           ProfileHome: "",
           EditarPerfil: "editar-perfil",
