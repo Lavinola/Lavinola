@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { View, FlatList, Image, Pressable, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
 import { useFocusEffect } from "@react-navigation/native";
@@ -13,7 +13,7 @@ import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
 interface Props {
-  route: { params?: { userId?: string } };
+  route: { params?: { userId?: string; highlightPostId?: string } };
   navigation: any;
 }
 
@@ -24,9 +24,12 @@ export default function MyCommentsScreen({ route, navigation }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [lugares, setLugares] = useState<Record<string, string>>({});
   const [idiomaUsuario, setIdiomaUsuario] = useState("en");
+  const listRef = useRef<FlatList>(null);
+  const yaScrolleoRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
+      yaScrolleoRef.current = false;
       cargar();
       cargarIdioma();
     }, [])
@@ -55,6 +58,15 @@ export default function MyCommentsScreen({ route, navigation }: Props) {
     ];
     combinados.sort((a, b) => b.created_at.localeCompare(a.created_at));
     setItems(combinados);
+
+    const highlightPostId = route.params?.highlightPostId;
+    if (highlightPostId && !yaScrolleoRef.current) {
+      const indice = combinados.findIndex((it) => it.tipo === "post" && it.data.id === highlightPostId);
+      if (indice >= 0) {
+        yaScrolleoRef.current = true;
+        setTimeout(() => listRef.current?.scrollToIndex({ index: indice, animated: true, viewPosition: 0.2 }), 200);
+      }
+    }
   }
 
   async function abrir(c: ComentarioPropio) {
@@ -82,9 +94,13 @@ export default function MyCommentsScreen({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       <FlatList
+        ref={listRef}
         data={items}
         keyExtractor={(item) => `${item.tipo}-${item.data.id}`}
         contentContainerStyle={{ padding: 12 }}
+        onScrollToIndexFailed={(info) => {
+          setTimeout(() => listRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.2 }), 250);
+        }}
         ListEmptyComponent={
           <Text style={styles.vacio}>
             {route.params?.userId ? "Todavía no escribió ningún comentario ni publicó nada." : "Todavía no escribiste ningún comentario ni publicaste nada."}
@@ -92,7 +108,9 @@ export default function MyCommentsScreen({ route, navigation }: Props) {
         }
         renderItem={({ item }) =>
           item.tipo === "post" ? (
-            <PostCard post={item.data} navigation={navigation} onCambio={cargar} mostrarTipo />
+            <View style={item.data.id === route.params?.highlightPostId ? styles.postResaltado : undefined}>
+              <PostCard post={item.data} navigation={navigation} onCambio={cargar} mostrarTipo />
+            </View>
           ) : (
             <TarjetaComentario
               comentario={item.data}
@@ -168,6 +186,7 @@ function TarjetaComentario({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
+  postResaltado: { borderWidth: 1.5, borderColor: theme.colors.primary, borderRadius: theme.radius.md },
   vacio: { textAlign: "center", color: theme.colors.textMuted, marginTop: 24 },
   card: { padding: 12, borderRadius: theme.radius.md, backgroundColor: theme.colors.surface, marginBottom: 8 },
   lugarRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },

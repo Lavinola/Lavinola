@@ -45,6 +45,11 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "{nombre} reagiu à sua publicação",
     it: "{nombre} ha reagito al tuo post",
   },
+  "{nombre} reaccionó a tu comentario": {
+    en: "{nombre} reacted to your comment",
+    pt: "{nombre} reagiu ao seu comentário",
+    it: "{nombre} ha reagito al tuo commento",
+  },
   "{nombre} reaccionó con {emoji} a tu comentario": {
     en: "{nombre} reacted with {emoji} to your comment",
     pt: "{nombre} reagiu com {emoji} ao seu comentário",

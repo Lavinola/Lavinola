@@ -6,6 +6,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { listarNotificaciones, marcarTodasLeidas, textoNotificacion, Notificacion } from "../lib/notificationsFeed";
 import { listarSolicitudesPendientes } from "../lib/followRequests";
+import IconoReaccion from "../components/IconoReaccion";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 import { formatearFechaHora } from "../lib/dates";
@@ -84,7 +85,7 @@ export default function NotificationsScreen({ navigation }: any) {
     }
 
     if (n.type === "like" && n.target_type === "post" && n.target_id) {
-      navigation.navigate("Comentarios", { targetType: "post", targetId: n.target_id });
+      navigation.navigate("MisComentarios", { highlightPostId: n.target_id });
     }
   }
 
@@ -116,7 +117,14 @@ export default function NotificationsScreen({ navigation }: any) {
             <View style={[styles.avatar, styles.avatarPlaceholder]} />
           )}
           <View style={{ flex: 1 }}>
-            <Text style={styles.texto}>{textoNotificacion(item, t)}</Text>
+            <View style={styles.textoConIcono}>
+              {item.type === "like" && item.message && (
+                <View style={styles.iconoReaccionWrap}>
+                  <IconoReaccion reaccionKey={item.message} size={15} />
+                </View>
+              )}
+              <Text style={[styles.texto, { flex: 1 }]}>{textoNotificacion(item, t)}</Text>
+            </View>
             <Text style={styles.fecha}>{formatearFechaHora(item.created_at)}</Text>
           </View>
         </Pressable>
@@ -132,6 +140,8 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {},
   cardNoLeida: { borderWidth: 1, borderColor: theme.colors.primary },
   texto: { fontSize: 14 },
+  textoConIcono: { flexDirection: "row", alignItems: "center" },
+  iconoReaccionWrap: { marginRight: 6 },
   fecha: { fontSize: 11, color: theme.colors.textMuted, marginTop: 4 },
   solicitudesBtn: {
     flexDirection: "row",
