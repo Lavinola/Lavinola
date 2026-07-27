@@ -42,7 +42,6 @@ function ListaPendiente({ navigation }: any) {
   const [series, setSeries] = useState<SerieListado[]>([]);
   const [historial, setHistorial] = useState<EventoHistorial[]>([]);
   const [loading, setLoading] = useState(true);
-  const [historialAbierta, setHistorialAbierta] = useState(false);
   const listRef = useRef<SectionList>(null);
   const idCargaRef = useRef(0);
   // Orden "congelado" de Ver a continuación: en vez de recalcularlo desde
@@ -199,8 +198,18 @@ function ListaPendiente({ navigation }: any) {
   // así al scrollear para arriba vas viendo hacia atrás en el tiempo.
   const historialOrdenado = [...historial].reverse();
 
+  // Altura de cada fila del historial (poster 60px + padding vertical 8+8) y
+  // del título de la sección (aprox), para poder calcular de entrada cuánto
+  // hay que "empezar bajado" y que Ver a continuación quede arriba de todo
+  // apenas se entra — sin depender de un scroll automático post-render (eso
+  // es lo que fallaba en la web cuando no había mucho margen para moverse).
+  const ALTURA_FILA_HISTORIAL = 76;
+  const ALTURA_HEADER_SECCION = 37;
+  const alturaHistorialEstimada =
+    historialOrdenado.length > 0 ? ALTURA_HEADER_SECCION + historialOrdenado.length * ALTURA_FILA_HISTORIAL : 0;
+
   const secciones = [
-    { titulo: t("Historial de visualización"), tipo: "historial" as const, esconderSiVacia: true, colapsable: true },
+    { titulo: t("Historial de visualización"), tipo: "historial" as const, esconderSiVacia: true, colapsable: false },
     { titulo: t("Ver a continuación"), tipo: "viendo" as const, esconderSiVacia: false, colapsable: true },
     { titulo: t("Sin ver por un tiempo"), tipo: "abandonada" as const, esconderSiVacia: true, colapsable: true },
     { titulo: t("Sin comenzar"), tipo: "sin_comenzar" as const, esconderSiVacia: true, colapsable: true },
@@ -214,6 +223,7 @@ function ListaPendiente({ navigation }: any) {
     <>
     <SectionList
       ref={listRef}
+      contentOffset={{ x: 0, y: alturaHistorialEstimada }}
       sections={secciones.map((s) => {
         const abierta =
           s.tipo === "abandonada"
@@ -222,8 +232,6 @@ function ListaPendiente({ navigation }: any) {
             ? sinComenzarAbierta
             : s.tipo === "viendo"
             ? viendoAbierta
-            : s.tipo === "historial"
-            ? historialAbierta
             : true;
         const datosCompletos = s.tipo === "historial" ? historialOrdenado : s.tipo === "viendo" ? viendo : s.tipo === "abandonada" ? abandonadas : sinComenzar;
         return { ...s, data: s.colapsable && !abierta ? [] : datosCompletos, cantidad: datosCompletos.length };
@@ -236,7 +244,6 @@ function ListaPendiente({ navigation }: any) {
             onPress={() => {
               if (section.tipo === "abandonada") setAbandonadaAbierta((v) => !v);
               else if (section.tipo === "sin_comenzar") setSinComenzarAbierta((v) => !v);
-              else if (section.tipo === "historial") setHistorialAbierta((v) => !v);
               else setViendoAbierta((v) => !v);
             }}
           >
@@ -245,13 +252,7 @@ function ListaPendiente({ navigation }: any) {
             </Text>
             <Ionicons
               name={
-                (section.tipo === "abandonada"
-                  ? abandonadaAbierta
-                  : section.tipo === "sin_comenzar"
-                  ? sinComenzarAbierta
-                  : section.tipo === "historial"
-                  ? historialAbierta
-                  : viendoAbierta)
+                (section.tipo === "abandonada" ? abandonadaAbierta : section.tipo === "sin_comenzar" ? sinComenzarAbierta : viendoAbierta)
                   ? "chevron-up"
                   : "chevron-down"
               }
