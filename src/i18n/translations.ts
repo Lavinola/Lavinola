@@ -1420,6 +1420,13 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   },
   Importando: { en: "Importing", pt: "Importando", it: "Importazione in corso" },
   "¡Listo!": { en: "Done!", pt: "Pronto!", it: "Fatto!" },
+  "Tu mail quedó confirmado.": { en: "Your email is confirmed.", pt: "Seu e-mail foi confirmado.", it: "La tua email è stata confermata." },
+  "No se pudo confirmar el mail": { en: "Couldn't confirm your email", pt: "Não foi possível confirmar o e-mail", it: "Impossibile confermare l'email" },
+  "El link puede haber vencido — probá pedir uno nuevo.": {
+    en: "The link may have expired — try requesting a new one.",
+    pt: "O link pode ter expirado — tente pedir um novo.",
+    it: "Il link potrebbe essere scaduto — prova a richiederne uno nuovo.",
+  },
   "Tu historial de TV Time ya está en Lavinola.": { en: "Your TV Time history is now in Lavinola.", pt: "Seu histórico do TV Time já está no Lavinola.", it: "La tua cronologia di TV Time è già su Lavinola." },
   "Editando mensaje": { en: "Editing message", pt: "Editando mensagem", it: "Modifica messaggio" },
   "Eliminar mensaje": { en: "Delete message", pt: "Excluir mensagem", it: "Elimina messaggio" },

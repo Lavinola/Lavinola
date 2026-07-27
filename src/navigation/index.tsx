@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Session } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { supabase } from "../lib/supabase";
+import { Alert } from "../lib/alert";
 import { registrarPushToken } from "../lib/notifications";
 import { setTmdbLanguage } from "../lib/tmdb";
 import { useT } from "../i18n/i18n";
@@ -433,18 +434,49 @@ export default function RootNavigation() {
       }
     });
 
-    // Si la app se abrió desde el link de "recuperar contraseña" que mandamos por mail,
-    // hay que pasarle esa URL a Supabase a mano (acá no hay barra de navegador que la detecte sola).
+    // Igual que con "recuperar contraseña": si la app se abrió desde el link
+    // de "confirmá tu mail" (que ahora apunta a nuestro propio dominio en
+    // vez del link feo de Supabase), hay que procesarlo a mano.
     Linking.getInitialURL().then((url) => {
       if (url) procesarUrlDeRecuperacion(url);
+      if (url) procesarUrlDeConfirmacion(url);
     });
-    const listenerLinking = Linking.addEventListener("url", ({ url }) => procesarUrlDeRecuperacion(url));
+    const listenerLinking = Linking.addEventListener("url", ({ url }) => {
+      procesarUrlDeRecuperacion(url);
+      procesarUrlDeConfirmacion(url);
+    });
 
     return () => {
       sub.subscription.unsubscribe();
       listenerLinking.remove();
     };
   }, []);
+
+  function extraerParametroDeUrl(url: string, nombre: string): string | null {
+    const match = url.match(new RegExp(`[?&]${nombre}=([^&]+)`));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  /**
+   * Link de "confirmá tu mail" — armado con nuestra propia plantilla de
+   * Supabase (Authentication → Email Templates → Confirm signup), apuntando
+   * a {{ .SiteURL }}/confirmar?token_hash={{ .TokenHash }}&type=signup en
+   * vez del link con el dominio feo de Supabase (project-ref.supabase.co).
+   */
+  async function procesarUrlDeConfirmacion(url: string) {
+    if (!url.includes("/confirmar") && !url.includes("token_hash=")) return;
+    const tokenHash = extraerParametroDeUrl(url, "token_hash");
+    const tipo = extraerParametroDeUrl(url, "type");
+    if (!tokenHash || !tipo) return;
+    try {
+      const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: tipo as any });
+      if (error) throw error;
+      Alert.alert(t("¡Listo!"), t("Tu mail quedó confirmado."));
+    } catch (e: any) {
+      console.error("No se pudo procesar el link de confirmación:", e);
+      Alert.alert(t("No se pudo confirmar el mail"), e.message ?? t("El link puede haber vencido — probá pedir uno nuevo."));
+    }
+  }
 
   async function procesarUrlDeRecuperacion(url: string) {
     if (!url.includes("reset-password") && !url.includes("code=")) return;
