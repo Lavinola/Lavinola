@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { View, FlatList, SectionList, Image, StyleSheet, Pressable, ActivityIndicator, ScrollView, Animated, useWindowDimensions } from "react-native";
+import { View, FlatList, SectionList, Image, StyleSheet, Pressable, ActivityIndicator, ScrollView, Animated } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,13 +39,11 @@ export default function SeriesScreen({ navigation }: any) {
 
 function ListaPendiente({ navigation }: any) {
   const { t } = useT();
-  const { height: alturaPantalla } = useWindowDimensions();
   const [series, setSeries] = useState<SerieListado[]>([]);
   const [historial, setHistorial] = useState<EventoHistorial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [historialAbierta, setHistorialAbierta] = useState(false);
   const listRef = useRef<SectionList>(null);
-  const yaScrolleoRef = useRef(false);
-  const indiceVerARef = useRef(0);
   const idCargaRef = useRef(0);
   // Orden "congelado" de Ver a continuación: en vez de recalcularlo desde
   // cero en cada recarga (lo que puede reordenar todo por pequeñas
@@ -88,12 +86,6 @@ function ListaPendiente({ navigation }: any) {
       if (miId !== idCargaRef.current) return; // llegó una recarga más nueva mientras esperábamos — descartamos esta
       setSeries(todas);
       setHistorial(hist);
-      if (!silencioso) {
-        yaScrolleoRef.current = false;
-        const hayHistorial = hist.length > 0;
-        indiceVerARef.current = hayHistorial ? 1 : 0;
-        setTimeout(() => scrollAVerAContinuacion(), 60);
-      }
     } catch (e: any) {
       console.error("Error al cargar tus series:", e);
       Alert.alert(t("No se pudieron cargar tus series"), e.message ?? "Probá de nuevo.");
@@ -208,7 +200,7 @@ function ListaPendiente({ navigation }: any) {
   const historialOrdenado = [...historial].reverse();
 
   const secciones = [
-    { titulo: t("Historial de visualización"), tipo: "historial" as const, esconderSiVacia: true, colapsable: false },
+    { titulo: t("Historial de visualización"), tipo: "historial" as const, esconderSiVacia: true, colapsable: true },
     { titulo: t("Ver a continuación"), tipo: "viendo" as const, esconderSiVacia: false, colapsable: true },
     { titulo: t("Sin ver por un tiempo"), tipo: "abandonada" as const, esconderSiVacia: true, colapsable: true },
     { titulo: t("Sin comenzar"), tipo: "sin_comenzar" as const, esconderSiVacia: true, colapsable: true },
@@ -218,37 +210,25 @@ function ListaPendiente({ navigation }: any) {
       (s.tipo === "historial" ? historialOrdenado.length > 0 : s.tipo === "abandonada" ? abandonadas.length > 0 : sinComenzar.length > 0)
   );
 
-  function scrollAVerAContinuacion(intentos = 6) {
-    if (indiceVerARef.current <= 0) return;
-    try {
-      listRef.current?.scrollToLocation({
-        sectionIndex: indiceVerARef.current,
-        itemIndex: 0,
-        animated: false,
-        viewPosition: 0,
-        viewOffset: 0,
-      });
-      yaScrolleoRef.current = true;
-    } catch {
-      // todavía no terminó de medir, reintentamos
-    }
-    if (intentos > 0) setTimeout(() => scrollAVerAContinuacion(intentos - 1), 120);
-  }
-
   return (
     <>
     <SectionList
       ref={listRef}
-      ListHeaderComponent={historialOrdenado.length > 0 ? <View style={{ height: alturaPantalla }} /> : null}
       sections={secciones.map((s) => {
-        const abierta = s.tipo === "abandonada" ? abandonadaAbierta : s.tipo === "sin_comenzar" ? sinComenzarAbierta : s.tipo === "viendo" ? viendoAbierta : true;
+        const abierta =
+          s.tipo === "abandonada"
+            ? abandonadaAbierta
+            : s.tipo === "sin_comenzar"
+            ? sinComenzarAbierta
+            : s.tipo === "viendo"
+            ? viendoAbierta
+            : s.tipo === "historial"
+            ? historialAbierta
+            : true;
         const datosCompletos = s.tipo === "historial" ? historialOrdenado : s.tipo === "viendo" ? viendo : s.tipo === "abandonada" ? abandonadas : sinComenzar;
         return { ...s, data: s.colapsable && !abierta ? [] : datosCompletos, cantidad: datosCompletos.length };
       })}
       keyExtractor={(item: any, i) => `${item.tmdb_id ?? item.series_tmdb_id}-${i}`}
-      onContentSizeChange={() => {
-        if (!yaScrolleoRef.current) scrollAVerAContinuacion(2);
-      }}
       renderSectionHeader={({ section }) =>
         section.colapsable ? (
           <Pressable
@@ -256,6 +236,7 @@ function ListaPendiente({ navigation }: any) {
             onPress={() => {
               if (section.tipo === "abandonada") setAbandonadaAbierta((v) => !v);
               else if (section.tipo === "sin_comenzar") setSinComenzarAbierta((v) => !v);
+              else if (section.tipo === "historial") setHistorialAbierta((v) => !v);
               else setViendoAbierta((v) => !v);
             }}
           >
@@ -264,7 +245,13 @@ function ListaPendiente({ navigation }: any) {
             </Text>
             <Ionicons
               name={
-                (section.tipo === "abandonada" ? abandonadaAbierta : section.tipo === "sin_comenzar" ? sinComenzarAbierta : viendoAbierta)
+                (section.tipo === "abandonada"
+                  ? abandonadaAbierta
+                  : section.tipo === "sin_comenzar"
+                  ? sinComenzarAbierta
+                  : section.tipo === "historial"
+                  ? historialAbierta
+                  : viendoAbierta)
                   ? "chevron-up"
                   : "chevron-down"
               }
