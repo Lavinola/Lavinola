@@ -387,6 +387,9 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={styles.accionesRow}>
             <AppButton title="Métricas de la app" onPress={() => navigation.navigate("AdminMetricas")} variant="danger" />
           </View>
+          <View style={styles.accionesRow}>
+            <AppButton title={t("Usuarios")} onPress={() => navigation.navigate("AdminUsuarios")} variant="danger" />
+          </View>
         </>
       )}
 

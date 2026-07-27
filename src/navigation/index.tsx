@@ -36,6 +36,7 @@ import UserReportsScreen from "../screens/UserReportsScreen";
 import AdminUserChatsScreen from "../screens/AdminUserChatsScreen";
 import AdminVerChatScreen from "../screens/AdminVerChatScreen";
 import PrivacyPolicyScreen from "../screens/PrivacyPolicyScreen";
+import AdminUsersScreen from "../screens/AdminUsersScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import ChooseCoverPhotoScreen from "../screens/ChooseCoverPhotoScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -269,6 +270,7 @@ function ProfileStackNav() {
       <ProfileStack.Screen name="AdminSugerencias" component={AdminSuggestionsScreen} options={{ title: t("Sugerencias") }} />
       <ProfileStack.Screen name="AdminAnuncio" component={AdminBroadcastScreen} options={{ title: t("Anuncio para todos") }} />
       <ProfileStack.Screen name="AdminMetricas" component={AdminMetricsScreen} options={{ title: t("Métricas de la app") }} />
+      <ProfileStack.Screen name="AdminUsuarios" component={AdminUsersScreen} options={{ title: t("Usuarios") }} />
       <ProfileStack.Screen name="Anuncios" component={AnnouncementsScreen} options={{ title: t("Anuncios") }} />
       <ProfileStack.Screen name="Estadisticas" component={StatsScreen} options={{ title: t("Estadísticas") }} />
       <ProfileStack.Screen name="Ranking" component={RankingScreen} options={{ title: t("Comparar") }} />
@@ -391,6 +393,7 @@ const linking = {
           AdminSugerencias: "admin-sugerencias",
           AdminAnuncio: "admin-anuncio",
           AdminMetricas: "admin-metricas",
+          AdminUsuarios: "admin-usuarios",
           Anuncios: "anuncios",
           Estadisticas: "estadisticas",
           Ranking: "ranking",

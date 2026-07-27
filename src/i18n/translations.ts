@@ -129,6 +129,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Busca series, películas, usuarios o grupos": { en: "Search shows, movies, users or groups", pt: "Busque séries, filmes, usuários ou grupos", it: "Cerca serie, film, utenti o gruppi" },
   "Series y películas": { en: "Movies & Shows", pt: "Séries e filmes", it: "Serie e film" },
   Usuarios: { en: "Users", pt: "Usuários", it: "Utenti" },
+  "No hay usuarios todavía.": { en: "No users yet.", pt: "Ainda não há usuários.", it: "Ancora nessun utente." },
   "Eliminar usuario": { en: "Delete user", pt: "Excluir usuário", it: "Elimina utente" },
   "Panel de admin": { en: "Admin panel", pt: "Painel de admin", it: "Pannello admin" },
   "Panel de moderador": { en: "Moderator panel", pt: "Painel de moderador", it: "Pannello moderatore" },
