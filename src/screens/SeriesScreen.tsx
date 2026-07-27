@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { View, FlatList, SectionList, Image, StyleSheet, Pressable, ActivityIndicator, ScrollView, Animated } from "react-native";
+import { View, FlatList, SectionList, Image, StyleSheet, Pressable, ActivityIndicator, ScrollView, Animated, useWindowDimensions } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,6 +39,7 @@ export default function SeriesScreen({ navigation }: any) {
 
 function ListaPendiente({ navigation }: any) {
   const { t } = useT();
+  const { height: alturaPantalla } = useWindowDimensions();
   const [series, setSeries] = useState<SerieListado[]>([]);
   const [historial, setHistorial] = useState<EventoHistorial[]>([]);
   const [loading, setLoading] = useState(true);
@@ -238,6 +239,7 @@ function ListaPendiente({ navigation }: any) {
     <>
     <SectionList
       ref={listRef}
+      ListHeaderComponent={historialOrdenado.length > 0 ? <View style={{ height: alturaPantalla }} /> : null}
       sections={secciones.map((s) => {
         const abierta = s.tipo === "abandonada" ? abandonadaAbierta : s.tipo === "sin_comenzar" ? sinComenzarAbierta : s.tipo === "viendo" ? viendoAbierta : true;
         const datosCompletos = s.tipo === "historial" ? historialOrdenado : s.tipo === "viendo" ? viendo : s.tipo === "abandonada" ? abandonadas : sinComenzar;
