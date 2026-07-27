@@ -220,7 +220,13 @@ function ListaPendiente({ navigation }: any) {
   function scrollAVerAContinuacion(intentos = 6) {
     if (indiceVerARef.current <= 0) return;
     try {
-      listRef.current?.scrollToLocation({ sectionIndex: indiceVerARef.current, itemIndex: 0, animated: false, viewOffset: 0 });
+      listRef.current?.scrollToLocation({
+        sectionIndex: indiceVerARef.current,
+        itemIndex: 0,
+        animated: false,
+        viewPosition: 0,
+        viewOffset: 0,
+      });
       yaScrolleoRef.current = true;
     } catch {
       // todavía no terminó de medir, reintentamos
