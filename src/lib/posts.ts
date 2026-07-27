@@ -349,6 +349,28 @@ export async function contarPostsDeTitulo(itemType: "series" | "movie" | "episod
   return count ?? 0;
 }
 
+export interface ReaccionConAutor {
+  user_id: string;
+  username: string | null;
+  avatar_url: string | null;
+  emoji: string;
+}
+
+export async function listarReaccionesDePost(postId: string): Promise<ReaccionConAutor[]> {
+  const { data, error } = await supabase
+    .from("post_reactions")
+    .select("user_id, emoji, created_at, profiles!post_reactions_user_id_fkey(username, avatar_url)")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    user_id: r.user_id,
+    username: r.profiles?.username ?? null,
+    avatar_url: r.profiles?.avatar_url ?? null,
+    emoji: r.emoji,
+  }));
+}
+
 export async function reaccionarPost(userId: string, postId: string, emoji: string) {
   const { error } = await supabase.from("post_reactions").upsert({ user_id: userId, post_id: postId, emoji }, { onConflict: "user_id,post_id" });
   if (error) throw error;

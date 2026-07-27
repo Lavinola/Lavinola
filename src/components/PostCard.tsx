@@ -6,29 +6,18 @@ import { Text } from "./Themed";
 import ActionSheetModal from "./ActionSheetModal";
 import ConfirmModal from "./ConfirmModal";
 import ReportModal from "./ReportModal";
-import { Post, reaccionarPost, quitarReaccionPost, eliminarPost, marcarPostNoInteresa } from "../lib/posts";
+import { Post, reaccionarPost, quitarReaccionPost, eliminarPost, marcarPostNoInteresa, listarReaccionesDePost, ReaccionConAutor } from "../lib/posts";
+import ReaccionesListModal from "./ReaccionesListModal";
 import StarRating from "./StarRating";
 import { posterUrl } from "../lib/tmdb";
 import { formatearFechaHora, formatearTiempoRelativo } from "../lib/dates";
 import { traducirTexto, idiomaCorto } from "../lib/translate";
 import { MOODS } from "../lib/moods";
+import IconoReaccion, { REACCIONES_ICONO } from "./IconoReaccion";
 import ExpandableText from "./ExpandableText";
 import { supabase } from "../lib/supabase";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
-
-const REACCIONES_ICONO: { key: string; icono: "thumbs-up" | "heart" }[] = [
-  { key: "like", icono: "thumbs-up" },
-  { key: "love", icono: "heart" },
-];
-
-function IconoReaccion({ reaccionKey, size = 16 }: { reaccionKey: string; size?: number }) {
-  if (reaccionKey === "like") return <Ionicons name="thumbs-up" size={size} color={theme.colors.primaryLight} />;
-  if (reaccionKey === "love") return <Ionicons name="heart" size={size} color={theme.colors.primaryLight} />;
-  const mood = MOODS.find((m) => m.key === reaccionKey);
-  if (mood) return <Image source={mood.imagen} style={{ width: size, height: size }} resizeMode="contain" />;
-  return <Ionicons name="happy-outline" size={size} color={theme.colors.textMuted} />;
-}
 
 export default function PostCard({
   post,
@@ -53,6 +42,8 @@ export default function PostCard({
   const [userId, setUserId] = useState<string | null>(null);
   const [traduccion, setTraduccion] = useState<string | null>(null);
   const [traduciendo, setTraduciendo] = useState(false);
+  const [reaccionesModalVisible, setReaccionesModalVisible] = useState(false);
+  const [reacciones, setReacciones] = useState<ReaccionConAutor[]>([]);
 
   React.useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -86,6 +77,22 @@ export default function PostCard({
       onCambio?.();
     } catch (e: any) {
       Alert.alert("No se pudo reaccionar", e.message);
+    }
+  }
+
+  const esMiPost = !!userId && userId === post.user_id;
+
+  async function tocarBotonReaccion() {
+    if (esMiPost) {
+      if (totalReacciones === 0) return; // nada que mostrar, y no te podés reaccionar a vos mismo
+      try {
+        setReacciones(await listarReaccionesDePost(post.id));
+        setReaccionesModalVisible(true);
+      } catch (e: any) {
+        Alert.alert("No se pudo cargar", e.message);
+      }
+    } else {
+      setPickerVisible((v) => !v);
     }
   }
 
@@ -245,7 +252,7 @@ export default function PostCard({
       )}
 
       <View style={styles.accionesRow}>
-        <Pressable onPress={() => setPickerVisible(!pickerVisible)} style={styles.accionBtn}>
+        <Pressable onPress={tocarBotonReaccion} style={styles.accionBtn}>
           <IconoReaccion reaccionKey={post.mi_reaccion ?? ""} size={16} />
           <Text style={styles.accionTexto}>{totalReacciones > 0 ? totalReacciones : ""}</Text>
         </Pressable>
@@ -280,6 +287,12 @@ export default function PostCard({
           { label: t("Cancelar"), onPress: () => {} },
           { label: t("Eliminar"), destacado: true, onPress: eliminarConfirmado },
         ]}
+      />
+      <ReaccionesListModal
+        visible={reaccionesModalVisible}
+        onCerrar={() => setReaccionesModalVisible(false)}
+        reacciones={reacciones}
+        onVerPerfil={(uid) => navigation.navigate("PerfilAjeno", { userId: uid })}
       />
     </View>
   );

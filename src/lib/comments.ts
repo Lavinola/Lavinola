@@ -199,6 +199,28 @@ export async function eliminarComentario(comentarioId: string) {
   if (error) throw error;
 }
 
+export interface ReaccionConAutor {
+  user_id: string;
+  username: string | null;
+  avatar_url: string | null;
+  emoji: string;
+}
+
+export async function listarReaccionesDeComentario(commentId: string): Promise<ReaccionConAutor[]> {
+  const { data, error } = await supabase
+    .from("likes_comentario")
+    .select("user_id, emoji, created_at, profiles!likes_comentario_user_id_fkey(username, avatar_url)")
+    .eq("comment_id", commentId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    user_id: r.user_id,
+    username: r.profiles?.username ?? null,
+    avatar_url: r.profiles?.avatar_url ?? null,
+    emoji: r.emoji,
+  }));
+}
+
 export async function reaccionar(userId: string, commentId: string, emoji: string, reaccionActual: string | null) {
   if (reaccionActual === emoji) {
     await supabase.from("likes_comentario").delete().eq("user_id", userId).eq("comment_id", commentId);

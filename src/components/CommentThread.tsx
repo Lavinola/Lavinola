@@ -10,7 +10,10 @@ import {
   postearComentario,
   reaccionar,
   eliminarComentario,
+  listarReaccionesDeComentario,
+  ReaccionConAutor,
 } from "../lib/comments";
+import ReaccionesListModal from "./ReaccionesListModal";
 import ReportModal from "./ReportModal";
 import ConfirmModal from "./ConfirmModal";
 import { traducirTexto, idiomaCorto } from "../lib/translate";
@@ -21,6 +24,7 @@ import { Text } from "../components/Themed";
 import ActionSheetModal from "./ActionSheetModal";
 import ExpandableText from "./ExpandableText";
 import { MOODS } from "../lib/moods";
+import IconoReaccion, { REACCIONES_ICONO } from "./IconoReaccion";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -37,23 +41,6 @@ interface Props {
 }
 
 const MAX_NIVEL_VISUAL = 4; // a partir de acá, el hijo se muestra colapsado tras "ver respuestas"
-
-// Reacciones: la manito y el corazón son íconos vectoriales violeta (para que
-// tengan el color de la marca, no el emoji del sistema), y después las mismas
-// 12 caritas de ánimo que se usan en "¿Cómo te sentiste?".
-const REACCIONES_ICONO: { key: string; icono: "thumbs-up" | "heart" }[] = [
-  { key: "like", icono: "thumbs-up" },
-  { key: "love", icono: "heart" },
-];
-
-/** Ícono/imagen de una reacción para mostrar en chiquito (botón resumen, contador, etc). */
-function IconoReaccion({ reaccionKey, size = 16 }: { reaccionKey: string; size?: number }) {
-  if (reaccionKey === "like") return <Ionicons name="thumbs-up" size={size} color={theme.colors.primaryLight} />;
-  if (reaccionKey === "love") return <Ionicons name="heart" size={size} color={theme.colors.primaryLight} />;
-  const mood = MOODS.find((m) => m.key === reaccionKey);
-  if (mood) return <Image source={mood.imagen} style={{ width: size, height: size }} resizeMode="contain" />;
-  return <Ionicons name="happy-outline" size={size} color={theme.colors.textMuted} />;
-}
 
 export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo }: Props) {
   const { t } = useT();
@@ -211,6 +198,8 @@ function NodoComentario({
   const { t } = useT();
   const [traduccion, setTraduccion] = useState<string | null>(null);
   const [traduciendo, setTraduciendo] = useState(false);
+  const [reaccionesModalVisible, setReaccionesModalVisible] = useState(false);
+  const [listaReacciones, setListaReacciones] = useState<ReaccionConAutor[]>([]);
 
   async function traducir() {
     if (traduccion) {
@@ -296,6 +285,21 @@ function NodoComentario({
 
   const totalReacciones = Object.values(reacciones).reduce((a, b) => a + b, 0);
   const emojisUsados = Object.entries(reacciones).filter(([, n]) => n > 0);
+  const esMiComentario = !!userId && userId === comentario.user_id;
+
+  async function tocarBotonReaccion() {
+    if (esMiComentario) {
+      if (totalReacciones === 0) return; // nada que mostrar, y no te podés reaccionar a vos mismo
+      try {
+        setListaReacciones(await listarReaccionesDeComentario(comentario.id));
+        setReaccionesModalVisible(true);
+      } catch (e: any) {
+        Alert.alert("No se pudo cargar", e.message);
+      }
+    } else {
+      setReaccionesPickerVisible((v) => !v);
+    }
+  }
 
   const indentacion = Math.min(nivel, MAX_NIVEL_VISUAL) * 14;
 
@@ -361,7 +365,7 @@ function NodoComentario({
         )}
 
         <View style={styles.accionesRow}>
-          <Pressable onPress={() => setReaccionesPickerVisible(!reaccionesPickerVisible)} style={styles.resumenReaccion}>
+          <Pressable onPress={tocarBotonReaccion} style={styles.resumenReaccion}>
             <IconoReaccion reaccionKey={miReaccion ?? ""} size={16} />
             <Text style={styles.accionTexto}>
               {emojisUsados.length > 0 ? emojisUsados.map(([, n]) => n).reduce((a, b) => a + b, 0) : totalReacciones || ""}
@@ -458,6 +462,12 @@ function NodoComentario({
         reporterId={userId}
         targetType="comment"
         targetId={comentario.id}
+      />
+      <ReaccionesListModal
+        visible={reaccionesModalVisible}
+        onCerrar={() => setReaccionesModalVisible(false)}
+        reacciones={listaReacciones}
+        onVerPerfil={(uid) => navigation?.navigate("PerfilAjeno", { userId: uid })}
       />
     </View>
   );

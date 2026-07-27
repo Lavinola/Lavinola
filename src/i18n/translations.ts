@@ -35,6 +35,23 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   Reintentar: { en: "Retry", pt: "Tentar de novo", it: "Riprova" },
   "Ver todo": { en: "See all", pt: "Ver tudo", it: "Vedi tutto" },
   "No se pudo cargar": { en: "Couldn't load", pt: "Não foi possível carregar", it: "Non è stato possibile caricare" },
+  "{nombre} reaccionó con {emoji} a tu publicación": {
+    en: "{nombre} reacted with {emoji} to your post",
+    pt: "{nombre} reagiu com {emoji} à sua publicação",
+    it: "{nombre} ha reagito con {emoji} al tuo post",
+  },
+  "{nombre} reaccionó a tu publicación": {
+    en: "{nombre} reacted to your post",
+    pt: "{nombre} reagiu à sua publicação",
+    it: "{nombre} ha reagito al tuo post",
+  },
+  "{nombre} reaccionó con {emoji} a tu comentario": {
+    en: "{nombre} reacted with {emoji} to your comment",
+    pt: "{nombre} reagiu com {emoji} ao seu comentário",
+    it: "{nombre} ha reagito con {emoji} al tuo commento",
+  },
+  Reaccionaron: { en: "Reactions", pt: "Reações", it: "Reazioni" },
+  "Todavía nadie reaccionó.": { en: "No one has reacted yet.", pt: "Ainda ninguém reagiu.", it: "Ancora nessuno ha reagito." },
 
   // ---------- Auth ----------
   "Iniciar sesión": { en: "Log in", pt: "Entrar", it: "Accedi" },

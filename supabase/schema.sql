@@ -2113,3 +2113,47 @@ create table if not exists post_dismissed (
 alter table post_dismissed enable row level security;
 drop policy if exists "post_dismissed_manage_own" on post_dismissed;
 create policy "post_dismissed_manage_own" on post_dismissed for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ============================================================
+-- Notificar reacciones (con emoji) en posts y comentarios.
+-- Reusamos la columna "message" de notifications para guardar el emoji
+-- (ya se usaba así para otros tipos, tipo el nombre de una lista) — no hace
+-- falta una columna nueva.
+-- ============================================================
+create or replace function notify_like() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+begin
+  select user_id into autor_id from comentarios where id = new.comment_id;
+  if autor_id is not null and autor_id <> new.user_id then
+    select notify_likes into quiere_notif from profiles where id = autor_id;
+    if coalesce(quiere_notif, true) then
+      insert into notifications (user_id, type, actor_id, target_type, target_id, message)
+        values (autor_id, 'like', new.user_id, 'comment', new.comment_id::text, new.emoji);
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_post_reaction() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+begin
+  select user_id into autor_id from posts where id = new.post_id;
+  if autor_id is not null and autor_id <> new.user_id then
+    select notify_likes into quiere_notif from profiles where id = autor_id;
+    if coalesce(quiere_notif, true) then
+      insert into notifications (user_id, type, actor_id, target_type, target_id, message)
+        values (autor_id, 'like', new.user_id, 'post', new.post_id::text, new.emoji);
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_notify_post_reaction on post_reactions;
+create trigger trg_notify_post_reaction after insert on post_reactions
+  for each row execute function notify_post_reaction();

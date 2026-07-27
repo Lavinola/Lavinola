@@ -96,8 +96,18 @@ export async function marcarNotificacionesDeGrupoComoLeidas(userId: string, grou
 export function textoNotificacion(n: Notificacion, t: (s: string) => string = (s) => s): string {
   const nombre = n.actor_username ?? t("Alguien");
   switch (n.type) {
-    case "like":
-      return t("{nombre} le puso me gusta a tu comentario").replace("{nombre}", nombre);
+    case "like": {
+      const nombreEmoji: Record<string, string> = { like: "👍", love: "❤️" };
+      const emoji = n.message ? nombreEmoji[n.message] ?? "" : "";
+      if (n.target_type === "post") {
+        return emoji
+          ? t("{nombre} reaccionó con {emoji} a tu publicación").replace("{nombre}", nombre).replace("{emoji}", emoji)
+          : t("{nombre} reaccionó a tu publicación").replace("{nombre}", nombre);
+      }
+      return emoji
+        ? t("{nombre} reaccionó con {emoji} a tu comentario").replace("{nombre}", nombre).replace("{emoji}", emoji)
+        : t("{nombre} le puso me gusta a tu comentario").replace("{nombre}", nombre);
+    }
     case "reply":
       return t("{nombre} respondió tu comentario").replace("{nombre}", nombre);
     case "follow":

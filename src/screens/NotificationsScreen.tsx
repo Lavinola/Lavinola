@@ -80,6 +80,11 @@ export default function NotificationsScreen({ navigation }: any) {
     if (n.type === "like" && n.target_type === "comment" && n.target_id) {
       const { data } = await supabase.from("comentarios").select("target_type, target_id").eq("id", n.target_id).maybeSingle();
       if (data) await navegarAComentario(data.target_type, data.target_id, navigation);
+      return;
+    }
+
+    if (n.type === "like" && n.target_type === "post" && n.target_id) {
+      navigation.navigate("Comentarios", { targetType: "post", targetId: n.target_id });
     }
   }
 
