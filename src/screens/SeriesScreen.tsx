@@ -43,6 +43,8 @@ function ListaPendiente({ navigation }: any) {
   const [historial, setHistorial] = useState<EventoHistorial[]>([]);
   const [loading, setLoading] = useState(true);
   const listRef = useRef<SectionList>(null);
+  const yaScrolleoRef = useRef(false);
+  const indiceVerARef = useRef(0);
   const idCargaRef = useRef(0);
   // Orden "congelado" de Ver a continuación: en vez de recalcularlo desde
   // cero en cada recarga (lo que puede reordenar todo por pequeñas
@@ -85,6 +87,12 @@ function ListaPendiente({ navigation }: any) {
       if (miId !== idCargaRef.current) return; // llegó una recarga más nueva mientras esperábamos — descartamos esta
       setSeries(todas);
       setHistorial(hist);
+      if (!silencioso) {
+        yaScrolleoRef.current = false;
+        const hayHistorial = hist.length > 0;
+        indiceVerARef.current = hayHistorial ? 1 : 0;
+        setTimeout(() => scrollAVerAContinuacion(), 60);
+      }
     } catch (e: any) {
       console.error("Error al cargar tus series:", e);
       Alert.alert(t("No se pudieron cargar tus series"), e.message ?? "Probá de nuevo.");
@@ -198,16 +206,6 @@ function ListaPendiente({ navigation }: any) {
   // así al scrollear para arriba vas viendo hacia atrás en el tiempo.
   const historialOrdenado = [...historial].reverse();
 
-  // Altura de cada fila del historial (poster 60px + padding vertical 8+8) y
-  // del título de la sección (aprox), para poder calcular de entrada cuánto
-  // hay que "empezar bajado" y que Ver a continuación quede arriba de todo
-  // apenas se entra — sin depender de un scroll automático post-render (eso
-  // es lo que fallaba en la web cuando no había mucho margen para moverse).
-  const ALTURA_FILA_HISTORIAL = 76;
-  const ALTURA_HEADER_SECCION = 37;
-  const alturaHistorialEstimada =
-    historialOrdenado.length > 0 ? ALTURA_HEADER_SECCION + historialOrdenado.length * ALTURA_FILA_HISTORIAL : 0;
-
   const secciones = [
     { titulo: t("Historial de visualización"), tipo: "historial" as const, esconderSiVacia: true, colapsable: false },
     { titulo: t("Ver a continuación"), tipo: "viendo" as const, esconderSiVacia: false, colapsable: true },
@@ -219,11 +217,21 @@ function ListaPendiente({ navigation }: any) {
       (s.tipo === "historial" ? historialOrdenado.length > 0 : s.tipo === "abandonada" ? abandonadas.length > 0 : sinComenzar.length > 0)
   );
 
+  function scrollAVerAContinuacion(intentos = 6) {
+    if (indiceVerARef.current <= 0) return;
+    try {
+      listRef.current?.scrollToLocation({ sectionIndex: indiceVerARef.current, itemIndex: 0, animated: false, viewOffset: 0 });
+      yaScrolleoRef.current = true;
+    } catch {
+      // todavía no terminó de medir, reintentamos
+    }
+    if (intentos > 0) setTimeout(() => scrollAVerAContinuacion(intentos - 1), 120);
+  }
+
   return (
     <>
     <SectionList
       ref={listRef}
-      contentOffset={{ x: 0, y: alturaHistorialEstimada }}
       sections={secciones.map((s) => {
         const abierta =
           s.tipo === "abandonada"
@@ -237,6 +245,9 @@ function ListaPendiente({ navigation }: any) {
         return { ...s, data: s.colapsable && !abierta ? [] : datosCompletos, cantidad: datosCompletos.length };
       })}
       keyExtractor={(item: any, i) => `${item.tmdb_id ?? item.series_tmdb_id}-${i}`}
+      onContentSizeChange={() => {
+        if (!yaScrolleoRef.current) scrollAVerAContinuacion(2);
+      }}
       renderSectionHeader={({ section }) =>
         section.colapsable ? (
           <Pressable
