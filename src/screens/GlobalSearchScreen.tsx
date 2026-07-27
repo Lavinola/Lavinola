@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator, Platform } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
@@ -28,6 +28,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   const { t } = useT();
   const [tab, setTab] = useState<Tab>(route?.params?.tabInicial ?? "titulos");
   const [query, setQuery] = useState("");
+  const idPedidoRef = useRef(0);
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
   const [titulos, setTitulos] = useState<ResultadoTitulo[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioBasico[]>([]);
@@ -70,6 +71,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   async function buscar(texto: string) {
     setQuery(texto);
     if (texto.trim().length < 2) {
+      idPedidoRef.current++; // invalida cualquier búsqueda en vuelo
       setTitulos([]);
       if (userId && tab !== "titulos") {
         cargarRecomendaciones(userId, tab);
@@ -79,11 +81,13 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
       }
       return;
     }
+    const miId = ++idPedidoRef.current;
     setLoading(true);
     setErrorBusqueda(null);
     try {
       if (tab === "titulos") {
         const [series, movies] = await Promise.all([searchSeries(texto), searchMovies(texto)]);
+        if (idPedidoRef.current !== miId) return; // llegó tarde, ya hay una búsqueda más nueva en curso
         const mezcla: ResultadoTitulo[] = [
           ...(series.results ?? []).map((s: any) => ({
             id: s.id,
@@ -105,15 +109,19 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
         mezcla.sort((a, b) => b.popularidad - a.popularidad);
         setTitulos(mezcla);
       } else if (tab === "usuarios") {
-        setUsuarios(await buscarUsuarios(texto.trim(), userId));
+        const data = await buscarUsuarios(texto.trim(), userId);
+        if (idPedidoRef.current !== miId) return;
+        setUsuarios(data);
       } else {
-        setGrupos(await buscarGrupos(texto.trim(), userId));
+        const data = await buscarGrupos(texto.trim(), userId);
+        if (idPedidoRef.current !== miId) return;
+        setGrupos(data);
       }
     } catch (e: any) {
       console.error("Error al buscar:", e);
-      setErrorBusqueda(e?.message ?? "Error desconocido buscando en TMDB.");
+      if (idPedidoRef.current === miId) setErrorBusqueda(e?.message ?? "Error desconocido buscando en TMDB.");
     } finally {
-      setLoading(false);
+      if (idPedidoRef.current === miId) setLoading(false);
     }
   }
 

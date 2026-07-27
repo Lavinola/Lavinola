@@ -23,6 +23,7 @@ interface Props {
   titulo: string; // movie/series: el nombre. episode: el nombre de la serie (se muestra gris arriba)
   nombreEpisodio?: string | null; // solo episode
   posterPath?: string | null; // solo se usa en movie/series
+  navigation?: any; // si viene, el título es tappeable y lleva al detalle
 }
 
 /**
@@ -31,7 +32,7 @@ interface Props {
  * detalle completo. Es la misma lógica y las mismas tablas que usa la ficha
  * del título/episodio — acá solo se muestra en una ventanita.
  */
-export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, temporada, episodio, titulo, nombreEpisodio, posterPath }: Props) {
+export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, temporada, episodio, titulo, nombreEpisodio, posterPath, navigation }: Props) {
   const { t } = useT();
   const [userId, setUserId] = useState<string | null>(null);
   const [miRating, setMiRating] = useState(0);
@@ -118,6 +119,21 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
     }
   }
 
+  function irAlDetalle() {
+    if (!navigation) return;
+    onCerrar();
+    if (tipo === "episode") {
+      navigation.navigate("EpisodioDetalle", {
+        seriesTmdbId: tmdbId,
+        seasonNumber: temporada,
+        episodeNumber: episodio,
+        episodeName: nombreEpisodio ?? null,
+      });
+    } else {
+      navigation.navigate("DetalleTitulo", { tmdbId, tipo });
+    }
+  }
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
       <Pressable style={styles.fondo} onPress={onCerrar}>
@@ -141,26 +157,26 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
 
             <ScrollView contentContainerStyle={{ paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
               {tipo === "episode" ? (
-                <View style={styles.headerEpisodio}>
+                <Pressable style={styles.headerEpisodio} onPress={irAlDetalle} disabled={!navigation}>
                   <Text style={styles.headerSerieNombre}>{titulo}</Text>
-                  <Text style={styles.headerEpisodioNombre} numberOfLines={2}>
+                  <Text style={[styles.headerEpisodioNombre, navigation && styles.headerTappeable]} numberOfLines={2}>
                     {t("T{temporada} - E{episodio}: {nombre}")
                       .replace("{temporada}", String(temporada))
                       .replace("{episodio}", String(episodio))
                       .replace("{nombre}", nombreEpisodio ?? "")}
                   </Text>
-                </View>
+                </Pressable>
               ) : (
-                <View style={styles.headerMovie}>
+                <Pressable style={styles.headerMovie} onPress={irAlDetalle} disabled={!navigation}>
                   {posterPath ? (
                     <Image source={{ uri: posterUrl(posterPath, "w185")! }} style={styles.poster} />
                   ) : (
                     <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
                   )}
-                  <Text style={styles.headerTitulo} numberOfLines={2}>
+                  <Text style={[styles.headerTitulo, navigation && styles.headerTappeable]} numberOfLines={2}>
                     {titulo}
                   </Text>
-                </View>
+                </Pressable>
               )}
 
               <View style={styles.seccion}>
@@ -201,6 +217,7 @@ const styles = StyleSheet.create({
   headerMovie: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
   poster: { width: 50, height: 75, borderRadius: 7, marginRight: 12 },
   headerTitulo: { flex: 1, fontSize: 17, fontWeight: "800", color: theme.colors.text },
+  headerTappeable: { textDecorationLine: "underline", textDecorationColor: theme.colors.textFaint },
   headerEpisodio: { marginBottom: 6 },
   headerSerieNombre: { fontSize: 12, color: theme.colors.textMuted, marginBottom: 1 },
   headerEpisodioNombre: { fontSize: 17, fontWeight: "800", color: theme.colors.text },

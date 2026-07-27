@@ -320,6 +320,7 @@ export default function MoviesScreen({ navigation }: any) {
           tmdbId={calificarModal.tmdbId}
           titulo={calificarModal.titulo}
           posterPath={calificarModal.poster}
+          navigation={navigation}
         />
       )}
     </View>

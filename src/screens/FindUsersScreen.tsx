@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, TextInput, FlatList, Pressable, Image, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
 import { useFocusEffect } from "@react-navigation/native";
@@ -14,6 +14,7 @@ export default function FindUsersScreen({ navigation }: any) {
   const [query, setQuery] = useState("");
   const [resultados, setResultados] = useState<UsuarioBasico[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const idPedidoRef = useRef(0);
 
   // Se re-lee cada vez que la pantalla toma foco, así si seguiste/dejaste de
   // seguir a alguien desde otro lado (su perfil, por ejemplo) y volvés acá,
@@ -30,10 +31,13 @@ export default function FindUsersScreen({ navigation }: any) {
 
   async function buscarCon(uid: string | null, texto: string) {
     if (texto.trim().length < 2) {
+      idPedidoRef.current++; // invalida cualquier búsqueda anterior en vuelo
       setResultados([]);
       return;
     }
+    const miId = ++idPedidoRef.current;
     const data = await buscarUsuarios(texto.trim(), uid);
+    if (idPedidoRef.current !== miId) return; // llegó tarde, ya hay una búsqueda más nueva en curso — se descarta
     setResultados(data);
   }
 

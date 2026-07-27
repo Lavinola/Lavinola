@@ -328,6 +328,7 @@ function ListaPendiente({ navigation }: any) {
         episodio={calificarModal.episodio}
         titulo={calificarModal.nombreSerie}
         nombreEpisodio={calificarModal.nombreEpisodio}
+        navigation={navigation}
       />
     )}
     </>

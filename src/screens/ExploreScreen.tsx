@@ -91,17 +91,14 @@ function Descubrir({ navigation }: any) {
   const [userId, setUserId] = useState<string | null>(null);
   const [descartarItem, setDescartarItem] = useState<ItemFila | null>(null);
 
-  // Las listas que realmente se muestran: las crudas, sacando lo que ya
-  // está agregado (por ID, o por título como red de seguridad) — nunca
-  // tienen que aparecer títulos que ya tenés.
-  const seriesModa = crudosSeriesModa.filter((s) => !idsSeriesAgregadas.has(s.id) && !titulosSeriesAgregadas.has(normalizarTitulo(s.titulo)));
-  const peliculasModa = crudosPeliculasModa.filter((p) => !idsPeliculasAgregadas.has(p.id) && !titulosPeliculasAgregadas.has(normalizarTitulo(p.titulo)));
-  const seriesRecomendadas = crudosSeriesRecomendadas.filter(
-    (s) => !idsSeriesAgregadas.has(s.id) && !titulosSeriesAgregadas.has(normalizarTitulo(s.titulo))
-  );
-  const peliculasRecomendadas = crudosPeliculasRecomendadas.filter(
-    (p) => !idsPeliculasAgregadas.has(p.id) && !titulosPeliculasAgregadas.has(normalizarTitulo(p.titulo))
-  );
+  // Ya no filtramos acá — filtrar dejaba pasar títulos igual cuando TMDB les
+  // cambiaba el ID (pasa con estrenos recién salidos). En cambio, se
+  // muestran todos, y cada tapa se marca sola con el tilde si corresponde
+  // (ver "yaLoTengo" en FilaHorizontal).
+  const seriesModa = crudosSeriesModa;
+  const peliculasModa = crudosPeliculasModa;
+  const seriesRecomendadas = crudosSeriesRecomendadas;
+  const peliculasRecomendadas = crudosPeliculasRecomendadas;
 
   useEffect(() => {
     cargarTodo();
@@ -219,6 +216,8 @@ function Descubrir({ navigation }: any) {
         onPress={abrir}
         onAgregar={agregarRapido}
         agregadosEnSesion={agregadosEnSesion}
+        idsAgregados={idsPeliculasAgregadas}
+        titulosAgregados={titulosPeliculasAgregadas}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "movie", ordenInicial: "tendencias" })}
       />
       <FilaHorizontal
@@ -228,6 +227,8 @@ function Descubrir({ navigation }: any) {
         onLongPress={descartar}
         onAgregar={agregarRapido}
         agregadosEnSesion={agregadosEnSesion}
+        idsAgregados={idsPeliculasAgregadas}
+        titulosAgregados={titulosPeliculasAgregadas}
         vacioTexto={t("Agregá algunas películas para que empecemos a recomendarte.")}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "movie", ordenInicial: "recomendado" })}
       />
@@ -237,6 +238,8 @@ function Descubrir({ navigation }: any) {
         onPress={abrir}
         onAgregar={agregarRapido}
         agregadosEnSesion={agregadosEnSesion}
+        idsAgregados={idsSeriesAgregadas}
+        titulosAgregados={titulosSeriesAgregadas}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "series", ordenInicial: "tendencias" })}
       />
       <FilaHorizontal
@@ -246,6 +249,8 @@ function Descubrir({ navigation }: any) {
         onLongPress={descartar}
         onAgregar={agregarRapido}
         agregadosEnSesion={agregadosEnSesion}
+        idsAgregados={idsSeriesAgregadas}
+        titulosAgregados={titulosSeriesAgregadas}
         vacioTexto={t("Agregá algunas series para que empecemos a recomendarte.")}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "series", ordenInicial: "recomendado" })}
       />
@@ -271,6 +276,8 @@ function FilaHorizontal({
   onLongPress,
   onAgregar,
   agregadosEnSesion,
+  idsAgregados,
+  titulosAgregados,
   vacioTexto,
   onVerMas,
 }: {
@@ -280,6 +287,8 @@ function FilaHorizontal({
   onLongPress?: (item: ItemFila) => void;
   onAgregar: (item: ItemFila) => void;
   agregadosEnSesion: Set<string>;
+  idsAgregados: Set<number>;
+  titulosAgregados: Set<string>;
   vacioTexto?: string;
   onVerMas: () => void;
 }) {
@@ -301,7 +310,10 @@ function FilaHorizontal({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 8 }}
         renderItem={({ item }) => {
-          const yaAgregado = agregadosEnSesion.has(`${item.tipo}-${item.id}`);
+          const yaAgregado =
+            agregadosEnSesion.has(`${item.tipo}-${item.id}`) ||
+            idsAgregados.has(item.id) ||
+            titulosAgregados.has(normalizarTitulo(item.titulo));
           return (
             <View style={styles.card}>
               <Pressable onPress={() => onPress(item)} onLongPress={onLongPress ? () => onLongPress(item) : undefined}>
