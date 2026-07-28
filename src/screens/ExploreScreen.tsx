@@ -5,6 +5,7 @@ import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { getTrendingSeries, getTrendingMovies, posterUrl } from "../lib/tmdb";
+import { fetchAllRows } from "../lib/pagination";
 import { recomendarSeries, recomendarPeliculas, marcarNoMeInteresa } from "../lib/recommendations";
 import { syncSeries, syncMovie, seguirSerie, agregarPelicula } from "../lib/sync";
 import { supabase } from "../lib/supabase";
@@ -87,6 +88,8 @@ function Descubrir({ navigation }: any) {
   // filtrar acá. El título recién desaparece de esta pantalla la próxima
   // vez que se entra a Descubrir (ver refrescarAgregados), no al toque.
   const [agregadosEnSesion, setAgregadosEnSesion] = useState<Set<string>>(new Set());
+  const [idsSeriesDescartadas, setIdsSeriesDescartadas] = useState<Set<number>>(new Set());
+  const [idsPeliculasDescartadas, setIdsPeliculasDescartadas] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [descartarItem, setDescartarItem] = useState<ItemFila | null>(null);
@@ -102,8 +105,12 @@ function Descubrir({ navigation }: any) {
   // película) — en esos casos, al ser IDs genuinamente distintos, no hay
   // forma de saber que "es lo mismo" sin arriesgarse a esconder títulos que
   // en realidad son diferentes.
-  const seriesModa = crudosSeriesModa.filter((s) => !idsSeriesAgregadas.has(s.id) && !titulosSeriesAgregadas.has(normalizarTitulo(s.titulo)));
-  const peliculasModa = crudosPeliculasModa.filter((p) => !idsPeliculasAgregadas.has(p.id) && !titulosPeliculasAgregadas.has(normalizarTitulo(p.titulo)));
+  const seriesModa = crudosSeriesModa.filter(
+    (s) => !idsSeriesAgregadas.has(s.id) && !titulosSeriesAgregadas.has(normalizarTitulo(s.titulo)) && !idsSeriesDescartadas.has(s.id)
+  );
+  const peliculasModa = crudosPeliculasModa.filter(
+    (p) => !idsPeliculasAgregadas.has(p.id) && !titulosPeliculasAgregadas.has(normalizarTitulo(p.titulo)) && !idsPeliculasDescartadas.has(p.id)
+  );
   const seriesRecomendadas = crudosSeriesRecomendadas.filter(
     (s) => !idsSeriesAgregadas.has(s.id) && !titulosSeriesAgregadas.has(normalizarTitulo(s.titulo))
   );
@@ -126,14 +133,23 @@ function Descubrir({ navigation }: any) {
   );
 
   async function refrescarAgregados(uid: string) {
-    const [{ data: misSeries }, { data: misPeliculas }] = await Promise.all([
-      supabase.from("user_series").select("series_tmdb_id, series_cache(name)").eq("user_id", uid),
-      supabase.from("user_movies").select("movie_tmdb_id, movies_cache(title)").eq("user_id", uid),
+    const [misSeries, misPeliculas, descartados] = await Promise.all([
+      fetchAllRows<any>((desde, hasta) =>
+        supabase.from("user_series").select("series_tmdb_id, series_cache(name)").eq("user_id", uid).range(desde, hasta)
+      ),
+      fetchAllRows<any>((desde, hasta) =>
+        supabase.from("user_movies").select("movie_tmdb_id, movies_cache(title)").eq("user_id", uid).range(desde, hasta)
+      ),
+      fetchAllRows<any>((desde, hasta) =>
+        supabase.from("user_disliked_titles").select("item_type, tmdb_id").eq("user_id", uid).range(desde, hasta)
+      ),
     ]);
-    setIdsSeriesAgregadas(new Set((misSeries ?? []).map((s: any) => s.series_tmdb_id)));
-    setIdsPeliculasAgregadas(new Set((misPeliculas ?? []).map((p: any) => p.movie_tmdb_id)));
-    setTitulosSeriesAgregadas(new Set((misSeries ?? []).map((s: any) => normalizarTitulo(s.series_cache?.name ?? "")).filter(Boolean)));
-    setTitulosPeliculasAgregadas(new Set((misPeliculas ?? []).map((p: any) => normalizarTitulo(p.movies_cache?.title ?? "")).filter(Boolean)));
+    setIdsSeriesAgregadas(new Set(misSeries.map((s: any) => s.series_tmdb_id)));
+    setIdsPeliculasAgregadas(new Set(misPeliculas.map((p: any) => p.movie_tmdb_id)));
+    setTitulosSeriesAgregadas(new Set(misSeries.map((s: any) => normalizarTitulo(s.series_cache?.name ?? "")).filter(Boolean)));
+    setTitulosPeliculasAgregadas(new Set(misPeliculas.map((p: any) => normalizarTitulo(p.movies_cache?.title ?? "")).filter(Boolean)));
+    setIdsSeriesDescartadas(new Set(descartados.filter((d: any) => d.item_type === "series").map((d: any) => d.tmdb_id)));
+    setIdsPeliculasDescartadas(new Set(descartados.filter((d: any) => d.item_type === "movie").map((d: any) => d.tmdb_id)));
   }
 
   async function cargarTodo() {
@@ -215,6 +231,7 @@ function Descubrir({ navigation }: any) {
         titulo={t("Películas tendencia")}
         items={peliculasModa}
         onPress={abrir}
+        onLongPress={descartar}
         onAgregar={agregarRapido}
         agregadosEnSesion={agregadosEnSesion}
         idsAgregados={idsPeliculasAgregadas}
@@ -237,6 +254,7 @@ function Descubrir({ navigation }: any) {
         titulo={t("Series tendencia")}
         items={seriesModa}
         onPress={abrir}
+        onLongPress={descartar}
         onAgregar={agregarRapido}
         agregadosEnSesion={agregadosEnSesion}
         idsAgregados={idsSeriesAgregadas}
@@ -260,7 +278,7 @@ function Descubrir({ navigation }: any) {
       visible={!!descartarItem}
       onCerrar={() => setDescartarItem(null)}
       titulo={t("No me interesa")}
-      mensaje={descartarItem ? `¿Sacar "${descartarItem.titulo}" de tus recomendaciones?` : ""}
+      mensaje={descartarItem ? `¿No mostrarte más "${descartarItem.titulo}" en Descubrir?` : ""}
       botones={[
         { label: t("Cancelar"), onPress: () => {} },
         { label: t("Sacar"), onPress: confirmarDescarte, destacado: true },
