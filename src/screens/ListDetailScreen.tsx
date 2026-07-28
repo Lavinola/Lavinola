@@ -14,7 +14,10 @@ interface ItemLista {
   tmdb_id: number;
   nombre: string;
   poster_path: string | null;
+  added_at: string;
 }
+
+type OrdenLista = "reciente" | "alfabetico";
 
 export default function ListDetailScreen({ route, navigation }: any) {
   const { t } = useT();
@@ -24,6 +27,7 @@ export default function ListDetailScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [publishModalVisible, setPublishModalVisible] = useState(false);
   const [modoVista, setModoVista] = useState<"grilla" | "lista">("grilla");
+  const [orden, setOrden] = useState<OrdenLista>("reciente");
 
   useFocusEffect(
     useCallback(() => {
@@ -35,7 +39,7 @@ export default function ListDetailScreen({ route, navigation }: any) {
     setLoading(true);
     const [{ data: listaData }, { data }] = await Promise.all([
       supabase.from("lists").select("description").eq("id", listId).maybeSingle(),
-      supabase.from("list_items").select("item_type, tmdb_id").eq("list_id", listId),
+      supabase.from("list_items").select("item_type, tmdb_id, added_at").eq("list_id", listId),
     ]);
     setDescripcion(listaData?.description ?? null);
 
@@ -55,23 +59,41 @@ export default function ListDetailScreen({ route, navigation }: any) {
     const resultado: ItemLista[] = filas.map((fila) => {
       if (fila.item_type === "series") {
         const cache = seriesMap.get(fila.tmdb_id);
-        return { item_type: "series" as const, tmdb_id: fila.tmdb_id, nombre: cache?.name ?? "—", poster_path: cache?.poster_path ?? null };
+        return { item_type: "series" as const, tmdb_id: fila.tmdb_id, nombre: cache?.name ?? "—", poster_path: cache?.poster_path ?? null, added_at: fila.added_at };
       } else {
         const cache = moviesMap.get(fila.tmdb_id);
-        return { item_type: "movie" as const, tmdb_id: fila.tmdb_id, nombre: cache?.title ?? "—", poster_path: cache?.poster_path ?? null };
+        return { item_type: "movie" as const, tmdb_id: fila.tmdb_id, nombre: cache?.title ?? "—", poster_path: cache?.poster_path ?? null, added_at: fila.added_at };
       }
     });
-    setItems(resultado);
+    setItems(ordenarItems(resultado, orden));
     setLoading(false);
+  }
+
+  function ordenarItems(lista: ItemLista[], criterio: OrdenLista): ItemLista[] {
+    const copia = [...lista];
+    if (criterio === "alfabetico") copia.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    else copia.sort((a, b) => b.added_at.localeCompare(a.added_at));
+    return copia;
+  }
+
+  function cambiarOrden() {
+    const nuevo = orden === "reciente" ? "alfabetico" : "reciente";
+    setOrden(nuevo);
+    setItems((prev) => ordenarItems(prev, nuevo));
   }
 
   const botonesGrupo = (
     <View style={styles.columnaBotonesChicos}>
-      <Pressable style={styles.botonChico} onPress={() => setPublishModalVisible(true)} hitSlop={6}>
-        <Ionicons name="paper-plane" size={15} color="#FFFFFF" />
-      </Pressable>
-      <Pressable style={styles.botonChico} onPress={() => setModoVista(modoVista === "grilla" ? "lista" : "grilla")} hitSlop={6}>
-        <Ionicons name={modoVista === "grilla" ? "list" : "grid"} size={15} color="#FFFFFF" />
+      <View style={styles.filaBotonesChicos}>
+        <Pressable style={styles.botonChico} onPress={() => setModoVista(modoVista === "grilla" ? "lista" : "grilla")} hitSlop={6}>
+          <Ionicons name={modoVista === "grilla" ? "list" : "grid"} size={15} color="#FFFFFF" />
+        </Pressable>
+        <Pressable style={styles.botonChico} onPress={() => setPublishModalVisible(true)} hitSlop={6}>
+          <Ionicons name="paper-plane" size={15} color="#FFFFFF" />
+        </Pressable>
+      </View>
+      <Pressable style={styles.botonChico} onPress={cambiarOrden} hitSlop={6}>
+        <Ionicons name={orden === "reciente" ? "time-outline" : "text-outline"} size={15} color="#FFFFFF" />
       </Pressable>
     </View>
   );
@@ -164,7 +186,8 @@ export default function ListDetailScreen({ route, navigation }: any) {
 
 const styles = StyleSheet.create({
   botonesRow: { flexDirection: "row", alignItems: "center", padding: 12 },
-  columnaBotonesChicos: { flexDirection: "row", gap: 8 },
+  columnaBotonesChicos: { alignItems: "center", gap: 8 },
+  filaBotonesChicos: { flexDirection: "row", gap: 8 },
   botonChico: {
     width: 40,
     height: 32,
