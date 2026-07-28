@@ -73,7 +73,11 @@ export default function AdminUsersScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <Pressable style={styles.ordenBtn} onPress={cambiarOrden}>
-        <Ionicons name={orden === "alfabetico" ? "time-outline" : "text-outline"} size={16} color={theme.colors.primaryLight} />
+        {orden === "alfabetico" ? (
+          <Ionicons name="time-outline" size={16} color={theme.colors.primaryLight} />
+        ) : (
+          <Text style={styles.ordenBtnAzTexto}>Az</Text>
+        )}
         <Text style={styles.ordenBtnTexto}>
           {orden === "alfabetico" ? t("Ver por más recientes") : t("Ver alfabético")}
         </Text>
@@ -114,6 +118,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   ordenBtnTexto: { fontSize: 12.5, fontWeight: "700", color: theme.colors.primaryLight },
+  ordenBtnAzTexto: { fontSize: 13, fontWeight: "800", color: theme.colors.primaryLight },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.background },
   vacio: { textAlign: "center", color: theme.colors.textMuted, marginTop: 32 },
   fila: { flexDirection: "row", alignItems: "center", paddingVertical: 10, gap: 12 },

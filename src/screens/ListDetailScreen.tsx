@@ -93,7 +93,11 @@ export default function ListDetailScreen({ route, navigation }: any) {
         </Pressable>
       </View>
       <Pressable style={styles.botonChico} onPress={cambiarOrden} hitSlop={6}>
-        <Ionicons name={orden === "reciente" ? "time-outline" : "text-outline"} size={15} color="#FFFFFF" />
+        {orden === "reciente" ? (
+          <Text style={styles.ordenBotonTexto}>Az</Text>
+        ) : (
+          <Ionicons name="time-outline" size={15} color="#FFFFFF" />
+        )}
       </Pressable>
     </View>
   );
@@ -188,6 +192,7 @@ const styles = StyleSheet.create({
   botonesRow: { flexDirection: "row", alignItems: "center", padding: 12 },
   columnaBotonesChicos: { alignItems: "center", gap: 8 },
   filaBotonesChicos: { flexDirection: "row", gap: 8 },
+  ordenBotonTexto: { fontSize: 13, fontWeight: "800", color: "#FFFFFF" },
   botonChico: {
     width: 40,
     height: 32,
