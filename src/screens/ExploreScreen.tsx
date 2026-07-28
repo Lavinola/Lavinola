@@ -95,10 +95,21 @@ function Descubrir({ navigation }: any) {
   // cambiaba el ID (pasa con estrenos recién salidos). En cambio, se
   // muestran todos, y cada tapa se marca sola con el tilde si corresponde
   // (ver "yaLoTengo" en FilaHorizontal).
-  const seriesModa = crudosSeriesModa;
-  const peliculasModa = crudosPeliculasModa;
-  const seriesRecomendadas = crudosSeriesRecomendadas;
-  const peliculasRecomendadas = crudosPeliculasRecomendadas;
+  // Se intenta no mostrar lo que ya tenés agregado (por ID, o por título
+  // normalizado como red de seguridad). Ojo: esto NO detecta cuando TMDB
+  // tiene dos fichas distintas para títulos con el mismo nombre (pasa con
+  // remakes, o con "making of"/documentales que comparten nombre con la
+  // película) — en esos casos, al ser IDs genuinamente distintos, no hay
+  // forma de saber que "es lo mismo" sin arriesgarse a esconder títulos que
+  // en realidad son diferentes.
+  const seriesModa = crudosSeriesModa.filter((s) => !idsSeriesAgregadas.has(s.id) && !titulosSeriesAgregadas.has(normalizarTitulo(s.titulo)));
+  const peliculasModa = crudosPeliculasModa.filter((p) => !idsPeliculasAgregadas.has(p.id) && !titulosPeliculasAgregadas.has(normalizarTitulo(p.titulo)));
+  const seriesRecomendadas = crudosSeriesRecomendadas.filter(
+    (s) => !idsSeriesAgregadas.has(s.id) && !titulosSeriesAgregadas.has(normalizarTitulo(s.titulo))
+  );
+  const peliculasRecomendadas = crudosPeliculasRecomendadas.filter(
+    (p) => !idsPeliculasAgregadas.has(p.id) && !titulosPeliculasAgregadas.has(normalizarTitulo(p.titulo))
+  );
 
   useEffect(() => {
     cargarTodo();
@@ -110,15 +121,14 @@ function Descubrir({ navigation }: any) {
   // no lo vas a ver más en Tendencia/Recomendadas.
   useFocusEffect(
     useCallback(() => {
-      refrescarAgregados();
+      if (userId) refrescarAgregados(userId);
     }, [userId])
   );
 
-  async function refrescarAgregados() {
-    if (!userId) return;
+  async function refrescarAgregados(uid: string) {
     const [{ data: misSeries }, { data: misPeliculas }] = await Promise.all([
-      supabase.from("user_series").select("series_tmdb_id, series_cache(name)").eq("user_id", userId),
-      supabase.from("user_movies").select("movie_tmdb_id, movies_cache(title)").eq("user_id", userId),
+      supabase.from("user_series").select("series_tmdb_id, series_cache(name)").eq("user_id", uid),
+      supabase.from("user_movies").select("movie_tmdb_id, movies_cache(title)").eq("user_id", uid),
     ]);
     setIdsSeriesAgregadas(new Set((misSeries ?? []).map((s: any) => s.series_tmdb_id)));
     setIdsPeliculasAgregadas(new Set((misPeliculas ?? []).map((p: any) => p.movie_tmdb_id)));
@@ -140,16 +150,7 @@ function Descubrir({ navigation }: any) {
         uid ? recomendarPeliculas(uid) : Promise.resolve([]),
       ]);
 
-      if (uid) {
-        const [{ data: misSeries }, { data: misPeliculas }] = await Promise.all([
-          supabase.from("user_series").select("series_tmdb_id, series_cache(name)").eq("user_id", uid),
-          supabase.from("user_movies").select("movie_tmdb_id, movies_cache(title)").eq("user_id", uid),
-        ]);
-        setIdsSeriesAgregadas(new Set((misSeries ?? []).map((s: any) => s.series_tmdb_id)));
-        setIdsPeliculasAgregadas(new Set((misPeliculas ?? []).map((p: any) => p.movie_tmdb_id)));
-        setTitulosSeriesAgregadas(new Set((misSeries ?? []).map((s: any) => normalizarTitulo(s.series_cache?.name ?? "")).filter(Boolean)));
-        setTitulosPeliculasAgregadas(new Set((misPeliculas ?? []).map((p: any) => normalizarTitulo(p.movies_cache?.title ?? "")).filter(Boolean)));
-      }
+      if (uid) await refrescarAgregados(uid);
 
       setCrudosSeriesModa((trendSeries.results ?? []).map(mapSerie));
       setCrudosPeliculasModa((trendMovies.results ?? []).map(mapPelicula));
