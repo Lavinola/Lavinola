@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 
 export interface Notificacion {
   id: string;
-  type: "like" | "reply" | "follow" | "follow_request" | "shared_title" | "group_muted" | "group_removed" | "group_message" | "group_join_request" | "list_item_added" | "list_followed";
+  type: "like" | "reply" | "follow" | "follow_request" | "follow_accepted" | "shared_title" | "group_muted" | "group_removed" | "group_message" | "group_join_request" | "list_item_added" | "list_followed";
   actor_id: string | null;
   actor_username: string | null;
   actor_avatar_url: string | null;
@@ -106,6 +106,8 @@ export function textoNotificacion(n: Notificacion, t: (s: string) => string = (s
       return t("{nombre} empezó a seguirte").replace("{nombre}", nombre);
     case "follow_request":
       return t("{nombre} quiere seguirte").replace("{nombre}", nombre);
+    case "follow_accepted":
+      return t("{nombre} aceptó tu solicitud de seguimiento").replace("{nombre}", nombre);
     case "shared_title":
       if (n.message === "__MULTIPLE__") return t("{nombre} te envió mensajes").replace("{nombre}", nombre);
       return n.message

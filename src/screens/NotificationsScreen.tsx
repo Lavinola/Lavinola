@@ -46,7 +46,7 @@ export default function NotificationsScreen({ navigation }: any) {
   }
 
   async function abrir(n: Notificacion) {
-    if (n.type === "follow") {
+    if (n.type === "follow" || n.type === "follow_accepted") {
       if (n.actor_id) navigation.navigate("PerfilAjeno", { userId: n.actor_id });
       return;
     }

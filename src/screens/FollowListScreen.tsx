@@ -107,7 +107,7 @@ export default function FollowListScreen({ route, navigation }: Props) {
         </View>
         {esMiPropiaLista && (
           <Pressable style={styles.ordenBtn} onPress={() => setOrdenReciente((v) => !v)} hitSlop={8}>
-            <Ionicons name={ordenReciente ? "time" : "text"} size={14} color={theme.colors.primaryLight} />
+            {ordenReciente && <Ionicons name="time" size={14} color={theme.colors.primaryLight} />}
             <Text style={styles.ordenBtnTexto}>{ordenReciente ? t("Recientes") : t("A-Z")}</Text>
           </Pressable>
         )}

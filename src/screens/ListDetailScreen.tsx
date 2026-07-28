@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { View, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text, AppButton } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +15,9 @@ interface ItemLista {
   nombre: string;
   poster_path: string | null;
   added_at: string;
+  anio: string | null;
+  runtime_minutes: number | null; // solo películas
+  total_seasons: number | null; // solo series
 }
 
 type OrdenLista = "reciente" | "alfabetico";
@@ -28,15 +31,17 @@ export default function ListDetailScreen({ route, navigation }: any) {
   const [publishModalVisible, setPublishModalVisible] = useState(false);
   const [modoVista, setModoVista] = useState<"grilla" | "lista">("grilla");
   const [orden, setOrden] = useState<OrdenLista>("reciente");
+  const yaCargoRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
-      cargar();
+      cargar(yaCargoRef.current); // silencioso a partir de la segunda vez, para no perder el scroll
+      yaCargoRef.current = true;
     }, [])
   );
 
-  async function cargar() {
-    setLoading(true);
+  async function cargar(silencioso = false) {
+    if (!silencioso) setLoading(true);
     const [{ data: listaData }, { data }] = await Promise.all([
       supabase.from("lists").select("description").eq("id", listId).maybeSingle(),
       supabase.from("list_items").select("item_type, tmdb_id, added_at").eq("list_id", listId),
@@ -50,8 +55,12 @@ export default function ListDetailScreen({ route, navigation }: any) {
     const idsSeries = [...new Set(filas.filter((f) => f.item_type === "series").map((f) => f.tmdb_id))];
     const idsMovies = [...new Set(filas.filter((f) => f.item_type === "movie").map((f) => f.tmdb_id))];
     const [seriesCache, moviesCache] = await Promise.all([
-      idsSeries.length > 0 ? supabase.from("series_cache").select("tmdb_id, name, poster_path").in("tmdb_id", idsSeries) : Promise.resolve({ data: [] }),
-      idsMovies.length > 0 ? supabase.from("movies_cache").select("tmdb_id, title, poster_path").in("tmdb_id", idsMovies) : Promise.resolve({ data: [] }),
+      idsSeries.length > 0
+        ? supabase.from("series_cache").select("tmdb_id, name, poster_path, first_air_date, total_seasons").in("tmdb_id", idsSeries)
+        : Promise.resolve({ data: [] }),
+      idsMovies.length > 0
+        ? supabase.from("movies_cache").select("tmdb_id, title, poster_path, release_date, runtime_minutes").in("tmdb_id", idsMovies)
+        : Promise.resolve({ data: [] }),
     ]);
     const seriesMap = new Map((seriesCache.data ?? []).map((r: any) => [r.tmdb_id, r]));
     const moviesMap = new Map((moviesCache.data ?? []).map((r: any) => [r.tmdb_id, r]));
@@ -59,14 +68,32 @@ export default function ListDetailScreen({ route, navigation }: any) {
     const resultado: ItemLista[] = filas.map((fila) => {
       if (fila.item_type === "series") {
         const cache = seriesMap.get(fila.tmdb_id);
-        return { item_type: "series" as const, tmdb_id: fila.tmdb_id, nombre: cache?.name ?? "—", poster_path: cache?.poster_path ?? null, added_at: fila.added_at };
+        return {
+          item_type: "series" as const,
+          tmdb_id: fila.tmdb_id,
+          nombre: cache?.name ?? "—",
+          poster_path: cache?.poster_path ?? null,
+          added_at: fila.added_at,
+          anio: cache?.first_air_date ? cache.first_air_date.slice(0, 4) : null,
+          runtime_minutes: null,
+          total_seasons: cache?.total_seasons ?? null,
+        };
       } else {
         const cache = moviesMap.get(fila.tmdb_id);
-        return { item_type: "movie" as const, tmdb_id: fila.tmdb_id, nombre: cache?.title ?? "—", poster_path: cache?.poster_path ?? null, added_at: fila.added_at };
+        return {
+          item_type: "movie" as const,
+          tmdb_id: fila.tmdb_id,
+          nombre: cache?.title ?? "—",
+          poster_path: cache?.poster_path ?? null,
+          added_at: fila.added_at,
+          anio: cache?.release_date ? cache.release_date.slice(0, 4) : null,
+          runtime_minutes: cache?.runtime_minutes ?? null,
+          total_seasons: null,
+        };
       }
     });
     setItems(ordenarItems(resultado, orden));
-    setLoading(false);
+    if (!silencioso) setLoading(false);
   }
 
   function ordenarItems(lista: ItemLista[], criterio: OrdenLista): ItemLista[] {
@@ -170,9 +197,23 @@ export default function ListDetailScreen({ route, navigation }: any) {
               ) : (
                 <View style={[styles.filaPoster, { backgroundColor: theme.colors.surfaceAlt }]} />
               )}
-              <Text style={styles.filaNombre} numberOfLines={2}>
-                {item.nombre}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.filaNombre} numberOfLines={2}>
+                  {item.nombre}
+                </Text>
+                <Text style={styles.filaSub}>
+                  {item.item_type === "series"
+                    ? [
+                        item.total_seasons ? `${item.total_seasons} ${item.total_seasons === 1 ? t("temporada") : t("temporadas")}` : null,
+                        item.anio,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : [item.anio, item.runtime_minutes ? `${Math.floor(item.runtime_minutes / 60)} h ${item.runtime_minutes % 60} min` : null]
+                        .filter(Boolean)
+                        .join(" · ")}
+                </Text>
+              </View>
             </Pressable>
           )}
         />
@@ -208,5 +249,6 @@ const styles = StyleSheet.create({
   poster: { width: "100%", aspectRatio: 2 / 3, borderRadius: 6 },
   filaItem: { flexDirection: "row", alignItems: "center", paddingVertical: 8, gap: 12 },
   filaPoster: { width: 46, height: 46, borderRadius: 6 },
-  filaNombre: { fontSize: 14, flex: 1 },
+  filaNombre: { fontSize: 14 },
+  filaSub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
 });

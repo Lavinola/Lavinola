@@ -298,7 +298,10 @@ function FilaHorizontal({
     <View style={styles.seccion}>
       <Pressable style={styles.seccionHeader} onPress={onVerMas}>
         <Text style={[styles.seccionTitulo, { marginBottom: 0 }]}>{titulo}</Text>
-        <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+        <View style={styles.seccionHeaderIconos}>
+          <Ionicons name="add" size={18} color={theme.colors.textMuted} />
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+        </View>
       </Pressable>
       {items.length === 0 ? (
         <Text style={styles.vacioTexto}>{vacioTexto}</Text>
@@ -359,6 +362,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: theme.colors.primary,
   },
+  seccionHeaderIconos: { flexDirection: "row", alignItems: "center", gap: 4 },
   seccionTitulo: { fontSize: 17, fontWeight: "700", marginBottom: 8 },
   vacioTexto: { fontSize: 13, color: theme.colors.textMuted, paddingHorizontal: 12 },
   card: { width: 120, marginRight: 10 },

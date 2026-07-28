@@ -146,6 +146,11 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "{nombre} respondió tu comentario": { en: "{nombre} replied to your comment", pt: "{nombre} respondeu seu comentário", it: "{nombre} ha risposto al tuo commento" },
   "{nombre} empezó a seguirte": { en: "{nombre} started following you", pt: "{nombre} começou a seguir você", it: "{nombre} ha iniziato a seguirti" },
   "{nombre} quiere seguirte": { en: "{nombre} wants to follow you", pt: "{nombre} quer seguir você", it: "{nombre} vuole seguirti" },
+  "{nombre} aceptó tu solicitud de seguimiento": {
+    en: "{nombre} accepted your follow request",
+    pt: "{nombre} aceitou seu pedido para seguir",
+    it: "{nombre} ha accettato la tua richiesta di seguirlo",
+  },
   "{nombre} te recomendó algo": { en: "{nombre} recommended you something", pt: "{nombre} recomendou algo para você", it: "{nombre} ti ha consigliato qualcosa" },
   "Tenés una notificación nueva": { en: "You have a new notification", pt: "Você tem uma notificação nova", it: "Hai una nuova notifica" },
   "Busca series, películas, usuarios o grupos": { en: "Search shows, movies, users or groups", pt: "Busque séries, filmes, usuários ou grupos", it: "Cerca serie, film, utenti o gruppi" },

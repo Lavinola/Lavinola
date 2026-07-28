@@ -740,11 +740,20 @@ drop trigger if exists trg_notify_follow on follows;
 create trigger trg_notify_follow after insert on follows
   for each row execute function notify_follow();
 
--- Solicitud de seguimiento (perfil privado) -> avisa al destino
+-- Solicitud de seguimiento (perfil privado) -> avisa al destino.
+-- Cuando la acepta -> avisa a quien la mandó ("fulano aceptó tu solicitud").
+-- Antes esto insertaba SIEMPRE una notificación de "nueva solicitud" al
+-- destino, hasta cuando en realidad se estaba ACEPTANDO — le llegaba una
+-- notificación repetida y encima a la persona equivocada.
 create or replace function notify_follow_request() returns trigger as $$
 begin
-  insert into notifications (user_id, type, actor_id)
-    values (new.target_id, 'follow_request', new.requester_id);
+  if TG_OP = 'INSERT' and new.status = 'pending' then
+    insert into notifications (user_id, type, actor_id)
+      values (new.target_id, 'follow_request', new.requester_id);
+  elsif TG_OP = 'UPDATE' and new.status = 'accepted' and old.status is distinct from 'accepted' then
+    insert into notifications (user_id, type, actor_id, target_type, target_id)
+      values (new.requester_id, 'follow_accepted', new.target_id, 'user', new.target_id::text);
+  end if;
   return new;
 end;
 $$ language plpgsql;
