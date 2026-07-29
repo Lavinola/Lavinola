@@ -12,6 +12,8 @@ import TopPills from "../components/TopPills";
 import UnderlineTabs from "../components/UnderlineTabs";
 import GroupsScreen from "./GroupsScreen";
 import ActivityScreen from "./ActivityScreen";
+import PublicarFAB from "../components/PublicarFAB";
+import { useOcultarAlScrollear } from "../hooks/useOcultarAlScrollear";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -24,6 +26,7 @@ export default function CommunityScreen({ navigation }: any) {
   const [lobbySubTab, setLobbySubTab] = useState<LobbySubTab>("paraTi");
   const [gruposNoLeidos, setGruposNoLeidos] = useState(0);
   const [chatsNoLeidos, setChatsNoLeidos] = useState(0);
+  const { visible: fabVisible, onScroll: onScrollFeed } = useOcultarAlScrollear();
 
   useEffect(() => {
     cargarBadges();
@@ -77,8 +80,8 @@ export default function CommunityScreen({ navigation }: any) {
               <Ionicons name="search" size={20} color={theme.colors.primaryLight} />
             </Pressable>
           </View>
-          {lobbySubTab === "paraTi" && <FeedDePosts modo="paraTi" navigation={navigation} />}
-          {lobbySubTab === "siguiendo" && <FeedDePosts modo="siguiendo" navigation={navigation} />}
+          {lobbySubTab === "paraTi" && <FeedDePosts modo="paraTi" navigation={navigation} onScroll={onScrollFeed} />}
+          {lobbySubTab === "siguiendo" && <FeedDePosts modo="siguiendo" navigation={navigation} onScroll={onScrollFeed} />}
         </>
       )}
       {subTab === "misPosts" && (
@@ -89,16 +92,28 @@ export default function CommunityScreen({ navigation }: any) {
               <Text style={styles.lupaBtnMisPostsTexto}>{t("Buscar en mis posts")}</Text>
             </Pressable>
           </View>
-          <FeedDePosts modo="mios" navigation={navigation} />
+          <FeedDePosts modo="mios" navigation={navigation} onScroll={onScrollFeed} />
         </>
       )}
       {subTab === "grupos" && <GroupsScreen navigation={navigation} />}
       {subTab === "chats" && <ActivityScreen navigation={navigation} />}
+      <PublicarFAB
+        visible={fabVisible && (subTab === "lobby" || subTab === "misPosts")}
+        onPress={() => navigation.navigate("SeleccionarTituloPost")}
+      />
     </View>
   );
 }
 
-function FeedDePosts({ modo, navigation }: { modo: "paraTi" | "siguiendo" | "mios"; navigation: any }) {
+function FeedDePosts({
+  modo,
+  navigation,
+  onScroll,
+}: {
+  modo: "paraTi" | "siguiendo" | "mios";
+  navigation: any;
+  onScroll?: (e: any) => void;
+}) {
   const { t } = useT();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,6 +165,8 @@ function FeedDePosts({ modo, navigation }: { modo: "paraTi" | "siguiendo" | "mio
       refreshing={loading}
       onEndReached={cargarMas}
       onEndReachedThreshold={0.4}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       ListFooterComponent={cargandoMas ? <ActivityIndicator style={{ marginVertical: 16 }} color={theme.colors.primary} /> : null}
       ListEmptyComponent={
         <View style={styles.proximamente}>

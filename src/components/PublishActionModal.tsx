@@ -11,7 +11,7 @@ interface Props {
   visible: boolean;
   onCerrar: () => void;
   navigation: any;
-  recomendarParams: any; // se pasa tal cual a navigation.navigate("Recomendar", ...)
+  recomendarParams?: any; // se pasa tal cual a navigation.navigate("Recomendar", ...) — no hace falta si modoInicial="publicar"
   publicarParams?: {
     itemType: "series" | "movie" | "episode";
     tmdbId: number;
@@ -19,18 +19,27 @@ interface Props {
     episodeNumber?: number | null;
   }; // si no viene (ej. listas), no se ofrece "Publicar en Lobby"
   publicarListaParams?: { listId: string }; // para publicar una LISTA propia en el Lobby
+  modoInicial?: "menu" | "publicar"; // "publicar" salta directo al texto, sin pasar por el menú (para cuando ya se sabe que se quiere publicar, como desde el botón flotante)
 }
 
-export default function PublishActionModal({ visible, onCerrar, navigation, recomendarParams, publicarParams, publicarListaParams }: Props) {
+export default function PublishActionModal({
+  visible,
+  onCerrar,
+  navigation,
+  recomendarParams,
+  publicarParams,
+  publicarListaParams,
+  modoInicial = "menu",
+}: Props) {
   const { t } = useT();
-  const [modo, setModo] = useState<"menu" | "publicar">("menu");
+  const [modo, setModo] = useState<"menu" | "publicar">(modoInicial);
   const [texto, setTexto] = useState("");
   const [esSpoiler, setEsSpoiler] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [publicado, setPublicado] = useState(false);
 
   function reset() {
-    setModo("menu");
+    setModo(modoInicial);
     setTexto("");
     setEsSpoiler(false);
     setPublicando(false);

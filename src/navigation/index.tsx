@@ -38,6 +38,7 @@ import AdminUserChatsScreen from "../screens/AdminUserChatsScreen";
 import AdminVerChatScreen from "../screens/AdminVerChatScreen";
 import PrivacyPolicyScreen from "../screens/PrivacyPolicyScreen";
 import AdminUsersScreen from "../screens/AdminUsersScreen";
+import SeleccionarTituloPostScreen from "../screens/SeleccionarTituloPostScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import ChooseCoverPhotoScreen from "../screens/ChooseCoverPhotoScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -202,6 +203,11 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
       <Stack.Screen name="ElegirImagenTmdb" component={ChooseTmdbImageScreen} options={{ title: t("Elegir imagen") }} />
       <Stack.Screen name="Recomendar" component={RecommendScreen} options={{ title: t("Recomendar"), presentation: "modal" }} />
       <Stack.Screen name="CrearPost" component={CreatePostScreen} options={{ title: t("Publicar en el Lobby"), presentation: "modal" }} />
+      <Stack.Screen
+        name="SeleccionarTituloPost"
+        component={SeleccionarTituloPostScreen}
+        options={{ title: t("¿De qué querés hablar?"), presentation: "modal" }}
+      />
     </>
   );
 }
@@ -366,6 +372,7 @@ const RUTAS_COMUNES: Record<string, string> = {
   ElegirImagenTmdb: "elegir-imagen",
   Recomendar: "recomendar",
   CrearPost: "crear-post",
+  SeleccionarTituloPost: "publicar-desde",
   AdminChatsUsuario: "admin-chats-usuario",
   AdminVerChat: "admin-ver-chat",
 };

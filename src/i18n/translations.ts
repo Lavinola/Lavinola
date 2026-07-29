@@ -531,6 +531,10 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "mensaje editado": { en: "message edited", pt: "mensagem editada", it: "messaggio modificato" },
   "Fecha por confirmar": { en: "Date to be confirmed", pt: "Data a confirmar", it: "Data da confermare" },
   Temporada: { en: "Season", pt: "Temporada", it: "Stagione" },
+  "Elegir un capítulo": { en: "Choose an episode", pt: "Escolher um episódio", it: "Scegli un episodio" },
+  Continuar: { en: "Continue", pt: "Continuar", it: "Continua" },
+  "Elegir otro título": { en: "Choose a different title", pt: "Escolher outro título", it: "Scegli un altro titolo" },
+  "¿De qué querés hablar?": { en: "What do you want to talk about?", pt: "Sobre o que você quer falar?", it: "Di cosa vuoi parlare?" },
   "Valorá esta película": { en: "Rate this movie", pt: "Avalie este filme", it: "Valuta questo film" },
   "Valorá esta serie": { en: "Rate this show", pt: "Avalie esta série", it: "Valuta questa serie" },
 
