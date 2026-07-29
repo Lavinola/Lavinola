@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   wrap: {
     position: "absolute",
     right: 16,
-    bottom: 78, // justo arriba de la tab bar, sobre el botón de Perfil
+    bottom: 30, // justo arriba de la tab bar, sobre el botón de Perfil
   },
   boton: {
     width: 56,
