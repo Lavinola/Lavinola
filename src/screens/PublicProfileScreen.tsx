@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, Image, FlatList, Pressable, StyleSheet, ScrollView, Modal, TextInput } from "react-native";
+import { View, Image, FlatList, Pressable, StyleSheet, ScrollView, Modal, TextInput, Platform } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
@@ -599,7 +599,11 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
               },
             ]
           : []),
-        ...(soyAdmin
+        // "Ver chats" (todos, sin filtrar por reportados) queda solo para
+        // la webapp — en la app nativa que se sube a Play Store, un admin
+        // solo puede ver chats puntuales que ya fueron reportados (desde la
+        // pantalla de Reportes), no navegar libremente por cualquier chat.
+        ...(soyAdmin && Platform.OS === "web"
           ? [
               {
                 label: t("Ver chats"),

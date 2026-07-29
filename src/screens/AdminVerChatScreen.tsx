@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, FlatList, StyleSheet } from "react-native";
+import { View, FlatList, StyleSheet, Platform } from "react-native";
 import { Text } from "../components/Themed";
 import { supabase } from "../lib/supabase";
 import { cargarMensajesChatParaAdmin, MensajeChat } from "../lib/chats";
@@ -33,6 +33,12 @@ export default function AdminVerChatScreen({ route, navigation }: Props) {
   }, []);
 
   async function verificarYcargar() {
+    // Igual que AdminUserChatsScreen: esta vista de "todos los mensajes,
+    // sin filtrar por reportados" queda reservada a la webapp.
+    if (Platform.OS !== "web") {
+      setAutorizado(false);
+      return;
+    }
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData.user?.id;
     if (!uid) {

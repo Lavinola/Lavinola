@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, FlatList, Image, Pressable, StyleSheet } from "react-native";
+import { View, FlatList, Image, Pressable, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Themed";
 import { supabase } from "../lib/supabase";
@@ -26,6 +26,12 @@ export default function AdminUserChatsScreen({ route, navigation }: Props) {
   }, []);
 
   async function verificarYcargar() {
+    // Ver TODOS los chats de un usuario (no solo los reportados) queda
+    // reservado a la webapp — ver PublicProfileScreen para la explicación.
+    if (Platform.OS !== "web") {
+      setAutorizado(false);
+      return;
+    }
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData.user?.id;
     if (!uid) {
