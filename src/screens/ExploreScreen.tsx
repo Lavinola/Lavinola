@@ -159,12 +159,19 @@ function Descubrir({ navigation }: any) {
       const uid = userData.user?.id ?? null;
       setUserId(uid);
 
-      const [trendSeries, trendMovies, recSeries, recMovies] = await Promise.all([
-        getTrendingSeries(),
-        getTrendingMovies(),
+      // Pedimos 2 páginas de tendencia (40 títulos en crudo) en vez de 1
+      // sola (20) — así, aunque el filtro de "ya agregado" saque varios,
+      // sigue quedando un margen cómodo para mostrar al menos 10.
+      const [trendSeries1, trendSeries2, trendMovies1, trendMovies2, recSeries, recMovies] = await Promise.all([
+        getTrendingSeries(1),
+        getTrendingSeries(2),
+        getTrendingMovies(1),
+        getTrendingMovies(2),
         uid ? recomendarSeries(uid) : Promise.resolve([]),
         uid ? recomendarPeliculas(uid) : Promise.resolve([]),
       ]);
+      const trendSeries = { results: [...(trendSeries1.results ?? []), ...(trendSeries2.results ?? [])] };
+      const trendMovies = { results: [...(trendMovies1.results ?? []), ...(trendMovies2.results ?? [])] };
 
       if (uid) await refrescarAgregados(uid);
 

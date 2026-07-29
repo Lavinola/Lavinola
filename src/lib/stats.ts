@@ -103,7 +103,9 @@ export async function getEstadisticasSeries(userId: string): Promise<Estadistica
   // Episodios pendientes: para cada serie seguida, cuántos episodios no vistos hay y su duración total.
   let episodiosPendientes = 0;
   let minutosEpisodiosPendientes = 0;
-  const { data: seriesIds } = await supabase.from("user_series").select("series_tmdb_id").eq("user_id", userId);
+  const seriesIds = await fetchAllRows<any>((desde, hasta) =>
+    supabase.from("user_series").select("series_tmdb_id").eq("user_id", userId).range(desde, hasta)
+  );
   for (const row of seriesIds ?? []) {
     const { data: todos } = await supabase
       .from("episodes_cache")

@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { fetchAllRows } from "./pagination";
 import { discoverSeriesPaginado, discoverMoviesPaginado, getWatchProvidersDisponibles, getSeriesWatchProviders, getMovieWatchProviders, GrupoPlataforma } from "./tmdb";
 import { generosMasFrecuentes } from "./recommendations";
 
@@ -44,8 +45,8 @@ export async function idsYaAgregados(userId: string | null, tipo: "series" | "mo
   if (!userId) return new Set();
   const tabla = tipo === "series" ? "user_series" : "user_movies";
   const columna = tipo === "series" ? "series_tmdb_id" : "movie_tmdb_id";
-  const { data } = await supabase.from(tabla).select(columna).eq("user_id", userId);
-  return new Set((data ?? []).map((r: any) => r[columna]));
+  const data = await fetchAllRows<any>((desde, hasta) => supabase.from(tabla).select(columna).eq("user_id", userId).range(desde, hasta));
+  return new Set(data.map((r: any) => r[columna]));
 }
 
 /** Trae metadata (nombre/poster/año/temporadas/status) desde la caché para una lista de tmdb_ids, en el mismo orden. */

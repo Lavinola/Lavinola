@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { fetchAllRows } from "./pagination";
 
 export interface Favorito {
   tmdb_id: number;
@@ -41,24 +42,19 @@ function jaccard(a: Set<string>, b: Set<string>): number | null {
  * devuelve null (no hay nada que comparar todavía).
  */
 export async function calcularCompatibilidad(userIdA: string, userIdB: string): Promise<number | null> {
-  const [
-    { data: favA },
-    { data: favB },
-    { data: moviesA },
-    { data: moviesB },
-    { data: seriesA },
-    { data: seriesB },
-    { data: episodiosA },
-    { data: episodiosB },
-  ] = await Promise.all([
-    supabase.from("user_favorites").select("item_type, tmdb_id").eq("user_id", userIdA),
-    supabase.from("user_favorites").select("item_type, tmdb_id").eq("user_id", userIdB),
-    supabase.from("user_movies").select("movie_tmdb_id, watched, rating").eq("user_id", userIdA),
-    supabase.from("user_movies").select("movie_tmdb_id, watched, rating").eq("user_id", userIdB),
-    supabase.from("user_series").select("series_tmdb_id, rating").eq("user_id", userIdA),
-    supabase.from("user_series").select("series_tmdb_id, rating").eq("user_id", userIdB),
-    supabase.from("user_episodes_watched").select("series_tmdb_id, season_number, episode_number, rating").eq("user_id", userIdA),
-    supabase.from("user_episodes_watched").select("series_tmdb_id, season_number, episode_number, rating").eq("user_id", userIdB),
+  const [favA, favB, moviesA, moviesB, seriesA, seriesB, episodiosA, episodiosB] = await Promise.all([
+    fetchAllRows<any>((d, h) => supabase.from("user_favorites").select("item_type, tmdb_id").eq("user_id", userIdA).range(d, h)),
+    fetchAllRows<any>((d, h) => supabase.from("user_favorites").select("item_type, tmdb_id").eq("user_id", userIdB).range(d, h)),
+    fetchAllRows<any>((d, h) => supabase.from("user_movies").select("movie_tmdb_id, watched, rating").eq("user_id", userIdA).range(d, h)),
+    fetchAllRows<any>((d, h) => supabase.from("user_movies").select("movie_tmdb_id, watched, rating").eq("user_id", userIdB).range(d, h)),
+    fetchAllRows<any>((d, h) => supabase.from("user_series").select("series_tmdb_id, rating").eq("user_id", userIdA).range(d, h)),
+    fetchAllRows<any>((d, h) => supabase.from("user_series").select("series_tmdb_id, rating").eq("user_id", userIdB).range(d, h)),
+    fetchAllRows<any>((d, h) =>
+      supabase.from("user_episodes_watched").select("series_tmdb_id, season_number, episode_number, rating").eq("user_id", userIdA).range(d, h)
+    ),
+    fetchAllRows<any>((d, h) =>
+      supabase.from("user_episodes_watched").select("series_tmdb_id, season_number, episode_number, rating").eq("user_id", userIdB).range(d, h)
+    ),
   ]);
 
   // --- Favoritas en común ---

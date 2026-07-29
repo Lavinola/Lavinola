@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { fetchAllRows } from "./pagination";
 import { GENEROS_PELICULAS } from "./tmdbGenres";
 
 /**
@@ -72,9 +73,9 @@ export async function calcularRecap(userId: string, year: number): Promise<Datos
 
   const [
     { data: peliculasVistas },
-    { data: seriesAgregadas },
+    seriesAgregadas,
     { data: episodiosVistos },
-    { data: favoritas },
+    favoritas,
     { data: misPosts },
     { data: misComentarios },
   ] = await Promise.all([
@@ -85,14 +86,16 @@ export async function calcularRecap(userId: string, year: number): Promise<Datos
       .eq("watched", true)
       .gte("first_watched_at", desde)
       .lt("first_watched_at", hasta),
-    supabase.from("user_series").select("series_tmdb_id, rating, series_cache(name, poster_path)").eq("user_id", userId),
+    fetchAllRows<any>((d, h) =>
+      supabase.from("user_series").select("series_tmdb_id, rating, series_cache(name, poster_path)").eq("user_id", userId).range(d, h)
+    ),
     supabase
       .from("user_episodes_watched")
       .select("series_tmdb_id, season_number, episode_number, rating, times_watched, watched_at, episodes_cache(name, runtime_minutes), series_cache(name, poster_path)")
       .eq("user_id", userId)
       .gte("watched_at", desde)
       .lt("watched_at", hasta),
-    supabase.from("user_favorites").select("item_type, tmdb_id").eq("user_id", userId),
+    fetchAllRows<any>((d, h) => supabase.from("user_favorites").select("item_type, tmdb_id").eq("user_id", userId).range(d, h)),
     supabase.from("posts").select("item_type, tmdb_id, season_number, episode_number").eq("user_id", userId).gte("created_at", desde).lt("created_at", hasta),
     supabase.from("comentarios").select("target_type, target_id").eq("user_id", userId).gte("created_at", desde).lt("created_at", hasta),
   ]);

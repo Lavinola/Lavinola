@@ -3,6 +3,7 @@ import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndica
 import { searchSeries, searchMovies, posterUrl } from "../lib/tmdb";
 import { seguirSerie, agregarPelicula } from "../lib/sync";
 import { supabase } from "../lib/supabase";
+import { fetchAllRows } from "../lib/pagination";
 import { Text } from "../components/Themed";
 import { theme } from "../theme";
 
@@ -28,9 +29,9 @@ export default function AddTitleScreen() {
     supabase.auth.getUser().then(async ({ data }) => {
       const uid = data.user?.id;
       if (!uid) return;
-      const [{ data: series }, { data: movies }] = await Promise.all([
-        supabase.from("user_series").select("series_tmdb_id").eq("user_id", uid),
-        supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", uid),
+      const [series, movies] = await Promise.all([
+        fetchAllRows<any>((desde, hasta) => supabase.from("user_series").select("series_tmdb_id").eq("user_id", uid).range(desde, hasta)),
+        fetchAllRows<any>((desde, hasta) => supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", uid).range(desde, hasta)),
       ]);
       const set = new Set<string>();
       (series ?? []).forEach((s: any) => set.add(`series-${s.series_tmdb_id}`));

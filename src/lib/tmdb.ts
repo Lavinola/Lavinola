@@ -58,8 +58,8 @@ export function getSeasonEpisodes(tmdbId: number, seasonNumber: number) {
   return tmdbFetch<any>(`/tv/${tmdbId}/season/${seasonNumber}`);
 }
 
-export function getTrendingSeries() {
-  return tmdbFetch<any>(`/trending/tv/week`);
+export function getTrendingSeries(page = 1) {
+  return tmdbFetch<any>(`/trending/tv/week`, { page: String(page) });
 }
 
 export function getPopularSeries() {
@@ -226,8 +226,8 @@ export function getMovieDetails(tmdbId: number) {
   // trae: title, overview, poster_path, runtime, release_date
 }
 
-export function getTrendingMovies() {
-  return tmdbFetch<any>(`/trending/movie/week`);
+export function getTrendingMovies(page = 1) {
+  return tmdbFetch<any>(`/trending/movie/week`, { page: String(page) });
 }
 
 export function getPopularMovies() {

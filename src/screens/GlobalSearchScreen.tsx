@@ -10,6 +10,7 @@ import { buscarUsuarios, listarUsuariosRecomendados, dejarDeSeguir, UsuarioBasic
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
 import { buscarGrupos, listarGruposRecomendados, unirseAGrupo, Grupo } from "../lib/groups";
 import { supabase } from "../lib/supabase";
+import { fetchAllRows } from "../lib/pagination";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -58,9 +59,9 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   }
 
   async function cargarAgregados(uid: string) {
-    const [{ data: series }, { data: movies }] = await Promise.all([
-      supabase.from("user_series").select("series_tmdb_id").eq("user_id", uid),
-      supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", uid),
+    const [series, movies] = await Promise.all([
+      fetchAllRows<any>((desde, hasta) => supabase.from("user_series").select("series_tmdb_id").eq("user_id", uid).range(desde, hasta)),
+      fetchAllRows<any>((desde, hasta) => supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", uid).range(desde, hasta)),
     ]);
     const set = new Set<string>();
     (series ?? []).forEach((s: any) => set.add(`series-${s.series_tmdb_id}`));

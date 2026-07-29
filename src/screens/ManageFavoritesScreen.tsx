@@ -110,10 +110,17 @@ export default function ManageFavoritesScreen({ route }: any) {
     } else {
       const [favs, movieRows] = await Promise.all([
         listarFavoritos(uid),
-        supabase.from("user_movies").select("movie_tmdb_id, custom_poster_path, watched_at, movies_cache(title, poster_path, release_date)").eq("user_id", uid).eq("watched", true),
+        fetchAllRows<any>((desde, hasta) =>
+          supabase
+            .from("user_movies")
+            .select("movie_tmdb_id, custom_poster_path, watched_at, movies_cache(title, poster_path, release_date)")
+            .eq("user_id", uid)
+            .eq("watched", true)
+            .range(desde, hasta)
+        ),
       ]);
       const favoritosIds = new Set(favs.filter((f) => f.item_type === "movie").map((f) => f.tmdb_id));
-      const lista: ItemConFavorito[] = (movieRows.data ?? []).map((r: any) => ({
+      const lista: ItemConFavorito[] = movieRows.map((r: any) => ({
         tmdb_id: r.movie_tmdb_id,
         nombre: r.movies_cache?.title ?? "—",
         poster_path: r.custom_poster_path ?? r.movies_cache?.poster_path ?? null,
