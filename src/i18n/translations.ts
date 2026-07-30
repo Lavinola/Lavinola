@@ -537,6 +537,12 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Todavía sin nivel": { en: "No level yet", pt: "Ainda sem nível", it: "Ancora nessun livello" },
   "{puntos} puntos de actividad": { en: "{puntos} activity points", pt: "{puntos} pontos de atividade", it: "{puntos} punti di attività" },
   "¡Ya la tenés! 🎉": { en: "You already have it! 🎉", pt: "Você já tem! 🎉", it: "Ce l'hai già! 🎉" },
+  "No se pudieron cargar tus insignias.": {
+    en: "Couldn't load your badges.",
+    pt: "Não foi possível carregar suas insígnias.",
+    it: "Impossibile caricare i tuoi distintivi.",
+  },
+  "¡Subiste de nivel!": { en: "You leveled up!", pt: "Você subiu de nível!", it: "Sei salito di livello!" },
   "Necesitás {puntos} puntos de actividad.": {
     en: "You need {puntos} activity points.",
     pt: "Você precisa de {puntos} pontos de atividade.",

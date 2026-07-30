@@ -2195,3 +2195,11 @@ end;
 $$ language plpgsql stable security definer set search_path = public;
 
 grant execute on function calcular_puntos_insignias(uuid) to authenticated;
+
+-- Último nivel de insignia que el usuario ya vio en la animación de "subiste
+-- de nivel" — así, si alguien ya tenía puntos de antes (por haber usado la
+-- app antes de que existiera esto), o si un import masivo de TV Time le hace
+-- saltar varios niveles de una, la próxima vez que abra la app le mostramos
+-- la animación una sola vez con el nivel correcto, no la repetimos ni la
+-- salteamos.
+alter table profiles add column if not exists ultimo_nivel_insignia_visto integer not null default 0;

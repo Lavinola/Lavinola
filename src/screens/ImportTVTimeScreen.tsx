@@ -10,6 +10,8 @@ import { posterUrl, searchSeries, searchMovies } from "../lib/tmdb";
 import { supabase } from "../lib/supabase";
 import { Text, AppButton } from "../components/Themed";
 import ConfirmModal from "../components/ConfirmModal";
+import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
+import NivelUpModal from "../components/NivelUpModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -41,6 +43,7 @@ function base64ToBytes(base64: string): Uint8Array {
 export default function ImportTVTimeScreen() {
   const { t } = useT();
   const [etapa, setEtapa] = useState<Etapa>("instrucciones");
+  const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
   const [resultados, setResultados] = useState<ResultadoMatch[]>([]);
   const [dudosoIndex, setDudosoIndex] = useState(0);
   const [omitidosCount, setOmitidosCount] = useState(0);
@@ -360,6 +363,12 @@ export default function ImportTVTimeScreen() {
         setEpisodiosOmitidosDetalle(Array.isArray(job.episodios_omitidos_detalle) ? job.episodios_omitidos_detalle : []);
         await supabase.from("tvtime_import_jobs").delete().eq("id", jobId!);
         setEtapa("listo");
+        supabase.auth.getUser().then(({ data }) => {
+          if (!data.user) return;
+          chequearSubidaDeNivel(data.user.id)
+            .then((nivel) => nivel && setNivelSubido(nivel))
+            .catch((e) => console.error("Error al chequear el nivel de insignias:", e));
+        });
       } else if (job.status === "aplicando_error") {
         console.error("Error al aplicar la importación:", job.error_msg);
         setErrorModal({ titulo: t("No se pudo terminar la importación"), mensaje: job.error_msg ?? "" });
@@ -578,6 +587,7 @@ export default function ImportTVTimeScreen() {
   }
 
   return (
+    <>
     <ScrollView contentContainerStyle={[styles.centro, { paddingVertical: 40 }]}>
       <Text style={styles.titulo}>{t("¡Listo!")}</Text>
       <Text style={styles.parrafo}>{t("Tu historial de TV Time ya está en Lavinola.")}</Text>
@@ -611,6 +621,8 @@ export default function ImportTVTimeScreen() {
         </View>
       )}
     </ScrollView>
+    <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
+    </>
   );
 }
 

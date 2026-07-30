@@ -8,6 +8,8 @@ import { Session } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { supabase } from "../lib/supabase";
 import { Alert } from "../lib/alert";
+import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
+import NivelUpModal from "../components/NivelUpModal";
 import { registrarPushToken } from "../lib/notifications";
 import { setTmdbLanguage } from "../lib/tmdb";
 import { useT } from "../i18n/i18n";
@@ -424,6 +426,7 @@ export default function RootNavigation() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [modoRecuperacion, setModoRecuperacion] = useState(false);
+  const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
   const { t } = useT();
 
   useEffect(() => {
@@ -433,6 +436,9 @@ export default function RootNavigation() {
       if (data.session?.user) {
         registrarPushToken(data.session.user.id);
         aplicarIdioma(data.session.user.id);
+        chequearSubidaDeNivel(data.session.user.id)
+          .then((nivel) => nivel && setNivelSubido(nivel))
+          .catch((e) => console.error("Error al chequear el nivel de insignias:", e));
       }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
@@ -543,6 +549,7 @@ export default function RootNavigation() {
         </Tab.Navigator>
       </NavigationContainer>
       <GlobalOnboardingHost />
+      <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
     </>
   );
 }

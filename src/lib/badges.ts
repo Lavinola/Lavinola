@@ -42,3 +42,27 @@ export function nivelAlcanzado(puntos: number): NivelInsignia | null {
 export function proximoNivel(puntos: number): NivelInsignia | null {
   return NIVELES_INSIGNIAS.find((n) => puntos < n.puntos) ?? null;
 }
+
+/**
+ * Compara el nivel actual del usuario contra el último que ya vio en la
+ * animación de "subiste de nivel", y si subió, actualiza el registro y
+ * devuelve el nuevo nivel (para que quien llama muestre la animación).
+ * Si no subió, devuelve null y no toca nada.
+ *
+ * Cubre los 3 casos de una sola vez: progreso normal viendo cosas de a
+ * poco, puntos "de antes" (alguien que ya usaba la app antes de que
+ * existiera esto), y saltos grandes por un import masivo de TV Time.
+ */
+export async function chequearSubidaDeNivel(userId: string): Promise<NivelInsignia | null> {
+  const [puntos, { data: perfil }] = await Promise.all([
+    obtenerPuntosInsignias(userId),
+    supabase.from("profiles").select("ultimo_nivel_insignia_visto").eq("id", userId).single(),
+  ]);
+  const nivelActual = nivelAlcanzado(puntos);
+  const ultimoVisto = perfil?.ultimo_nivel_insignia_visto ?? 0;
+
+  if (!nivelActual || nivelActual.nivel <= ultimoVisto) return null;
+
+  await supabase.from("profiles").update({ ultimo_nivel_insignia_visto: nivelActual.nivel }).eq("id", userId);
+  return nivelActual;
+}

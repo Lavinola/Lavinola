@@ -3,69 +3,15 @@ import { View, FlatList, Image, Pressable, Modal, StyleSheet, Platform, Activity
 import { Text } from "../components/Themed";
 import { supabase } from "../lib/supabase";
 import { NIVELES_INSIGNIAS, NivelInsignia, obtenerPuntosInsignias } from "../lib/badges";
+import { IMAGENES_INSIGNIAS_GRANDES } from "../lib/badgeImages";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
-
-// Metro necesita los require() escritos literal (no se puede armar el path
-// con un string dinámico) — por eso el mapa explícito, uno por idioma. Las
-// imágenes ya son la tarjeta completa (nivel + nombre + ícono + estrellas)
-// en el idioma correspondiente, así que se muestran tal cual, sin texto
-// superpuesto — y se elige el set según el idioma actual de la app.
-const IMAGENES_INSIGNIAS: Record<string, Record<number, any>> = {
-  es: {
-    1: require("../../assets/badges/es/nivel-1.png"),
-    2: require("../../assets/badges/es/nivel-2.png"),
-    3: require("../../assets/badges/es/nivel-3.png"),
-    4: require("../../assets/badges/es/nivel-4.png"),
-    5: require("../../assets/badges/es/nivel-5.png"),
-    6: require("../../assets/badges/es/nivel-6.png"),
-    7: require("../../assets/badges/es/nivel-7.png"),
-    8: require("../../assets/badges/es/nivel-8.png"),
-    9: require("../../assets/badges/es/nivel-9.png"),
-    10: require("../../assets/badges/es/nivel-10.png"),
-  },
-  en: {
-    1: require("../../assets/badges/en/nivel-1.png"),
-    2: require("../../assets/badges/en/nivel-2.png"),
-    3: require("../../assets/badges/en/nivel-3.png"),
-    4: require("../../assets/badges/en/nivel-4.png"),
-    5: require("../../assets/badges/en/nivel-5.png"),
-    6: require("../../assets/badges/en/nivel-6.png"),
-    7: require("../../assets/badges/en/nivel-7.png"),
-    8: require("../../assets/badges/en/nivel-8.png"),
-    9: require("../../assets/badges/en/nivel-9.png"),
-    10: require("../../assets/badges/en/nivel-10.png"),
-  },
-  pt: {
-    1: require("../../assets/badges/pt/nivel-1.png"),
-    2: require("../../assets/badges/pt/nivel-2.png"),
-    3: require("../../assets/badges/pt/nivel-3.png"),
-    4: require("../../assets/badges/pt/nivel-4.png"),
-    5: require("../../assets/badges/pt/nivel-5.png"),
-    6: require("../../assets/badges/pt/nivel-6.png"),
-    7: require("../../assets/badges/pt/nivel-7.png"),
-    8: require("../../assets/badges/pt/nivel-8.png"),
-    9: require("../../assets/badges/pt/nivel-9.png"),
-    10: require("../../assets/badges/pt/nivel-10.png"),
-  },
-  it: {
-    1: require("../../assets/badges/it/nivel-1.png"),
-    2: require("../../assets/badges/it/nivel-2.png"),
-    3: require("../../assets/badges/it/nivel-3.png"),
-    4: require("../../assets/badges/it/nivel-4.png"),
-    5: require("../../assets/badges/it/nivel-5.png"),
-    6: require("../../assets/badges/it/nivel-6.png"),
-    7: require("../../assets/badges/it/nivel-7.png"),
-    8: require("../../assets/badges/it/nivel-8.png"),
-    9: require("../../assets/badges/it/nivel-9.png"),
-    10: require("../../assets/badges/it/nivel-10.png"),
-  },
-};
 
 export default function BadgesScreen() {
   const { t, idioma } = useT();
   const [puntos, setPuntos] = useState<number | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [seleccionado, setSeleccionado] = useState<NivelInsignia | null>(null);
 
   useEffect(() => {
@@ -74,14 +20,32 @@ export default function BadgesScreen() {
 
   async function cargar() {
     setCargando(true);
+    setError(null);
     const { data } = await supabase.auth.getUser();
     const uid = data.user?.id;
     if (!uid) {
       setCargando(false);
       return;
     }
-    setPuntos(await obtenerPuntosInsignias(uid));
-    setCargando(false);
+    try {
+      setPuntos(await obtenerPuntosInsignias(uid));
+    } catch (e: any) {
+      console.error("Error al cargar los puntos de insignias:", e);
+      setError(e.message ?? "No se pudo cargar.");
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centro}>
+        <Text style={styles.errorTexto}>{t("No se pudieron cargar tus insignias.")}</Text>
+        <Pressable onPress={cargar} style={{ marginTop: 12 }}>
+          <Text style={styles.cerrarBtnTexto}>{t("Reintentar")}</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   if (cargando || puntos === null) {
@@ -115,7 +79,7 @@ export default function BadgesScreen() {
           return (
             <Pressable onPress={() => setSeleccionado(item)} style={styles.celda}>
               <Image
-                source={IMAGENES_INSIGNIAS[idioma][item.nivel]}
+                source={IMAGENES_INSIGNIAS_GRANDES[idioma][item.nivel]}
                 style={[styles.tarjetaImagen, !desbloqueada && styles.tarjetaBloqueada]}
                 resizeMode="contain"
               />
@@ -129,7 +93,7 @@ export default function BadgesScreen() {
           <Pressable style={styles.caja} onPress={(e) => e.stopPropagation()}>
             {seleccionado && (
               <>
-                <Image source={IMAGENES_INSIGNIAS[idioma][seleccionado.nivel]} style={styles.cajaImagen} resizeMode="contain" />
+                <Image source={IMAGENES_INSIGNIAS_GRANDES[idioma][seleccionado.nivel]} style={styles.cajaImagen} resizeMode="contain" />
                 {puntos >= seleccionado.puntos ? (
                   <Text style={styles.cajaLogrado}>{t("¡Ya la tenés! 🎉")}</Text>
                 ) : (
@@ -159,6 +123,7 @@ export default function BadgesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.background },
+  errorTexto: { fontSize: 14, color: theme.colors.textMuted, textAlign: "center", paddingHorizontal: 24 },
   encabezado: { padding: 16, alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   encabezadoTitulo: { fontSize: 18, fontWeight: "800", color: theme.colors.text },
   encabezadoPuntos: { fontSize: 13, color: theme.colors.textMuted, marginTop: 4 },
