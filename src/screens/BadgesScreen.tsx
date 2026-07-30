@@ -89,7 +89,7 @@ export default function BadgesScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.encabezadoTitulo} numberOfLines={1}>
             {nivelActualNumero > 0
-              ? t("Nivel {n}: {nombre}").replace("{n}", String(nivelActualNumero)).replace("{nombre}", NIVELES_INSIGNIAS[nivelActualNumero - 1].nombre)
+              ? t("Nivel {n}: {nombre}").replace("{n}", String(nivelActualNumero)).replace("{nombre}", t(NIVELES_INSIGNIAS[nivelActualNumero - 1].nombre))
               : t("Todavía sin nivel")}
           </Text>
           <Text style={styles.encabezadoPuntos}>{t("{puntos} puntos").replace("{puntos}", puntos.toLocaleString("es-AR"))}</Text>

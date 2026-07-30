@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, Image, Pressable, StyleSheet, View } from "react-native";
+import { ScrollView, Image, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./Themed";
 import { posterUrl } from "../lib/tmdb";
 import { theme } from "../theme";
@@ -18,19 +18,24 @@ interface Props {
   onVotar: (actor: Actor) => void;
 }
 
+// Usa ScrollView en vez de FlatList a propósito: es una lista chica (como
+// mucho 15 actores) y, al estar siempre anidada dentro de OTRO scroll
+// vertical (la ficha del título, o este cartel de valorar), un FlatList
+// horizontal podía perder el gesto de arrastre contra el scroll de afuera
+// y quedaba imposible de desplazar. Con ScrollView no pasa.
 export default function CastVotePicker({ reparto, miVoto, porcentajes, onVotar }: Props) {
   const yaVoto = miVoto != null;
   return (
-    <FlatList
+    <ScrollView
       horizontal
-      data={reparto}
-      keyExtractor={(a) => String(a.id)}
       showsHorizontalScrollIndicator={false}
+      nestedScrollEnabled
       contentContainerStyle={{ paddingHorizontal: 4 }}
-      renderItem={({ item }) => {
+    >
+      {reparto.map((item) => {
         const elegido = miVoto === item.id;
         return (
-          <Pressable style={styles.card} onPress={() => onVotar(item)}>
+          <Pressable key={item.id} style={styles.card} onPress={() => onVotar(item)}>
             <View style={[styles.fotoWrap, elegido && styles.fotoWrapElegido]}>
               {item.profile_path ? (
                 <Image source={{ uri: posterUrl(item.profile_path, "w185")! }} style={styles.foto} />
@@ -44,8 +49,8 @@ export default function CastVotePicker({ reparto, miVoto, porcentajes, onVotar }
             {yaVoto && <Text style={styles.porcentaje}>{porcentajes[item.id] ?? 0}%</Text>}
           </Pressable>
         );
-      }}
-    />
+      })}
+    </ScrollView>
   );
 }
 
