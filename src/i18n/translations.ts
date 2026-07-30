@@ -1397,6 +1397,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   Carteles: { en: "Posters", pt: "Pôsteres", it: "Poster" },
   Banners: { en: "Banners", pt: "Banners", it: "Banner" },
   "de Gustos en común": { en: "in common tastes", pt: "de Gostos em comum", it: "di Gusti in comune" },
+  "Gustos en común": { en: "in common tastes", pt: "de Gostos em comum", it: "di Gusti in comune" },
   "Importar tu historial de TV Time": { en: "Import your TV Time history", pt: "Importar seu histórico do TV Time", it: "Importa la tua cronologia da TV Time" },
   'Antes de nada, necesitás el archivo con tus datos. TV Time no tiene un botón de "exportar" adentro de la app, así que hay dos caminos:': {
     en: 'First, you need the file with your data. TV Time doesn\'t have an "export" button inside the app, so there are two ways:',

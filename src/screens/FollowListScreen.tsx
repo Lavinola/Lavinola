@@ -130,7 +130,7 @@ export default function FollowListScreen({ route, navigation }: Props) {
           ) : null
         }
         renderItem={({ item }) => (
-          <Pressable style={styles.card} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
+          <Pressable style={styles.card} onPress={() => navigation.push("PerfilAjeno", { userId: item.id })}>
             {item.avatar_url ? (
               <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
             ) : (

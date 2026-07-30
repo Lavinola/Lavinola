@@ -307,6 +307,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.container}>
           <View style={styles.puntajeRow}>
+            <Image source={require("../../assets/logo-icon-only.png")} style={styles.puntajeLogo} resizeMode="contain" />
             <StarRating valor={promedio.promedio ?? 0} />
             <Text style={styles.puntajeTexto}>
               {promedio.promedio ? `${promedio.promedio.toFixed(1)}/5 (${promedio.cantidad})` : t("Sin calificar todavía")}
@@ -491,6 +492,7 @@ const styles = StyleSheet.create({
   puntajeRow: { flexDirection: "row", alignItems: "center", marginTop: 16, gap: 8 },
   puntajeTexto: { fontSize: 13, color: theme.colors.textMuted },
   imdbLogo: { width: 30, height: 30 },
+  puntajeLogo: { width: 26, height: 26 },
   tuCalificacion: { marginTop: 16 },
   label: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 10, fontWeight: "700", textTransform: "uppercase", textAlign: "center" },
   sinVer: { fontSize: 13, color: theme.colors.textFaint, marginTop: 16, fontStyle: "italic" },

@@ -26,7 +26,7 @@ export default function CastVotePicker({ reparto, miVoto, porcentajes, onVotar }
       data={reparto}
       keyExtractor={(a) => String(a.id)}
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+      contentContainerStyle={{ paddingHorizontal: 4 }}
       renderItem={({ item }) => {
         const elegido = miVoto === item.id;
         return (

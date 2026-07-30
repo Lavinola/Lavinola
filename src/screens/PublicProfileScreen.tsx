@@ -332,7 +332,11 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
               {perfil.is_admin && <AdminBadge />}
             </View>
             {perfil.username && perfil.display_name && <Text style={styles.username}>@{perfil.username}</Text>}
-            {loSigo && compatibilidad !== null && <Text style={styles.compatibilidad}>{compatibilidad}% {t("de Gustos en común")}</Text>}
+            {loSigo && compatibilidad !== null && (
+              <Text style={styles.compatibilidad} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                {compatibilidad}% {t("Gustos en común")}
+              </Text>
+            )}
             {esModeradorTarget && <Text style={styles.moderadorTag}>{t("Moderador")}</Text>}
             {viewerId !== targetId && !loSigo && (
               <Pressable onPress={toggleFollow} disabled={solicitudPendiente}>
@@ -374,11 +378,11 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
 
       {puedeVer && social && (
         <View style={styles.socialRow}>
-          <Pressable style={styles.socialStat} onPress={() => navigation.navigate("ListaSeguidores", { userId: targetId, modo: "siguiendo" })}>
+          <Pressable style={styles.socialStat} onPress={() => navigation.push("ListaSeguidores", { userId: targetId, modo: "siguiendo" })}>
             <Text style={styles.socialValor}>{social.siguiendo}</Text>
             <Text style={styles.socialLabel}>{t("Siguiendo")}</Text>
           </Pressable>
-          <Pressable style={styles.socialStat} onPress={() => navigation.navigate("ListaSeguidores", { userId: targetId, modo: "seguidores" })}>
+          <Pressable style={styles.socialStat} onPress={() => navigation.push("ListaSeguidores", { userId: targetId, modo: "seguidores" })}>
             <Text style={styles.socialValor}>{social.seguidores}</Text>
             <Text style={styles.socialLabel}>{t("Seguidores")}</Text>
           </Pressable>

@@ -216,7 +216,7 @@ export default function EditProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: -4, marginBottom: 6 },
+  contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: 0, marginBottom: 6 },
   container: { padding: 16, paddingBottom: 100 },
   avatarRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   avatar: { width: 56, height: 56, borderRadius: 28, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },
