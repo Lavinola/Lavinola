@@ -246,7 +246,7 @@ export default function AuthScreen() {
             autoCapitalize="none"
             maxLength={14}
             value={username}
-            onChangeText={setUsername}
+            onChangeText={(texto) => setUsername(texto.slice(0, 14))}
           />
           <Text style={styles.contadorCaracteres}>{username.length}/14</Text>
           <UsernameEstadoIndicador estado={estadoUsername} />
@@ -330,7 +330,7 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: -8, marginBottom: 6 },
+  contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: -4, marginBottom: 6 },
   container: { flex: 1, justifyContent: "center", padding: 24, backgroundColor: "#000000" },
   logo: { width: 220, height: 220, alignSelf: "center", marginBottom: 32 },
   logoChico: { width: 130, height: 130, marginBottom: 16 },

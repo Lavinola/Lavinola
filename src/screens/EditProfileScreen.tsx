@@ -159,7 +159,7 @@ export default function EditProfileScreen({ navigation }: any) {
       <TextInput
         style={styles.input}
         value={username}
-        onChangeText={(texto) => setUsername(texto.replace(/\s/g, "").toLowerCase())}
+        onChangeText={(texto) => setUsername(texto.replace(/\s/g, "").toLowerCase().slice(0, 14))}
         placeholder={t("ej: marro")}
         placeholderTextColor={theme.colors.textFaint}
         autoCapitalize="none"
@@ -172,7 +172,7 @@ export default function EditProfileScreen({ navigation }: any) {
       <TextInput
         style={styles.input}
         value={displayName}
-        onChangeText={setDisplayName}
+        onChangeText={(texto) => setDisplayName(texto.slice(0, 14))}
         placeholder={t("Cómo querés que te vean")}
         placeholderTextColor={theme.colors.textFaint}
         maxLength={14}
@@ -216,7 +216,7 @@ export default function EditProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: -8, marginBottom: 6 },
+  contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: -4, marginBottom: 6 },
   container: { padding: 16, paddingBottom: 100 },
   avatarRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   avatar: { width: 56, height: 56, borderRadius: 28, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },

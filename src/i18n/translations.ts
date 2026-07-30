@@ -549,6 +549,8 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Capítulo visto": { en: "Episode watched", pt: "Episódio assistido", it: "Episodio visto" },
   "Post/Comentario": { en: "Post/Comment", pt: "Post/Comentário", it: "Post/Commento" },
   "Necesitás {puntos} puntos.": { en: "You need {puntos} points.", pt: "Você precisa de {puntos} pontos.", it: "Ti servono {puntos} punti." },
+  "{puntos}/{necesarios} puntos": { en: "{puntos}/{necesarios} points", pt: "{puntos}/{necesarios} pontos", it: "{puntos}/{necesarios} punti" },
+  "Faltan {resto} puntos": { en: "{resto} points to go", pt: "Faltam {resto} pontos", it: "Mancano {resto} punti" },
   "Necesitás {puntos} puntos de actividad.": {
     en: "You need {puntos} activity points.",
     pt: "Você precisa de {puntos} pontos de atividade.",

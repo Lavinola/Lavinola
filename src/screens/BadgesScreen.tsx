@@ -150,20 +150,20 @@ export default function BadgesScreen() {
               <>
                 <Image
                   source={IMAGENES_INSIGNIAS_GRANDES[idioma][seleccionado.nivel]}
-                  style={{ width: "100%", aspectRatio: RATIO_TARJETA }}
+                  style={[{ width: "100%", aspectRatio: RATIO_TARJETA }, puntos < seleccionado.puntos && styles.tarjetaBloqueada]}
                   resizeMode="contain"
                 />
                 {puntos >= seleccionado.puntos ? (
                   <Text style={styles.cajaLogrado}>{t("¡Ya la tenés! 🎉")}</Text>
                 ) : (
                   <>
-                    <Text style={styles.cajaTexto}>
-                      {t("Necesitás {puntos} puntos.").replace("{puntos}", seleccionado.puntos.toLocaleString("es-AR"))}
+                    <Text style={styles.cajaPuntosGrandes}>
+                      {t("{puntos}/{necesarios} puntos")
+                        .replace("{puntos}", puntos.toLocaleString("es-AR"))
+                        .replace("{necesarios}", seleccionado.puntos.toLocaleString("es-AR"))}
                     </Text>
                     <Text style={styles.cajaTexto}>
-                      {t("Vas con {puntos} — te faltan {resto}.")
-                        .replace("{puntos}", puntos.toLocaleString("es-AR"))
-                        .replace("{resto}", (seleccionado.puntos - puntos).toLocaleString("es-AR"))}
+                      {t("Faltan {resto} puntos").replace("{resto}", (seleccionado.puntos - puntos).toLocaleString("es-AR"))}
                     </Text>
                   </>
                 )}
@@ -215,6 +215,7 @@ const styles = StyleSheet.create({
   fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 24 },
   caja: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, padding: 20, alignItems: "center", width: "100%", maxWidth: 360 },
   cajaLogrado: { fontSize: 14, color: theme.colors.primaryLight, fontWeight: "700", marginTop: 14 },
+  cajaPuntosGrandes: { fontSize: 16, color: theme.colors.text, fontWeight: "800", marginTop: 14 },
   cajaTexto: { fontSize: 13, color: theme.colors.textMuted, marginTop: 8, textAlign: "center" },
   cerrarBtn: { marginTop: 18, paddingVertical: 10, paddingHorizontal: 24 },
   cerrarBtnTexto: { fontSize: 14, fontWeight: "700", color: theme.colors.primaryLight },
