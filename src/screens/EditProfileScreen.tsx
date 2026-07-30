@@ -163,6 +163,7 @@ export default function EditProfileScreen({ navigation }: any) {
         placeholder={t("ej: marro")}
         placeholderTextColor={theme.colors.textFaint}
         autoCapitalize="none"
+        maxLength={14}
       />
       <UsernameEstadoIndicador estado={estadoUsername} />
 
@@ -173,7 +174,7 @@ export default function EditProfileScreen({ navigation }: any) {
         onChangeText={setDisplayName}
         placeholder={t("Cómo querés que te vean")}
         placeholderTextColor={theme.colors.textFaint}
-        maxLength={20}
+        maxLength={14}
       />
 
       <Text style={styles.label}>{t("Año de nacimiento")}</Text>

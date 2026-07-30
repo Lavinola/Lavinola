@@ -39,6 +39,7 @@ import AdminVerChatScreen from "../screens/AdminVerChatScreen";
 import PrivacyPolicyScreen from "../screens/PrivacyPolicyScreen";
 import AdminUsersScreen from "../screens/AdminUsersScreen";
 import SeleccionarTituloPostScreen from "../screens/SeleccionarTituloPostScreen";
+import BadgesScreen from "../screens/BadgesScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import ChooseCoverPhotoScreen from "../screens/ChooseCoverPhotoScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -208,6 +209,7 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
         component={SeleccionarTituloPostScreen}
         options={{ title: t("¿De qué querés hablar?"), presentation: "modal" }}
       />
+      <Stack.Screen name="Insignias" component={BadgesScreen} options={{ title: t("Insignias") }} />
     </>
   );
 }
@@ -373,6 +375,7 @@ const RUTAS_COMUNES: Record<string, string> = {
   Recomendar: "recomendar",
   CrearPost: "crear-post",
   SeleccionarTituloPost: "publicar-desde",
+  Insignias: "insignias",
   AdminChatsUsuario: "admin-chats-usuario",
   AdminVerChat: "admin-ver-chat",
 };

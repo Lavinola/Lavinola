@@ -24,6 +24,9 @@ import { suspenderUsuario, revocarSuspension, estaSuspendido, eliminarUsuarioCom
 import { bloquearUsuario } from "../lib/reports";
 import ReportModal from "../components/ReportModal";
 import { abrirRedSocial } from "../lib/social";
+import InsigniaChica from "../components/InsigniaChica";
+import FilaRedesSociales from "../components/FilaRedesSociales";
+import { obtenerPuntosInsignias, nivelAlcanzado } from "../lib/badges";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 import { formatearFecha } from "../lib/dates";
@@ -44,6 +47,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
   const { userId: targetId } = route.params;
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [perfil, setPerfil] = useState<PerfilCompleto | null>(null);
+  const [nivelInsigniaNumero, setNivelInsigniaNumero] = useState<number | null>(null);
   const [coverPath, setCoverPath] = useState<string | null>(null);
   const [puedeVer, setPuedeVer] = useState(false);
   const [loSigo, setLoSigo] = useState(false);
@@ -91,6 +95,9 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
     const resultado = await getPerfilPublico(vid, targetId);
     if (!resultado) return;
     setPerfil(resultado.perfil);
+    obtenerPuntosInsignias(targetId)
+      .then((puntos) => setNivelInsigniaNumero(nivelAlcanzado(puntos)?.nivel ?? null))
+      .catch((e) => console.error("Error al calcular el nivel de insignias:", e));
     setEsModeradorTarget(!!(resultado.perfil as any).is_moderator);
     setLoSigo(resultado.loSigo);
     setPuedeVer(resultado.puedeVerActividad);
@@ -334,27 +341,10 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
             )}
           </View>
         </View>
-        {puedeVer && (
-          <View style={styles.redesRow}>
-            {perfil.social_instagram && (
-              <Pressable style={styles.redItem} onPress={() => abrirRedSocial(`https://instagram.com/${perfil.social_instagram}`)}>
-                <Ionicons name="logo-instagram" size={15} color={theme.colors.primaryLight} />
-                <Text style={styles.redTexto}>@{perfil.social_instagram}</Text>
-              </Pressable>
-            )}
-            {perfil.social_twitter && (
-              <Pressable style={styles.redItem} onPress={() => abrirRedSocial(`https://x.com/${perfil.social_twitter}`)}>
-                <Ionicons name="logo-x" size={15} color={theme.colors.primaryLight} />
-                <Text style={styles.redTexto}>@{perfil.social_twitter}</Text>
-              </Pressable>
-            )}
-            {(perfil as any).social_tiktok && (
-              <Pressable style={styles.redItem} onPress={() => abrirRedSocial(`https://tiktok.com/@${(perfil as any).social_tiktok}`)}>
-                <Ionicons name="logo-tiktok" size={15} color={theme.colors.primaryLight} />
-                <Text style={styles.redTexto}>@{(perfil as any).social_tiktok}</Text>
-              </Pressable>
-            )}
-          </View>
+        {puedeVer && nivelInsigniaNumero != null && (
+          <Pressable onPress={() => navigation.navigate("Insignias")} hitSlop={8}>
+            <InsigniaChica nivel={nivelInsigniaNumero} size={48} />
+          </Pressable>
         )}
       </View>
       {puedeVer && (perfil as any).favorite_quote ? (
@@ -362,6 +352,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
           "{(perfil as any).favorite_quote}"
         </Text>
       ) : null}
+      {puedeVer && <FilaRedesSociales perfil={perfil} />}
 
       {(soyAdmin || soyModerador) && viewerId !== targetId && (
         <View style={styles.adminBox}>

@@ -2166,3 +2166,32 @@ $$ language plpgsql;
 drop trigger if exists trg_notify_post_reaction on post_reactions;
 create trigger trg_notify_post_reaction after insert on post_reactions
   for each row execute function notify_post_reaction();
+
+-- ============================================================
+-- Insignias: puntos de actividad para calcular el nivel del usuario.
+-- Pesos: película vista = 3, capítulo visto = 1, comentario/post = 5.
+-- Un "comentario" que cuenta es uno de nivel raíz (no respuesta a otro
+-- comentario) hecho en la ficha de una película/serie/capítulo — comentar
+-- un post del Lobby, o responder cualquier comentario, NO suma (a
+-- propósito: lo que se busca es que se generen posts/comentarios nuevos en
+-- el Lobby, no que se infle el contador respondiendo cosas ya existentes).
+-- Publicar un post en el Lobby sí suma (es la acción que se quiere fomentar).
+-- ============================================================
+create or replace function calcular_puntos_insignias(p_user_id uuid) returns integer as $$
+declare
+  puntos integer;
+begin
+  select
+    coalesce((select count(*) from user_movies where user_id = p_user_id and watched = true), 0) * 3
+    + coalesce((select count(*) from user_episodes_watched where user_id = p_user_id), 0) * 1
+    + coalesce(
+        (select count(*) from comentarios where user_id = p_user_id and parent_comment_id is null and target_type in ('series', 'movie', 'episode')),
+        0
+      ) * 5
+    + coalesce((select count(*) from posts where user_id = p_user_id), 0) * 5
+  into puntos;
+  return puntos;
+end;
+$$ language plpgsql stable security definer set search_path = public;
+
+grant execute on function calcular_puntos_insignias(uuid) to authenticated;

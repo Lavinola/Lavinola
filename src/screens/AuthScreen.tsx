@@ -244,6 +244,7 @@ export default function AuthScreen() {
             placeholder={t("Nombre de usuario")}
             placeholderTextColor={theme.colors.textFaint}
             autoCapitalize="none"
+            maxLength={14}
             value={username}
             onChangeText={setUsername}
           />

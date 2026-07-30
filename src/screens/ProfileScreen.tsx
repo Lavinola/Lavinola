@@ -18,6 +18,9 @@ import { progresoDeSeries, ProgresoSerie } from "../lib/seriesList";
 import FilaMiniTitulos from "../components/FilaMiniTitulos";
 import ActionSheetModal from "../components/ActionSheetModal";
 import { abrirRedSocial } from "../lib/social";
+import InsigniaChica from "../components/InsigniaChica";
+import FilaRedesSociales from "../components/FilaRedesSociales";
+import { obtenerPuntosInsignias, nivelAlcanzado } from "../lib/badges";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -37,6 +40,7 @@ interface ItemMini {
 export default function ProfileScreen({ navigation }: any) {
   const { t } = useT();
   const [perfil, setPerfil] = useState<PerfilCompleto | null>(null);
+  const [nivelInsigniaNumero, setNivelInsigniaNumero] = useState<number | null>(null);
   const [coverPath, setCoverPath] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [social, setSocial] = useState<StatsSociales | null>(null);
@@ -162,6 +166,9 @@ export default function ProfileScreen({ navigation }: any) {
     ]);
 
     setPerfil(p);
+    obtenerPuntosInsignias(userId)
+      .then((puntos) => setNivelInsigniaNumero(nivelAlcanzado(puntos)?.nivel ?? null))
+      .catch((e) => console.error("Error al calcular el nivel de insignias:", e));
     setIsAdmin(!!(p as any)?.is_admin);
     if ((p as any)?.is_admin) {
       const { count } = await supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending");
@@ -252,32 +259,18 @@ export default function ProfileScreen({ navigation }: any) {
             {(perfil as any)?.is_moderator && <Text style={styles.moderadorTag}>{t("Moderador")}</Text>}
           </View>
         </View>
-        <View style={styles.redesRow}>
-          {perfil?.social_instagram && (
-            <Pressable style={styles.redItem} onPress={() => abrirRedSocial(`https://instagram.com/${perfil.social_instagram}`)}>
-              <Ionicons name="logo-instagram" size={15} color={theme.colors.primaryLight} />
-              <Text style={styles.redTexto}>@{perfil.social_instagram}</Text>
-            </Pressable>
-          )}
-          {perfil?.social_twitter && (
-            <Pressable style={styles.redItem} onPress={() => abrirRedSocial(`https://x.com/${perfil.social_twitter}`)}>
-              <Ionicons name="logo-x" size={15} color={theme.colors.primaryLight} />
-              <Text style={styles.redTexto}>@{perfil.social_twitter}</Text>
-            </Pressable>
-          )}
-          {(perfil as any)?.social_tiktok && (
-            <Pressable style={styles.redItem} onPress={() => abrirRedSocial(`https://tiktok.com/@${(perfil as any).social_tiktok}`)}>
-              <Ionicons name="logo-tiktok" size={15} color={theme.colors.primaryLight} />
-              <Text style={styles.redTexto}>@{(perfil as any).social_tiktok}</Text>
-            </Pressable>
-          )}
-        </View>
+        {nivelInsigniaNumero != null && (
+          <Pressable onPress={() => navigation.navigate("Insignias")} hitSlop={8}>
+            <InsigniaChica nivel={nivelInsigniaNumero} size={48} />
+          </Pressable>
+        )}
       </View>
       {perfil?.favorite_quote ? (
         <Text style={styles.frase} numberOfLines={2}>
           "{perfil.favorite_quote}"
         </Text>
       ) : null}
+      <FilaRedesSociales perfil={perfil} />
 
       {social && perfil && (
         <View style={styles.socialRow}>
@@ -403,6 +396,7 @@ export default function ProfileScreen({ navigation }: any) {
       onCerrar={() => setMenuVisible(false)}
       opciones={[
         { label: t("Ajustes"), icono: "settings-outline", onPress: () => navigation.navigate("Ajustes") },
+        { label: t("Insignias"), icono: "ribbon-outline", onPress: () => navigation.navigate("Insignias") },
         {
           label: t("Compartir"),
           icono: "share-social-outline",
@@ -468,9 +462,9 @@ const styles = StyleSheet.create({
   avatarNombreGrupo: { flexDirection: "row", alignItems: "center" },
   avatar: { width: 84, height: 84, borderRadius: 42, borderWidth: 3, borderColor: theme.colors.background, transform: [{ translateY: -28 }] },
   avatarPlaceholder: { backgroundColor: theme.colors.surfaceAlt },
-  redesRow: { flexDirection: "column", gap: 6, justifyContent: "center", alignSelf: "center" },
-  redItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  redTexto: { fontSize: 12, color: theme.colors.primaryLight },
+  redesRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 20, paddingHorizontal: 16, marginTop: 8, marginBottom: 4 },
+  redItem: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
+  redTexto: { fontSize: 12, color: theme.colors.primaryLight, flexShrink: 1 },
   nombre: { fontSize: 19, fontFamily: theme.fonts.logo, marginBottom: 2 },
   username: { fontSize: 12, color: theme.colors.textMuted, marginBottom: 4 },
   editar: { fontSize: 12, color: theme.colors.primaryLight },
