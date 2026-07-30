@@ -136,7 +136,12 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
-      <Pressable style={styles.fondo} onPress={onCerrar}>
+      <View style={styles.fondo}>
+        {/* Atrapa el toque para cerrar al tocar afuera — es un HERMANO de la
+            hoja, no un padre que la envuelve, así no hace falta ningún
+            truco de stopPropagation que termine interfiriendo con el
+            arrastre del scroll horizontal de actores de más abajo. */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onCerrar} />
         <Animated.View
           style={[
             styles.hoja,
@@ -150,55 +155,53 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
             },
           ]}
         >
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <Pressable style={styles.cerrarBtn} onPress={onCerrar} hitSlop={10}>
-              <Ionicons name="close" size={22} color={theme.colors.text} />
-            </Pressable>
-
-            <ScrollView contentContainerStyle={{ paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
-              {tipo === "episode" ? (
-                <Pressable style={styles.headerEpisodio} onPress={irAlDetalle} disabled={!navigation}>
-                  <Text style={styles.headerSerieNombre}>{titulo}</Text>
-                  <Text style={[styles.headerEpisodioNombre, navigation && styles.headerTappeable]} numberOfLines={2}>
-                    {t("T{temporada} - E{episodio}: {nombre}")
-                      .replace("{temporada}", String(temporada))
-                      .replace("{episodio}", String(episodio))
-                      .replace("{nombre}", nombreEpisodio ?? "")}
-                  </Text>
-                </Pressable>
-              ) : (
-                <Pressable style={styles.headerMovie} onPress={irAlDetalle} disabled={!navigation}>
-                  {posterPath ? (
-                    <Image source={{ uri: posterUrl(posterPath, "w185")! }} style={styles.poster} />
-                  ) : (
-                    <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
-                  )}
-                  <Text style={[styles.headerTitulo, navigation && styles.headerTappeable]} numberOfLines={2}>
-                    {titulo}
-                  </Text>
-                </Pressable>
-              )}
-
-              <View style={styles.seccion}>
-                <Text style={styles.label}>{tipo === "episode" ? t("Valorá este capítulo") : tipo === "series" ? t("Valorá esta serie") : t("Valorá esta película")}</Text>
-                <StarRating valor={miRating} onCambiar={calificar} size={30} />
-              </View>
-
-              <View style={styles.seccion}>
-                <Text style={styles.label}>{t("¿Cómo te sentiste?")}</Text>
-                <MoodPicker miMood={moodStats.miMood} porcentajes={moodStats.porcentajes} onElegir={elegirMoodPropio} />
-              </View>
-
-              {reparto.length > 0 && (
-                <View style={styles.seccion}>
-                  <Text style={styles.label}>{t("¿Quién te ha gustado más?")}</Text>
-                  <CastVotePicker reparto={reparto} miVoto={castStats.miVoto} porcentajes={castStats.porcentajes} onVotar={votarActorPropio} />
-                </View>
-              )}
-            </ScrollView>
+          <Pressable style={styles.cerrarBtn} onPress={onCerrar} hitSlop={10}>
+            <Ionicons name="close" size={22} color={theme.colors.text} />
           </Pressable>
+
+          <ScrollView contentContainerStyle={{ paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
+            {tipo === "episode" ? (
+              <Pressable style={styles.headerEpisodio} onPress={irAlDetalle} disabled={!navigation}>
+                <Text style={styles.headerSerieNombre}>{titulo}</Text>
+                <Text style={[styles.headerEpisodioNombre, navigation && styles.headerTappeable]} numberOfLines={2}>
+                  {t("T{temporada} - E{episodio}: {nombre}")
+                    .replace("{temporada}", String(temporada))
+                    .replace("{episodio}", String(episodio))
+                    .replace("{nombre}", nombreEpisodio ?? "")}
+                </Text>
+              </Pressable>
+            ) : (
+              <Pressable style={styles.headerMovie} onPress={irAlDetalle} disabled={!navigation}>
+                {posterPath ? (
+                  <Image source={{ uri: posterUrl(posterPath, "w185")! }} style={styles.poster} />
+                ) : (
+                  <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
+                )}
+                <Text style={[styles.headerTitulo, navigation && styles.headerTappeable]} numberOfLines={2}>
+                  {titulo}
+                </Text>
+              </Pressable>
+            )}
+
+            <View style={styles.seccion}>
+              <Text style={styles.label}>{tipo === "episode" ? t("Valorá este capítulo") : tipo === "series" ? t("Valorá esta serie") : t("Valorá esta película")}</Text>
+              <StarRating valor={miRating} onCambiar={calificar} size={30} />
+            </View>
+
+            <View style={styles.seccion}>
+              <Text style={styles.label}>{t("¿Cómo te sentiste?")}</Text>
+              <MoodPicker miMood={moodStats.miMood} porcentajes={moodStats.porcentajes} onElegir={elegirMoodPropio} />
+            </View>
+
+            {reparto.length > 0 && (
+              <View style={styles.seccion}>
+                <Text style={styles.label}>{t("¿Quién te ha gustado más?")}</Text>
+                <CastVotePicker reparto={reparto} miVoto={castStats.miVoto} porcentajes={castStats.porcentajes} onVotar={votarActorPropio} />
+              </View>
+            )}
+          </ScrollView>
         </Animated.View>
-      </Pressable>
+      </View>
     </Modal>
   );
 }
