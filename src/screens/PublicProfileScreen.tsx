@@ -343,7 +343,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
         </View>
         {puedeVer && nivelInsigniaNumero != null && (
           <Pressable onPress={() => navigation.navigate("Insignias")} hitSlop={8}>
-            <InsigniaChica nivel={nivelInsigniaNumero} size={48} />
+            <InsigniaChica nivel={nivelInsigniaNumero} size={104} />
           </Pressable>
         )}
       </View>
