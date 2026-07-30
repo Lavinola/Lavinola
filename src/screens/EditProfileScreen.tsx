@@ -165,6 +165,7 @@ export default function EditProfileScreen({ navigation }: any) {
         autoCapitalize="none"
         maxLength={14}
       />
+      <Text style={styles.contadorCaracteres}>{username.length}/14</Text>
       <UsernameEstadoIndicador estado={estadoUsername} />
 
       <Text style={styles.label}>{t("Nombre para mostrar")}</Text>
@@ -176,6 +177,7 @@ export default function EditProfileScreen({ navigation }: any) {
         placeholderTextColor={theme.colors.textFaint}
         maxLength={14}
       />
+      <Text style={styles.contadorCaracteres}>{displayName.length}/14</Text>
 
       <Text style={styles.label}>{t("Año de nacimiento")}</Text>
       <TextInput
@@ -214,6 +216,7 @@ export default function EditProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: -8, marginBottom: 6 },
   container: { padding: 16, paddingBottom: 100 },
   avatarRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   avatar: { width: 56, height: 56, borderRadius: 28, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },

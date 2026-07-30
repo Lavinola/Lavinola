@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     zIndex: 999,
     elevation: 999,
   },
-  imagen: { width: 280, aspectRatio: 512 / 307, marginBottom: 24 },
+  imagen: { width: 280, aspectRatio: 463 / 260, marginBottom: 24 },
   subiste: { fontSize: 20, fontWeight: "800", color: theme.colors.text, marginBottom: 18 },
   cerrarBtn: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.pill, paddingVertical: 10, paddingHorizontal: 28 },
   cerrarBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 14 },

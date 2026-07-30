@@ -543,6 +543,12 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Impossibile caricare i tuoi distintivi.",
   },
   "¡Subiste de nivel!": { en: "You leveled up!", pt: "Você subiu de nível!", it: "Sei salito di livello!" },
+  "{puntos} puntos": { en: "{puntos} points", pt: "{puntos} pontos", it: "{puntos} punti" },
+  "Cómo sumar puntos": { en: "How to earn points", pt: "Como somar pontos", it: "Come guadagnare punti" },
+  "Película vista": { en: "Movie watched", pt: "Filme assistido", it: "Film visto" },
+  "Capítulo visto": { en: "Episode watched", pt: "Episódio assistido", it: "Episodio visto" },
+  "Post/Comentario": { en: "Post/Comment", pt: "Post/Comentário", it: "Post/Commento" },
+  "Necesitás {puntos} puntos.": { en: "You need {puntos} points.", pt: "Você precisa de {puntos} pontos.", it: "Ti servono {puntos} punti." },
   "Necesitás {puntos} puntos de actividad.": {
     en: "You need {puntos} activity points.",
     pt: "Você precisa de {puntos} pontos de atividade.",

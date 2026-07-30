@@ -49,7 +49,7 @@ export default function FilaRedesSociales({ perfil }: { perfil: { social_instagr
 }
 
 const styles = StyleSheet.create({
-  redesRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 20, paddingHorizontal: 16, marginTop: 8, marginBottom: 4 },
+  redesRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 20, paddingHorizontal: 16, marginTop: 2, marginBottom: 0 },
   redItem: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
   redTexto: { fontSize: 12, color: theme.colors.primaryLight, flexShrink: 1 },
 });

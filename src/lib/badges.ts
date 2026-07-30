@@ -9,16 +9,16 @@ export interface NivelInsignia {
 // Mismo orden que se armó a mano con el usuario — cualquier cambio acá
 // tiene que reflejar lo que ya se decidió, no un ajuste improvisado.
 export const NIVELES_INSIGNIAS: NivelInsignia[] = [
-  { nivel: 1, nombre: "Principiante", puntos: 10 },
-  { nivel: 2, nombre: "Aficionado", puntos: 150 },
-  { nivel: 3, nombre: "Fan", puntos: 350 },
-  { nivel: 4, nombre: "Maratonista", puntos: 750 },
-  { nivel: 5, nombre: "Coleccionista", puntos: 1350 },
-  { nivel: 6, nombre: "Erudito", puntos: 2250 },
-  { nivel: 7, nombre: "Cinéfilo", puntos: 3450 },
-  { nivel: 8, nombre: "Crítico", puntos: 4800 },
-  { nivel: 9, nombre: "Experto", puntos: 6000 },
-  { nivel: 10, nombre: "Leyenda", puntos: 7500 },
+  { nivel: 1, nombre: "Principiante", puntos: 15 },
+  { nivel: 2, nombre: "Aficionado", puntos: 200 },
+  { nivel: 3, nombre: "Fan", puntos: 465 },
+  { nivel: 4, nombre: "Maratonista", puntos: 1000 },
+  { nivel: 5, nombre: "Coleccionista", puntos: 1800 },
+  { nivel: 6, nombre: "Erudito", puntos: 3000 },
+  { nivel: 7, nombre: "Cinéfilo", puntos: 4600 },
+  { nivel: 8, nombre: "Crítico", puntos: 6400 },
+  { nivel: 9, nombre: "Experto", puntos: 8000 },
+  { nivel: 10, nombre: "Leyenda", puntos: 10000 },
 ];
 
 /** Trae los puntos de actividad de un usuario (los calcula la base, no hace falta traer todas las filas). */

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Image, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import SelectField from "../components/SelectField";
@@ -198,9 +199,39 @@ function TabCuenta({ navigation }: any) {
       )}
 
       <Text style={styles.seccionTitulo}>{t("Redes sociales")}</Text>
-      <TextInput style={styles.input} placeholder={t("Instagram (usuario)")} placeholderTextColor={theme.colors.textFaint} value={instagram} onChangeText={setInstagram} autoCapitalize="none" />
-      <TextInput style={styles.input} placeholder={t("Twitter / X (usuario)")} placeholderTextColor={theme.colors.textFaint} value={twitter} onChangeText={setTwitter} autoCapitalize="none" />
-      <TextInput style={styles.input} placeholder={t("TikTok (usuario)")} placeholderTextColor={theme.colors.textFaint} value={tiktok} onChangeText={setTiktok} autoCapitalize="none" />
+      <View style={styles.campoConIcono}>
+        <Ionicons name="logo-instagram" size={20} color={theme.colors.primaryLight} style={styles.iconoRed} />
+        <TextInput
+          style={[styles.input, styles.inputConIcono]}
+          placeholder={t("Instagram (usuario)")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={instagram}
+          onChangeText={setInstagram}
+          autoCapitalize="none"
+        />
+      </View>
+      <View style={styles.campoConIcono}>
+        <Ionicons name="logo-x" size={20} color={theme.colors.primaryLight} style={styles.iconoRed} />
+        <TextInput
+          style={[styles.input, styles.inputConIcono]}
+          placeholder={t("Twitter / X (usuario)")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={twitter}
+          onChangeText={setTwitter}
+          autoCapitalize="none"
+        />
+      </View>
+      <View style={styles.campoConIcono}>
+        <Ionicons name="logo-tiktok" size={20} color={theme.colors.primaryLight} style={styles.iconoRed} />
+        <TextInput
+          style={[styles.input, styles.inputConIcono]}
+          placeholder={t("TikTok (usuario)")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={tiktok}
+          onChangeText={setTiktok}
+          autoCapitalize="none"
+        />
+      </View>
       <AppButton title={t("Guardar")} onPress={guardarRedes} variant="outline" />
 
       <Text style={styles.seccionTitulo}>{t("Privacidad")}</Text>
@@ -444,6 +475,9 @@ const styles = StyleSheet.create({
   valorLink: { fontSize: 15, color: theme.colors.primaryLight, marginBottom: 4 },
   link: { color: theme.colors.primaryLight, fontSize: 14, marginTop: 4 },
   input: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10, marginBottom: 8 },
+  campoConIcono: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  iconoRed: { width: 20 },
+  inputConIcono: { flex: 1, marginBottom: 0 },
   pickerBox: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, overflow: "hidden" },
   switchRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   switchLabel: { fontSize: 14 },
