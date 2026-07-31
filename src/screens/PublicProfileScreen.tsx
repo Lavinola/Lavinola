@@ -25,6 +25,7 @@ import { bloquearUsuario } from "../lib/reports";
 import ReportModal from "../components/ReportModal";
 import { abrirRedSocial } from "../lib/social";
 import InsigniaChica from "../components/InsigniaChica";
+import TiempoDedicadoTexto from "../components/TiempoDedicadoTexto";
 import FilaRedesSociales from "../components/FilaRedesSociales";
 import { obtenerPuntosInsignias, nivelAlcanzado } from "../lib/badges";
 import { useT } from "../i18n/i18n";
@@ -37,12 +38,6 @@ interface Props {
 }
 
 export default function PublicProfileScreen({ route, navigation }: Props) {
-  function formatTiempo(minutos: number) {
-    const meses = Math.floor(minutos / (60 * 24 * 30));
-    const dias = Math.floor((minutos % (60 * 24 * 30)) / (60 * 24));
-    const horas = Math.floor((minutos % (60 * 24)) / 60);
-    return { meses, dias, horas };
-  }
   const { t } = useT();
   const { userId: targetId } = route.params;
   const [viewerId, setViewerId] = useState<string | null>(null);
@@ -410,10 +405,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
                 <Ionicons name="film" size={22} color={theme.colors.primaryLight} />
                 <Text style={styles.statCardTitulo}>{t("Películas")}</Text>
                 <Text style={styles.statCardLabel}>{t("Tiempo dedicado")}</Text>
-                <Text style={styles.statValue}>
-                  {formatTiempo(statsTiempo.minutosPeliculas).meses}m {formatTiempo(statsTiempo.minutosPeliculas).dias}d{" "}
-                  {formatTiempo(statsTiempo.minutosPeliculas).horas}h
-                </Text>
+                <TiempoDedicadoTexto minutos={statsTiempo.minutosPeliculas} style={styles.statValue} />
                 <Text style={styles.statCardLabel}>{t("Películas vistas")}</Text>
                 <Text style={styles.statValue}>{statsTiempo.peliculasVistas}</Text>
               </View>
@@ -421,10 +413,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
                 <Ionicons name="tv" size={22} color={theme.colors.primaryLight} />
                 <Text style={styles.statCardTitulo}>{t("Series")}</Text>
                 <Text style={styles.statCardLabel}>{t("Tiempo dedicado")}</Text>
-                <Text style={styles.statValue}>
-                  {formatTiempo(statsTiempo.minutosSeries).meses}m {formatTiempo(statsTiempo.minutosSeries).dias}d{" "}
-                  {formatTiempo(statsTiempo.minutosSeries).horas}h
-                </Text>
+                <TiempoDedicadoTexto minutos={statsTiempo.minutosSeries} style={styles.statValue} />
                 <Text style={styles.statCardLabel}>{t("Episodios vistos")}</Text>
                 <Text style={styles.statValue}>{statsTiempo.capitulos}</Text>
               </View>

@@ -19,6 +19,7 @@ import FilaMiniTitulos from "../components/FilaMiniTitulos";
 import ActionSheetModal from "../components/ActionSheetModal";
 import { abrirRedSocial } from "../lib/social";
 import InsigniaChica from "../components/InsigniaChica";
+import TiempoDedicadoTexto from "../components/TiempoDedicadoTexto";
 import FilaRedesSociales from "../components/FilaRedesSociales";
 import { obtenerPuntosInsignias, nivelAlcanzado } from "../lib/badges";
 import { useT } from "../i18n/i18n";
@@ -206,16 +207,6 @@ export default function ProfileScreen({ navigation }: any) {
     });
   }
 
-  function formatTiempo(minutos: number) {
-    const meses = Math.floor(minutos / (60 * 24 * 30));
-    const dias = Math.floor((minutos % (60 * 24 * 30)) / (60 * 24));
-    const horas = Math.floor((minutos % (60 * 24)) / 60);
-    return { meses, dias, horas };
-  }
-
-  const tSeries = formatTiempo(stats?.minutosSeriesVistas ?? 0);
-  const tPelis = formatTiempo(stats?.minutosPeliculasVistas ?? 0);
-
   const [menuVisible, setMenuVisible] = useState(false);
 
   return (
@@ -295,9 +286,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Ionicons name="film" size={22} color={theme.colors.primaryLight} />
           <Text style={styles.statCardTitulo}>{t("Películas")}</Text>
           <Text style={styles.statCardLabel}>{t("Tiempo dedicado")}</Text>
-          <Text style={styles.statValue}>
-            {tPelis.meses}m {tPelis.dias}d {tPelis.horas}h
-          </Text>
+          <TiempoDedicadoTexto minutos={stats?.minutosPeliculasVistas ?? 0} style={styles.statValue} />
           <Text style={styles.statCardLabel}>{t("Películas vistas")}</Text>
           <Text style={styles.statValue}>{stats?.peliculasVistas ?? 0}</Text>
         </View>
@@ -305,9 +294,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Ionicons name="tv" size={22} color={theme.colors.primaryLight} />
           <Text style={styles.statCardTitulo}>{t("Series")}</Text>
           <Text style={styles.statCardLabel}>{t("Tiempo dedicado")}</Text>
-          <Text style={styles.statValue}>
-            {tSeries.meses}m {tSeries.dias}d {tSeries.horas}h
-          </Text>
+          <TiempoDedicadoTexto minutos={stats?.minutosSeriesVistas ?? 0} style={styles.statValue} />
           <Text style={styles.statCardLabel}>{t("Episodios vistos")}</Text>
           <Text style={styles.statValue}>{stats?.capitulosVistos ?? 0}</Text>
         </View>
