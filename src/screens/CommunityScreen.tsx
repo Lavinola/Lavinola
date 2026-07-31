@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { View, FlatList, Pressable, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Text } from "../components/Themed";
@@ -121,12 +121,53 @@ function FeedDePosts({
   const [hayMas, setHayMas] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    cargar();
-  }, [modo]);
+  const yaCargoRef = useRef(false);
+  const scrollYRef = useRef(0);
+  const pullStartRef = useRef<number | null>(null);
+  const [pullOffset, setPullOffset] = useState(0);
+  const [refrescandoPull, setRefrescandoPull] = useState(false);
 
-  async function cargar() {
-    setLoading(true);
+  function onScrollCombinado(e: any) {
+    scrollYRef.current = e.nativeEvent.contentOffset.y;
+    onScroll?.(e);
+  }
+
+  // El "arrastrar para actualizar" nativo de Android/iOS ya funciona solo
+  // (por onRefresh/refreshing más abajo) — pero react-native-web no lo
+  // implementa en absoluto en la web, así que ahí lo armamos a mano
+  // siguiendo el gesto táctil.
+  function onTouchStart(e: any) {
+    if (Platform.OS !== "web" || refrescandoPull) return;
+    pullStartRef.current = scrollYRef.current <= 2 ? e.nativeEvent.touches[0].pageY : null;
+  }
+  function onTouchMove(e: any) {
+    if (Platform.OS !== "web" || pullStartRef.current == null || refrescandoPull) return;
+    const delta = e.nativeEvent.touches[0].pageY - pullStartRef.current;
+    if (delta > 0) setPullOffset(Math.min(delta * 0.5, 70));
+  }
+  function onTouchEnd() {
+    if (Platform.OS !== "web") return;
+    if (pullOffset > 45 && !refrescandoPull) {
+      setRefrescandoPull(true);
+      cargar().finally(() => {
+        setRefrescandoPull(false);
+        setPullOffset(0);
+      });
+    } else {
+      setPullOffset(0);
+    }
+    pullStartRef.current = null;
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      cargar(yaCargoRef.current); // silencioso a partir de la segunda vez, para no perder el scroll ni mostrar el spinner de golpe
+      yaCargoRef.current = true;
+    }, [modo])
+  );
+
+  async function cargar(silencioso = false) {
+    if (!silencioso) setLoading(true);
     try {
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id;
@@ -137,7 +178,7 @@ function FeedDePosts({
       else if (modo === "siguiendo") setPosts(await listarPostsSiguiendo(uid));
       else setPosts(await listarPostsParaTi(uid));
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
   }
 
@@ -165,8 +206,18 @@ function FeedDePosts({
       refreshing={loading}
       onEndReached={cargarMas}
       onEndReachedThreshold={0.4}
-      onScroll={onScroll}
+      onScroll={onScrollCombinado}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
       scrollEventThrottle={16}
+      ListHeaderComponent={
+        pullOffset > 0 || refrescandoPull ? (
+          <View style={{ height: refrescandoPull ? 40 : pullOffset, alignItems: "center", justifyContent: "center" }}>
+            <ActivityIndicator color={theme.colors.primary} />
+          </View>
+        ) : null
+      }
       ListFooterComponent={cargandoMas ? <ActivityIndicator style={{ marginVertical: 16 }} color={theme.colors.primary} /> : null}
       ListEmptyComponent={
         <View style={styles.proximamente}>
