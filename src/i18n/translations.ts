@@ -544,6 +544,9 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   },
   "¡Subiste de nivel!": { en: "You leveled up!", pt: "Você subiu de nível!", it: "Sei salito di livello!" },
   "Unirme al grupo": { en: "Join group", pt: "Entrar no grupo", it: "Unisciti al gruppo" },
+  "Este grupo ya no existe": { en: "This group no longer exists", pt: "Este grupo não existe mais", it: "Questo gruppo non esiste più" },
+  "Esta lista ya no existe": { en: "This list no longer exists", pt: "Esta lista não existe mais", it: "Questa lista non esiste più" },
+  "Este título ya no existe": { en: "This title no longer exists", pt: "Este título não existe mais", it: "Questo titolo non esiste più" },
   "Usuarios bloqueados": { en: "Blocked users", pt: "Usuários bloqueados", it: "Utenti bloccati" },
   "No bloqueaste a nadie todavía.": { en: "You haven't blocked anyone yet.", pt: "Você ainda não bloqueou ninguém.", it: "Non hai ancora bloccato nessuno." },
   "¿Seguro que querés desbloquear a @{username}?": {

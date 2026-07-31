@@ -548,6 +548,7 @@ function RecomendacionPreview({
   const [nombre, setNombre] = useState<string | null>(null);
   const [posterPath, setPosterPath] = useState<string | null>(null);
   const [subtitulo, setSubtitulo] = useState<string | null>(null);
+  const [eliminado, setEliminado] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -586,16 +587,21 @@ function RecomendacionPreview({
           }
           setNombre(nombreFinal);
           setPosterPath(custom?.custom_poster_path ?? data.poster_path);
+        } else {
+          setEliminado(true);
         }
       } else if (groupId) {
         const { data } = await supabase.from("groups").select("name, photo_url").eq("id", groupId).maybeSingle();
         if (data) {
           setNombre(data.name);
           setPosterPath(data.photo_url ?? null);
+        } else {
+          setEliminado(true);
         }
       } else if (listId) {
         const { data } = await supabase.from("lists").select("title").eq("id", listId).maybeSingle();
         if (data) setNombre(data.title);
+        else setEliminado(true);
       }
     })();
   }, [tmdbId, itemType, groupId, listId]);
@@ -611,19 +617,29 @@ function RecomendacionPreview({
   }
 
   return (
-    <Pressable style={stylesRecomendacion.card} onPress={abrir}>
+    <Pressable style={stylesRecomendacion.card} onPress={abrir} disabled={eliminado}>
       {posterPath ? (
         <Image source={{ uri: groupId ? posterPath : posterUrl(posterPath, "w185")! }} style={stylesRecomendacion.poster} />
       ) : (
-        <View style={[stylesRecomendacion.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
+        <View style={[stylesRecomendacion.poster, { backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center" }]}>
+          {eliminado && <Ionicons name="trash-outline" size={16} color={theme.colors.textFaint} />}
+        </View>
       )}
       <View style={{ flex: 1 }}>
-        <Text style={stylesRecomendacion.etiqueta}>
-          {autorUsername ?? t("Alguien")} {t("recomendó ")}
-          {groupId ? t("el grupo ") : ""}
-        </Text>
-        <Text style={stylesRecomendacion.titulo}>{nombre ?? "..."}</Text>
-        {subtitulo && <Text style={stylesRecomendacion.sub}>{subtitulo}</Text>}
+        {eliminado ? (
+          <Text style={stylesRecomendacion.etiqueta}>
+            {groupId ? t("Este grupo ya no existe") : listId ? t("Esta lista ya no existe") : t("Este título ya no existe")}
+          </Text>
+        ) : (
+          <>
+            <Text style={stylesRecomendacion.etiqueta}>
+              {autorUsername ?? t("Alguien")} {t("recomendó ")}
+              {groupId ? t("el grupo ") : ""}
+            </Text>
+            <Text style={stylesRecomendacion.titulo}>{nombre ?? "..."}</Text>
+            {subtitulo && <Text style={stylesRecomendacion.sub}>{subtitulo}</Text>}
+          </>
+        )}
       </View>
     </Pressable>
   );

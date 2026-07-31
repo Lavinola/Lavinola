@@ -54,7 +54,9 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
   const [compatibilidad, setCompatibilidad] = useState<number | null>(null);
   const [queVemosVisible, setQueVemosVisible] = useState(false);
   const [miPais, setMiPais] = useState<string | null>(null);
-  const [previews, setPreviews] = useState<Record<string, { nombre: string; poster_path: string | null; subtitulo: string | null; posters?: (string | null)[] }>>({});
+  const [previews, setPreviews] = useState<
+    Record<string, { nombre: string | null; poster_path: string | null; subtitulo: string | null; posters?: (string | null)[]; eliminado?: boolean }>
+  >({});
   const [otroAvatarUrl, setOtroAvatarUrl] = useState<string | null>(null);
   const [otroEsAdmin, setOtroEsAdmin] = useState(false);
   const [silenciado, setSilenciado] = useState(false);
@@ -164,15 +166,20 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
             subtitulo = cache.release_date ? cache.release_date.slice(0, 4) : null;
           }
           setPreviews((prev) => ({ ...prev, [clave]: { nombre: nombreFinal, poster_path: (custom as any)?.custom_poster_path ?? cache.poster_path, subtitulo } }));
+        } else {
+          setPreviews((prev) => ({ ...prev, [clave]: { nombre: null, poster_path: null, subtitulo: null, eliminado: true } }));
         }
       } else if (m.shared_group_id) {
         const { data: g } = await supabase.from("groups").select("name, photo_url").eq("id", m.shared_group_id).maybeSingle();
         if (g) setPreviews((prev) => ({ ...prev, [clave]: { nombre: g.name, poster_path: g.photo_url, subtitulo: null } }));
+        else setPreviews((prev) => ({ ...prev, [clave]: { nombre: null, poster_path: null, subtitulo: null, eliminado: true } }));
       } else if (m.shared_list_id) {
         const { data: l } = await supabase.from("lists").select("title").eq("id", m.shared_list_id).maybeSingle();
         if (l) {
           const posters = await obtenerPortadasDeLista(m.shared_list_id);
           setPreviews((prev) => ({ ...prev, [clave]: { nombre: l.title, poster_path: null, subtitulo: null, posters } }));
+        } else {
+          setPreviews((prev) => ({ ...prev, [clave]: { nombre: null, poster_path: null, subtitulo: null, eliminado: true } }));
         }
       }
     }
@@ -351,26 +358,32 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                 ]}
               >
                 {item.kind === "shared_title" && esLista && (
-                  <Pressable onPress={() => abrirRecomendacion(item)}>
-                    <Text style={styles.recomendacionEtiqueta}>{esMio ? t("Recomendaste la lista") : t("Te recomendó la lista")}</Text>
-                    <Text style={styles.listaLinkTexto}>{preview?.nombre ?? "..."}</Text>
-                    {preview?.posters && preview.posters.length > 0 && (
-                      <View style={styles.listaPostersRowChat}>
-                        {preview.posters.map((p, i) => (
-                          <View key={i} style={styles.listaPosterChat}>
-                            {p ? (
-                              <Image source={{ uri: posterUrl(p, "w185")! }} style={styles.listaPosterChatImg} />
-                            ) : (
-                              <View style={[styles.listaPosterChatImg, { backgroundColor: theme.colors.surfaceAlt }]} />
-                            )}
+                  <Pressable onPress={() => abrirRecomendacion(item)} disabled={preview?.eliminado}>
+                    {preview?.eliminado ? (
+                      <Text style={styles.recomendacionEtiqueta}>{t("Esta lista ya no existe")}</Text>
+                    ) : (
+                      <>
+                        <Text style={styles.recomendacionEtiqueta}>{esMio ? t("Recomendaste la lista") : t("Te recomendó la lista")}</Text>
+                        <Text style={styles.listaLinkTexto}>{preview?.nombre ?? "..."}</Text>
+                        {preview?.posters && preview.posters.length > 0 && (
+                          <View style={styles.listaPostersRowChat}>
+                            {preview.posters.map((p, i) => (
+                              <View key={i} style={styles.listaPosterChat}>
+                                {p ? (
+                                  <Image source={{ uri: posterUrl(p, "w185")! }} style={styles.listaPosterChatImg} />
+                                ) : (
+                                  <View style={[styles.listaPosterChatImg, { backgroundColor: theme.colors.surfaceAlt }]} />
+                                )}
+                              </View>
+                            ))}
                           </View>
-                        ))}
-                      </View>
+                        )}
+                      </>
                     )}
                   </Pressable>
                 )}
                 {item.kind === "shared_title" && !esLista && (
-                  <Pressable style={styles.recomendacionCard} onPress={() => abrirRecomendacion(item)}>
+                  <Pressable style={styles.recomendacionCard} onPress={() => abrirRecomendacion(item)} disabled={preview?.eliminado}>
                     {preview?.poster_path ? (
                       <Image
                         source={{ uri: item.shared_group_id ? preview.poster_path : posterUrl(preview.poster_path, "w185")! }}
@@ -379,20 +392,29 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                     ) : (
                       <View style={[styles.recomendacionPoster, { backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center" }]}>
                         {!preview && <ActivityIndicator size="small" color={theme.colors.primaryLight} />}
+                        {preview?.eliminado && <Ionicons name="trash-outline" size={18} color={theme.colors.textFaint} />}
                       </View>
                     )}
                     <View style={styles.recomendacionTextos}>
-                      <Text style={[styles.recomendacionEtiqueta, esQueVemos && styles.textoQueVemos]}>
-                        {esQueVemos
-                          ? item.item_type === "series"
-                            ? t("Hoy empezamos:")
-                            : t("Hoy vemos:")
-                          : `${esMio ? t("Recomendaste") : t("Te recomendó")} ${item.shared_group_id ? t("el grupo ") : ""}`}
-                      </Text>
-                      <Text style={[styles.recomendacionTitulo, esQueVemos && styles.textoQueVemos]} numberOfLines={2}>
-                        {preview?.nombre ?? "..."}
-                      </Text>
-                      {preview?.subtitulo && <Text style={[styles.recomendacionSub, esQueVemos && styles.textoQueVemos]}>{preview.subtitulo}</Text>}
+                      {preview?.eliminado ? (
+                        <Text style={styles.recomendacionEtiqueta}>
+                          {item.shared_group_id ? t("Este grupo ya no existe") : item.shared_list_id ? t("Esta lista ya no existe") : t("Este título ya no existe")}
+                        </Text>
+                      ) : (
+                        <>
+                          <Text style={[styles.recomendacionEtiqueta, esQueVemos && styles.textoQueVemos]}>
+                            {esQueVemos
+                              ? item.item_type === "series"
+                                ? t("Hoy empezamos:")
+                                : t("Hoy vemos:")
+                              : `${esMio ? t("Recomendaste") : t("Te recomendó")} ${item.shared_group_id ? t("el grupo ") : ""}`}
+                          </Text>
+                          <Text style={[styles.recomendacionTitulo, esQueVemos && styles.textoQueVemos]} numberOfLines={2}>
+                            {preview?.nombre ?? "..."}
+                          </Text>
+                          {preview?.subtitulo && <Text style={[styles.recomendacionSub, esQueVemos && styles.textoQueVemos]}>{preview.subtitulo}</Text>}
+                        </>
+                      )}
                     </View>
                   </Pressable>
                 )}
