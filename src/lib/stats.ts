@@ -101,24 +101,32 @@ export async function getEstadisticasSeries(userId: string): Promise<Estadistica
   }
 
   // Episodios pendientes: para cada serie seguida, cuántos episodios no vistos hay y su duración total.
+  // Antes esto hacía 2 consultas POR SERIE seguida (uno por uno, en secuencia)
+  // — con muchas series seguidas eso se sentía lento de verdad. Ahora se
+  // traen TODOS los episodios de TODAS las series seguidas, y TODO lo visto
+  // del usuario, en 2 consultas en total, y se cruza en memoria.
   let episodiosPendientes = 0;
   let minutosEpisodiosPendientes = 0;
   const seriesIds = await fetchAllRows<any>((desde, hasta) =>
     supabase.from("user_series").select("series_tmdb_id").eq("user_id", userId).range(desde, hasta)
   );
-  for (const row of seriesIds ?? []) {
-    const { data: todos } = await supabase
-      .from("episodes_cache")
-      .select("season_number, episode_number, runtime_minutes")
-      .eq("series_tmdb_id", row.series_tmdb_id);
-    const { data: vistosSerie } = await supabase
-      .from("user_episodes_watched")
-      .select("season_number, episode_number")
-      .eq("user_id", userId)
-      .eq("series_tmdb_id", row.series_tmdb_id);
-    const vistosSet = new Set((vistosSerie ?? []).map((v) => `${v.season_number}-${v.episode_number}`));
-    for (const ep of todos ?? []) {
-      if (!vistosSet.has(`${ep.season_number}-${ep.episode_number}`)) {
+  const idsDeSeries = (seriesIds ?? []).map((r) => r.series_tmdb_id);
+  if (idsDeSeries.length > 0) {
+    const [todosLosEpisodios, todoLoVisto] = await Promise.all([
+      fetchAllRows<any>((desde, hasta) =>
+        supabase
+          .from("episodes_cache")
+          .select("series_tmdb_id, season_number, episode_number, runtime_minutes")
+          .in("series_tmdb_id", idsDeSeries)
+          .range(desde, hasta)
+      ),
+      fetchAllRows<any>((desde, hasta) =>
+        supabase.from("user_episodes_watched").select("series_tmdb_id, season_number, episode_number").eq("user_id", userId).range(desde, hasta)
+      ),
+    ]);
+    const vistosSet = new Set(todoLoVisto.map((v) => `${v.series_tmdb_id}-${v.season_number}-${v.episode_number}`));
+    for (const ep of todosLosEpisodios) {
+      if (!vistosSet.has(`${ep.series_tmdb_id}-${ep.season_number}-${ep.episode_number}`)) {
         episodiosPendientes++;
         minutosEpisodiosPendientes += ep.runtime_minutes ?? 0;
       }

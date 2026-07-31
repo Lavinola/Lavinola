@@ -73,6 +73,20 @@ async function enriquecerDesdeCache(tipo: "series" | "movie", ids: number[]): Pr
     });
 }
 
+function reordenarSeriesPorRecencia(results: any[]): any[] {
+  const ahora = Date.now();
+  return [...results]
+    .map((s, indice) => {
+      const fecha = s.first_air_date ? new Date(s.first_air_date).getTime() : 0;
+      const antiguedadAnios = fecha ? (ahora - fecha) / (1000 * 60 * 60 * 24 * 365) : 99;
+      const bonusRecencia = antiguedadAnios <= 2 ? 3 : antiguedadAnios <= 5 ? 1.5 : 1;
+      const posicionScore = results.length - indice;
+      return { s, score: posicionScore * bonusRecencia };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map((c) => c.s);
+}
+
 function mapearResultadoTmdb(tipo: "series" | "movie", r: any): ItemDescubrir {
   return {
     id: r.id,
@@ -130,7 +144,12 @@ export async function descubrirPagina(opts: {
         ? await discoverSeriesPaginado({ page, genreId: generos[0] ?? null, status: tipo === "series" ? statusTmdbParam(estado) : null, watchProviderIds: esOtras ? undefined : watchProviderIds, watchRegion })
         : await discoverMoviesPaginado({ page, genreId: generos[0] ?? null, watchProviderIds: esOtras ? undefined : watchProviderIds, watchRegion });
 
-    let resultados = (data.results ?? []).map((r: any) => mapearResultadoTmdb(tipo, r));
+    // Igual que en la fila de Descubrir: "tendencias" de TMDB para series
+    // mezcla estrenos reales con series viejas que igual generan mucho
+    // tráfico en su sitio — se le da más peso a lo reciente sin perder del
+    // todo el orden de popularidad. En películas esto no hacía falta.
+    const resultadosCrudos = orden === "tendencias" && tipo === "series" ? reordenarSeriesPorRecencia(data.results ?? []) : data.results ?? [];
+    let resultados = resultadosCrudos.map((r: any) => mapearResultadoTmdb(tipo, r));
 
     // "Recomendado para vos" nunca debería repetirte algo que ya tenés — para
     // eso ya lo tenés en tu lista. "Tendencias" en cambio, en Descubre más, sí
@@ -149,7 +168,7 @@ export async function descubrirPagina(opts: {
       const chequeos = await Promise.all(
         resultados.map(async (item: ItemDescubrir) => {
           const p = tipo === "series" ? await getSeriesWatchProviders(item.id, region) : await getMovieWatchProviders(item.id, region);
-          const idsDisponibles = (p?.flatrate ?? []).map((prov: any) => prov.provider_id);
+          const idsDisponibles = [...(p?.flatrate ?? []), ...(p?.rent ?? []), ...(p?.buy ?? [])].map((prov: any) => prov.provider_id);
           return { item, esOtras: !idsDisponibles.some((id: number) => universoIds.includes(id)) };
         })
       );
@@ -196,7 +215,7 @@ export async function descubrirPagina(opts: {
     const resultados = await Promise.all(
       items.map(async (item) => {
         const p = tipo === "series" ? await getSeriesWatchProviders(item.id, region) : await getMovieWatchProviders(item.id, region);
-        const idsDisponibles = (p?.flatrate ?? []).map((prov: any) => prov.provider_id);
+        const idsDisponibles = [...(p?.flatrate ?? []), ...(p?.rent ?? []), ...(p?.buy ?? [])].map((prov: any) => prov.provider_id);
         const coincideCurada = idsDisponibles.some((id: number) => (esOtras ? universoIds : watchProviderIds).includes(id));
         return { item, pasa: esOtras ? !coincideCurada : coincideCurada };
       })

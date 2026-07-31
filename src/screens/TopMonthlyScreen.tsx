@@ -78,7 +78,12 @@ export default function TopMonthlyScreen({ navigation }: any) {
         const resultados = await Promise.all(
           lista.map(async (item) => {
             const p = tipo === "series" ? await getSeriesWatchProviders(item.tmdb_id, watchRegion) : await getMovieWatchProviders(item.tmdb_id, watchRegion);
-            const idsDisponibles = (p?.flatrate ?? []).map((prov: any) => prov.provider_id);
+            // No solo "flatrate" (suscripción) — algunas plataformas, sobre
+            // todo Apple TV, ofrecen bastante contenido para alquilar o
+            // comprar por fuera de su catálogo de suscripción. Contarlo
+            // como "disponible ahí" es más fiel a lo que la persona
+            // realmente ve al elegir ese logo.
+            const idsDisponibles = [...(p?.flatrate ?? []), ...(p?.rent ?? []), ...(p?.buy ?? [])].map((prov: any) => prov.provider_id);
             const coincideCurada = idsDisponibles.some((id: number) => (esOtras ? universoIds : idsElegidos).includes(id));
             return { item, pasa: esOtras ? !coincideCurada : coincideCurada };
           })

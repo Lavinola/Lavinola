@@ -93,17 +93,15 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
     cargar(page + 1, false);
   }
 
-  async function abrir(item: ItemDescubrir) {
-    setAbriendo(item.id);
-    try {
-      if (tipo === "series") await syncSeries(item.id);
-      else await syncMovie(item.id);
-      navigation.navigate("DetalleTitulo", { tmdbId: item.id, tipo });
-    } catch (e: any) {
-      Alert.alert("No se pudo abrir", e.message ?? "Revisá tu conexión y probá de nuevo.");
-    } finally {
-      setAbriendo(null);
-    }
+  function abrir(item: ItemDescubrir) {
+    // Antes acá se esperaba a que syncSeries/syncMovie terminara de traer y
+    // guardar TODOS los episodios de TODAS las temporadas antes de navegar
+    // — con series largas eso tardaba muchísimo. La ficha de detalle
+    // (TitleDetailScreen) ya hace exactamente esa misma sincronización por
+    // su cuenta al abrirse, con su propio spinner — así que hacerlo acá de
+    // nuevo era trabajo duplicado que solo demoraba la navegación sin
+    // necesidad.
+    navigation.navigate("DetalleTitulo", { tmdbId: item.id, tipo });
   }
 
   async function agregarRapido(item: ItemDescubrir) {

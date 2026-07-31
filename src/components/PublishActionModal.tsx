@@ -3,6 +3,8 @@ import { View, Modal, TextInput, Pressable, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "./Themed";
 import { crearPost, crearPostDeLista } from "../lib/posts";
+import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
+import NivelUpModal from "./NivelUpModal";
 import { supabase } from "../lib/supabase";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -37,6 +39,7 @@ export default function PublishActionModal({
   const [esSpoiler, setEsSpoiler] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [publicado, setPublicado] = useState(false);
+  const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
 
   function reset() {
     setModo(modoInicial);
@@ -78,6 +81,9 @@ export default function PublishActionModal({
         });
       }
       setPublicado(true);
+      chequearSubidaDeNivel(userId)
+        .then((nivel) => nivel && setNivelSubido(nivel))
+        .catch((e) => console.error("Error al chequear el nivel de insignias:", e));
       setTimeout(() => cerrar(), 700); // se ve el "Publicado ✓" un instante y se cierra solo
     } catch (e: any) {
       Alert.alert(t("No se pudo publicar"), e.message);
@@ -87,6 +93,7 @@ export default function PublishActionModal({
   }
 
   return (
+    <>
     <Modal visible={visible} transparent animationType="fade" onRequestClose={cerrar}>
       <Pressable style={styles.fondo} onPress={cerrar}>
         <Pressable style={styles.caja} onPress={() => {}}>
@@ -131,6 +138,8 @@ export default function PublishActionModal({
         </Pressable>
       </Pressable>
     </Modal>
+    <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
+    </>
   );
 }
 

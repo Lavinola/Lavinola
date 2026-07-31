@@ -25,6 +25,8 @@ import ActionSheetModal from "./ActionSheetModal";
 import ExpandableText from "./ExpandableText";
 import { MOODS } from "../lib/moods";
 import IconoReaccion, { REACCIONES_ICONO } from "./IconoReaccion";
+import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
+import NivelUpModal from "./NivelUpModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -47,6 +49,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
   const [orden, setOrden] = useState<OrdenComentarios>("nuevo");
   const [raiz, setRaiz] = useState<Comentario[]>([]);
   const [nuevoTexto, setNuevoTexto] = useState("");
+  const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
   const [gifElegido, setGifElegido] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [idiomaUsuario, setIdiomaUsuario] = useState("en");
@@ -84,6 +87,9 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
       await postearComentario({ userId, targetType, targetId, groupId, content: nuevoTexto.trim(), gifUrl: gifElegido });
       setNuevoTexto("");
       setGifElegido(null);
+      chequearSubidaDeNivel(userId)
+        .then((nivel) => nivel && setNivelSubido(nivel))
+        .catch((e) => console.error("Error al chequear el nivel de insignias:", e));
       await cargar();
     } catch (e: any) {
       console.error("Error al postear comentario:", e);
@@ -92,6 +98,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
   }
 
   return (
+    <>
     <View style={styles.container}>
       <View style={styles.ordenRow}>
         {(["nuevo", "viejo", "mas_respuestas"] as OrdenComentarios[]).map((o) => (
@@ -154,6 +161,8 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
           />
         ))}
     </View>
+    <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
+    </>
   );
 }
 

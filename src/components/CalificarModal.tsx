@@ -10,6 +10,8 @@ import { getMovieCredits, getSeriesCredits, posterUrl } from "../lib/tmdb";
 import { calificarPelicula, calificarSerie, calificarEpisodio } from "../lib/ratings";
 import { getMoodStats, elegirMood, MoodStats } from "../lib/moods";
 import { getCastVoteStats, votarActor, CastVoteStats } from "../lib/castVotes";
+import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
+import NivelUpModal from "./NivelUpModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -39,6 +41,7 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
   const [reparto, setReparto] = useState<any[]>([]);
   const [moodStats, setMoodStats] = useState<MoodStats>({ miMood: null, porcentajes: {}, total: 0 });
   const [castStats, setCastStats] = useState<CastVoteStats>({ miVoto: null, porcentajes: {}, total: 0 });
+  const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
   const animacion = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -58,6 +61,11 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
       const { data } = await supabase.auth.getUser();
       const uid = data.user?.id ?? null;
       setUserId(uid);
+      if (uid) {
+        chequearSubidaDeNivel(uid)
+          .then((nivel) => nivel && setNivelSubido(nivel))
+          .catch((e) => console.error("Error al chequear el nivel de insignias:", e));
+      }
 
       const credits = tipo === "movie" ? await getMovieCredits(tmdbId) : await getSeriesCredits(tmdbId);
       setReparto((credits.cast ?? []).slice(0, 15));
@@ -135,6 +143,7 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
   }
 
   return (
+    <>
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
       <View style={styles.fondo}>
         {/* Atrapa el toque para cerrar al tocar afuera — es un HERMANO de la
@@ -203,6 +212,8 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
         </Animated.View>
       </View>
     </Modal>
+    <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
+    </>
   );
 }
 

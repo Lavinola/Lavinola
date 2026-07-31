@@ -125,7 +125,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
     if (p.show_favorite_series) {
       setProgreso(await progresoDeSeries(targetId));
     }
-    if (p.show_watch_time) {
+    {
       const [episodiosVistos, peliculasVistas] = await Promise.all([
         fetchAllRows((desde, hasta) =>
           supabase.from("user_episodes_watched").select("times_watched, episodes_cache(runtime_minutes)").eq("user_id", targetId).range(desde, hasta)
@@ -404,7 +404,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
         </View>
       ) : (
         <>
-          {perfil.show_watch_time && statsTiempo && (
+          {statsTiempo && (
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
                 <Ionicons name="film" size={22} color={theme.colors.primaryLight} />

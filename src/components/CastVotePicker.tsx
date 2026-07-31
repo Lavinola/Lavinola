@@ -30,6 +30,7 @@ export default function CastVotePicker({ reparto, miVoto, porcentajes, onVotar }
       horizontal
       showsHorizontalScrollIndicator={false}
       nestedScrollEnabled
+      style={{ width: "100%" }}
       contentContainerStyle={{ paddingHorizontal: 4 }}
     >
       {reparto.map((item) => {

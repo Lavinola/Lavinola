@@ -175,7 +175,7 @@ function Descubrir({ navigation }: any) {
 
       if (uid) await refrescarAgregados(uid);
 
-      setCrudosSeriesModa((trendSeries.results ?? []).map(mapSerie));
+      setCrudosSeriesModa(reordenarSeriesPorRecencia(trendSeries.results ?? []).map(mapSerie));
       setCrudosPeliculasModa((trendMovies.results ?? []).map(mapPelicula));
       setCrudosSeriesRecomendadas((recSeries ?? []).map(mapSerie));
       setCrudosPeliculasRecomendadas((recMovies ?? []).map(mapPelicula));
@@ -184,6 +184,29 @@ function Descubrir({ navigation }: any) {
     } finally {
       setLoading(false);
     }
+  }
+
+  /**
+   * TMDB trending de series mezcla novedades reales con series viejas o
+   * poco conocidas que igual generan tráfico en su sitio (series de culto,
+   * clásicos que la gente sigue buscando, etc) — a diferencia de
+   * "Películas tendencia", que sí viene bien tal cual. Acá se le da más
+   * peso a los estrenos recientes (dentro de los últimos 2 años sube
+   * fuerte, después se va apagando), sin perder del todo el orden de
+   * popularidad que ya trae TMDB.
+   */
+  function reordenarSeriesPorRecencia(results: any[]): any[] {
+    const ahora = Date.now();
+    return [...results]
+      .map((s, indice) => {
+        const fecha = s.first_air_date ? new Date(s.first_air_date).getTime() : 0;
+        const antiguedadAnios = fecha ? (ahora - fecha) / (1000 * 60 * 60 * 24 * 365) : 99;
+        const bonusRecencia = antiguedadAnios <= 2 ? 3 : antiguedadAnios <= 5 ? 1.5 : 1;
+        const posicionScore = results.length - indice; // proxy de qué tan arriba venía en el trending original
+        return { s, score: posicionScore * bonusRecencia };
+      })
+      .sort((a, b) => b.score - a.score)
+      .map((c) => c.s);
   }
 
   function mapSerie(s: any): ItemFila {
