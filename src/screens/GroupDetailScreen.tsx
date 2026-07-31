@@ -8,10 +8,8 @@ import ReportModal from "../components/ReportModal";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
-import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system/legacy";
-import { decode } from "base64-arraybuffer";
-import { marcarGrupoLeido, miEstadoEnGrupo, salirDeGrupo, silenciarGrupo, quitarSilencioGrupoLista, idsGruposSilenciados, unirseAGrupo, actualizarBannerGrupo } from "../lib/groups";
+import { posterUrl } from "../lib/tmdb";
+import { marcarGrupoLeido, miEstadoEnGrupo, salirDeGrupo, silenciarGrupo, quitarSilencioGrupoLista, idsGruposSilenciados, unirseAGrupo, actualizarBannerGrupo, actualizarTapaGrupo } from "../lib/groups";
 import { marcarNotificacionesDeGrupoComoLeidas } from "../lib/notificationsFeed";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -47,6 +45,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
   const [reportVisible, setReportVisible] = useState(false);
   const [soyMiembro, setSoyMiembro] = useState<boolean | null>(null);
   const [uniendome, setUniendome] = useState(false);
+  const [menuTapaBannerVisible, setMenuTapaBannerVisible] = useState(false);
 
   useEffect(() => {
     cargarMiembros();
@@ -84,30 +83,32 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
     }
   }
 
-  async function cambiarBanner() {
+  function elegirTapa() {
     setMenuVisible(false);
-    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permiso.granted) {
-      Alert.alert(t("Sin permiso"), t("Necesitamos acceso a tus fotos para elegir un banner."));
-      return;
-    }
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7, base64: true });
-    if (res.canceled || !res.assets?.[0]) return;
-    try {
-      const asset = res.assets[0];
-      const base64 = asset.base64 ?? (await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 }));
-      const nombreArchivo = `${groupId}-${Date.now()}.jpg`;
-      const { error } = await supabase.storage.from("group-banners").upload(nombreArchivo, decode(base64), { contentType: "image/jpeg" });
-      if (error) {
-        Alert.alert(t("No se pudo subir la foto"), error.message);
-        return;
-      }
-      const { data: publicUrl } = supabase.storage.from("group-banners").getPublicUrl(nombreArchivo);
-      await actualizarBannerGrupo(groupId, publicUrl.publicUrl);
-      setGrupo((g) => (g ? { ...g, banner_url: publicUrl.publicUrl } : g));
-    } catch (e: any) {
-      Alert.alert(t("No se pudo subir la foto"), e.message ?? "Revisá tu conexión y probá de nuevo.");
-    }
+    setMenuTapaBannerVisible(false);
+    navigation.navigate("ElegirImagenTmdb", {
+      titulo: t("Elegí una película o serie de referencia para la TAPA del grupo"),
+      modo: "posters",
+      onElegir: async (path: string) => {
+        const url = posterUrl(path, "w500")!;
+        await actualizarTapaGrupo(groupId, url);
+        setGrupo((g) => (g ? { ...g, photo_url: url } : g));
+      },
+    });
+  }
+
+  function elegirBannerImagen() {
+    setMenuVisible(false);
+    setMenuTapaBannerVisible(false);
+    navigation.navigate("ElegirImagenTmdb", {
+      titulo: t("Elegí una película o serie de referencia para el BANNER del grupo"),
+      modo: "backdrops",
+      onElegir: async (path: string) => {
+        const url = posterUrl(path, "w780")!;
+        await actualizarBannerGrupo(groupId, url);
+        setGrupo((g) => (g ? { ...g, banner_url: url } : g));
+      },
+    });
   }
 
   async function toggleSilencioPersonal() {
@@ -235,11 +236,21 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
       titulo={groupName}
       opciones={[
         ...(userId && grupo?.creator_id === userId
-          ? [{ label: t("Cambiar banner"), icono: "image-outline" as const, onPress: cambiarBanner }]
+          ? [{ label: t("Cambiar tapa/banner"), icono: "image-outline" as const, onPress: () => { setMenuVisible(false); setMenuTapaBannerVisible(true); } }]
           : []),
         { label: silenciadoPersonal ? t("Dejar de silenciar") : t("Silenciar grupo"), icono: "volume-mute-outline", onPress: toggleSilencioPersonal },
         { label: t("Salir del grupo"), icono: "exit-outline", destructivo: true, onPress: () => { setMenuVisible(false); setConfirmSalirVisible(true); } },
         { label: t("Denunciar"), icono: "flag-outline", destructivo: true, onPress: () => { setMenuVisible(false); setReportVisible(true); } },
+      ]}
+    />
+
+    <ActionSheetModal
+      visible={menuTapaBannerVisible}
+      onCerrar={() => setMenuTapaBannerVisible(false)}
+      titulo={t("¿Qué querés cambiar?")}
+      opciones={[
+        { label: t("Tapa"), icono: "image-outline", onPress: elegirTapa },
+        { label: t("Banner"), icono: "images-outline", onPress: elegirBannerImagen },
       ]}
     />
 

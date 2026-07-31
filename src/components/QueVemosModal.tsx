@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Modal, View, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { Modal, View, Pressable, Image, ActivityIndicator, StyleSheet } from "react-native";
+import { Alert } from "../lib/alert";
 import { Text } from "./Themed";
 import { GENEROS_PELICULAS, GENEROS_SERIES } from "../lib/tmdbGenres";
-import { getWatchProvidersDisponibles, GrupoPlataforma } from "../lib/tmdb";
+import { getWatchProvidersDisponibles, GrupoPlataforma, posterUrl } from "../lib/tmdb";
 import { elegirQueVemos } from "../lib/queVemos";
 import { enviarQueVemos } from "../lib/chats";
 import { useT } from "../i18n/i18n";
@@ -43,8 +44,8 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
     if (tipo) getWatchProvidersDisponibles(tipo, watchRegion).then(setPlataformasDisponibles);
   }, [tipo, watchRegion]);
 
-  function elegirTipo(t: "movie" | "series") {
-    setTipo(t);
+  function elegirTipo(nuevoTipo: "movie" | "series") {
+    setTipo(nuevoTipo);
     setPaso("filtros");
   }
 
@@ -64,6 +65,13 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
       else nuevo.add(clave);
       return nuevo;
     });
+  }
+
+  function mostrarAyuda() {
+    Alert.alert(
+      t("¿Qué vemos?"),
+      t("Elegís si buscás película o serie, filtrás por género y plataforma si querés, y la app les recomienda algo para ver juntos — prioriza títulos que los dos ya tengan pendientes.")
+    );
   }
 
   async function buscar() {
@@ -94,7 +102,13 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
       <Pressable style={styles.fondo} onPress={onCerrar}>
         <Pressable style={styles.hoja} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.titulo}>{t("¿Qué vemos?")}</Text>
+          <View style={styles.tituloRow}>
+            <View style={{ width: 22 }} />
+            <Text style={styles.titulo}>{t("¿Qué vemos?")}</Text>
+            <Pressable style={styles.ayudaBoton} onPress={mostrarAyuda} hitSlop={8}>
+              <Text style={styles.ayudaBotonTexto}>?</Text>
+            </Pressable>
+          </View>
 
           {paso === "tipo" ? (
             <View style={styles.tipoRow}>
@@ -106,9 +120,12 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
               </Pressable>
             </View>
           ) : (
-            <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+            <View>
               <Text style={styles.seccionTitulo}>{t("Género")}</Text>
               <View style={styles.chipsWrap}>
+                <Pressable style={[styles.chip, generosElegidos.size === 0 && styles.chipActivo]} onPress={() => setGenerosElegidos(new Set())}>
+                  <Text style={[styles.chipTexto, generosElegidos.size === 0 && styles.chipTextoActivo]}>{t("Todas")}</Text>
+                </Pressable>
                 {Object.entries(generos).map(([id, nombre]) => (
                   <Pressable
                     key={id}
@@ -122,15 +139,20 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
 
               <Text style={styles.seccionTitulo}>{t("Plataforma")}</Text>
               <View style={styles.chipsWrap}>
-                {plataformasDisponibles.map((p) => (
-                  <Pressable
-                    key={p.clave}
-                    style={[styles.chip, plataformasElegidas.has(p.clave) && styles.chipActivo]}
-                    onPress={() => togglePlataforma(p.clave)}
-                  >
-                    <Text style={[styles.chipTexto, plataformasElegidas.has(p.clave) && styles.chipTextoActivo]}>{p.label}</Text>
-                  </Pressable>
-                ))}
+                <Pressable style={[styles.chip, plataformasElegidas.size === 0 && styles.chipActivo]} onPress={() => setPlataformasElegidas(new Set())}>
+                  <Text style={[styles.chipTexto, plataformasElegidas.size === 0 && styles.chipTextoActivo]}>{t("Todas")}</Text>
+                </Pressable>
+                {plataformasDisponibles
+                  .filter((p) => p.clave !== "otras" && p.logo_path)
+                  .map((p) => (
+                    <Pressable
+                      key={p.clave}
+                      onPress={() => togglePlataforma(p.clave)}
+                      style={[styles.logoBox, plataformasElegidas.has(p.clave) && styles.logoBoxActivo]}
+                    >
+                      <Image source={{ uri: posterUrl(p.logo_path!, "w185")! }} style={styles.logoImg} />
+                    </Pressable>
+                  ))}
               </View>
 
               {sinResultado && <Text style={styles.sinResultado}>{t("No encontramos nada — probá con menos filtros.")}</Text>}
@@ -138,10 +160,10 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
               <Pressable style={styles.buscarBtn} onPress={buscar} disabled={buscando}>
                 {buscando ? <ActivityIndicator color="#000000" /> : <Text style={styles.buscarBtnTexto}>{t("¿Qué vemos?")}</Text>}
               </Pressable>
-              <Pressable onPress={() => setPaso("tipo")} style={{ marginTop: 10 }}>
+              <Pressable onPress={() => setPaso("tipo")} style={{ marginTop: 8 }}>
                 <Text style={styles.volverTexto}>{t("‹ Elegir película o serie de nuevo")}</Text>
               </Pressable>
-            </ScrollView>
+            </View>
           )}
         </Pressable>
       </Pressable>
@@ -150,20 +172,34 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
 }
 
 const styles = StyleSheet.create({
-  fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 20 },
-  hoja: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, padding: 20, width: "100%", maxWidth: 400 },
-  titulo: { fontSize: 17, fontWeight: "800", color: theme.colors.text, marginBottom: 16, textAlign: "center" },
-  tipoRow: { flexDirection: "row", gap: 12 },
-  tipoBtn: { flex: 1, backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 20, alignItems: "center" },
+  fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 16 },
+  hoja: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, padding: 16, width: "100%", maxWidth: 400 },
+  tituloRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  titulo: { fontSize: 16, fontWeight: "800", color: theme.colors.text, textAlign: "center", flex: 1 },
+  ayudaBoton: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ayudaBotonTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 12 },
+  tipoRow: { flexDirection: "row", gap: 10 },
+  tipoBtn: { flex: 1, backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 18, alignItems: "center" },
   tipoBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 15 },
-  seccionTitulo: { fontSize: 12, fontWeight: "800", color: theme.colors.textMuted, textTransform: "uppercase", marginTop: 8, marginBottom: 8 },
-  chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { paddingVertical: 7, paddingHorizontal: 13, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceAlt },
+  seccionTitulo: { fontSize: 11, fontWeight: "800", color: theme.colors.textMuted, textTransform: "uppercase", marginTop: 4, marginBottom: 6 },
+  chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  chip: { paddingVertical: 6, paddingHorizontal: 11, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceAlt },
   chipActivo: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
-  chipTexto: { fontSize: 12.5, color: theme.colors.textMuted, fontWeight: "600" },
+  chipTexto: { fontSize: 11.5, color: theme.colors.textMuted, fontWeight: "600" },
   chipTextoActivo: { color: "#000000", fontWeight: "800" },
-  sinResultado: { fontSize: 12.5, color: theme.colors.danger, textAlign: "center", marginTop: 14 },
-  buscarBtn: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 14, alignItems: "center", marginTop: 18 },
-  buscarBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 15 },
-  volverTexto: { fontSize: 12.5, color: theme.colors.primaryLight, textAlign: "center", fontWeight: "600" },
+  logoBox: { width: 36, height: 36, borderRadius: 8, overflow: "hidden", borderWidth: 2, borderColor: "transparent", backgroundColor: theme.colors.surfaceAlt },
+  logoBoxActivo: { borderColor: theme.colors.primary },
+  logoImg: { width: "100%", height: "100%" },
+  sinResultado: { fontSize: 12, color: theme.colors.danger, textAlign: "center", marginTop: 10 },
+  buscarBtn: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 13, alignItems: "center", marginTop: 14 },
+  buscarBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 14 },
+  volverTexto: { fontSize: 12, color: theme.colors.primaryLight, textAlign: "center", fontWeight: "600" },
 });

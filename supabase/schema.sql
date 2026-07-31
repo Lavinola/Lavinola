@@ -2205,17 +2205,6 @@ grant execute on function calcular_puntos_insignias(uuid) to authenticated;
 alter table profiles add column if not exists ultimo_nivel_insignia_visto integer not null default 0;
 
 -- ============================================================
--- Bucket para que el admin de un grupo pueda cambiar el banner después de
--- creado (al crearlo, el banner sale de una sugerencia de Unsplash — esto
--- es para cuando lo quiere cambiar por una foto propia más adelante).
--- ============================================================
-insert into storage.buckets (id, name, public) values ('group-banners', 'group-banners', true) on conflict (id) do nothing;
-drop policy if exists "group_banners_public_read" on storage.objects;
-create policy "group_banners_public_read" on storage.objects for select using (bucket_id = 'group-banners');
-drop policy if exists "group_banners_insert_auth" on storage.objects;
-create policy "group_banners_insert_auth" on storage.objects for insert to authenticated with check (bucket_id = 'group-banners');
-
--- ============================================================
 -- "¿Qué vemos?": el resultado se guarda como un mensaje de chat normal
 -- (kind='shared_title', con item_type/tmdb_id como cualquier recomendación)
 -- pero marcado aparte, para que en la pantalla se muestre distinto —

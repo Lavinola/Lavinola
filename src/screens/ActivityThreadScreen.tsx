@@ -424,7 +424,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                         </Text>
                       </Pressable>
                     )}
-                    {esMio && (
+                    {esMio && !esQueVemos && (
                       <Ionicons
                         name="checkmark-done"
                         size={14}
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   // Ahora al revés de como estaba: mis mensajes en gris/negro, los del otro en violeta.
   burbuja: { padding: 10, borderRadius: theme.radius.md, marginBottom: 8, maxWidth: "80%" },
   burbujaRecomendacion: { width: "75%", maxWidth: "75%" },
-  burbujaQueVemos: { alignSelf: "center", backgroundColor: theme.colors.primaryLight },
+  burbujaQueVemos: { alignSelf: "center", backgroundColor: theme.colors.primary },
   textoQueVemos: { color: "#000000", opacity: 1 },
   burbujaPropia: { backgroundColor: theme.colors.surfaceAlt, alignSelf: "flex-end" },
   burbujaAjena: { backgroundColor: "#3D1750", alignSelf: "flex-start" },

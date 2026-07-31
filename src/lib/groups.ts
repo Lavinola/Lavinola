@@ -21,6 +21,10 @@ export async function actualizarBannerGrupo(groupId: string, bannerUrl: string) 
   await supabase.from("groups").update({ banner_url: bannerUrl }).eq("id", groupId);
 }
 
+export async function actualizarTapaGrupo(groupId: string, photoUrl: string) {
+  await supabase.from("groups").update({ photo_url: photoUrl }).eq("id", groupId);
+}
+
 export async function crearGrupo(params: {
   creatorId: string;
   name: string;
