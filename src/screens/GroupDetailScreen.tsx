@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, ScrollView, FlatList, Image, Pressable, StyleSheet } from "react-native";
+import { Alert } from "../lib/alert";
 import CommentThread from "../components/CommentThread";
 import ActionSheetModal from "../components/ActionSheetModal";
 import ConfirmModal from "../components/ConfirmModal";
@@ -7,7 +8,10 @@ import ReportModal from "../components/ReportModal";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
-import { marcarGrupoLeido, miEstadoEnGrupo, salirDeGrupo, silenciarGrupo, quitarSilencioGrupoLista, idsGruposSilenciados } from "../lib/groups";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import { decode } from "base64-arraybuffer";
+import { marcarGrupoLeido, miEstadoEnGrupo, salirDeGrupo, silenciarGrupo, quitarSilencioGrupoLista, idsGruposSilenciados, unirseAGrupo, actualizarBannerGrupo } from "../lib/groups";
 import { marcarNotificacionesDeGrupoComoLeidas } from "../lib/notificationsFeed";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -27,7 +31,13 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
   const { t } = useT();
   const { groupId, groupName } = route.params;
   const [miembros, setMiembros] = useState<Miembro[]>([]);
-  const [grupo, setGrupo] = useState<{ banner_url: string | null; photo_url: string | null; description: string | null; comments_suspended_until: string | null } | null>(null);
+  const [grupo, setGrupo] = useState<{
+    banner_url: string | null;
+    photo_url: string | null;
+    description: string | null;
+    comments_suspended_until: string | null;
+    creator_id: string | null;
+  } | null>(null);
   const [miEstado, setMiEstado] = useState<{ baneado: boolean; silenciado: boolean }>({ baneado: false, silenciado: false });
   const [userId, setUserId] = useState<string | null>(null);
   const [silenciadoPersonal, setSilenciadoPersonal] = useState(false);
@@ -35,6 +45,8 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
   const [menuSilenciarVisible, setMenuSilenciarVisible] = useState(false);
   const [confirmSalirVisible, setConfirmSalirVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
+  const [soyMiembro, setSoyMiembro] = useState<boolean | null>(null);
+  const [uniendome, setUniendome] = useState(false);
 
   useEffect(() => {
     cargarMiembros();
@@ -47,9 +59,56 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         miEstadoEnGrupo(groupId, data.user.id).then(setMiEstado);
         const silenciados = await idsGruposSilenciados(data.user.id);
         setSilenciadoPersonal(silenciados.has(groupId));
+        const { data: filaMiembro } = await supabase
+          .from("group_members")
+          .select("user_id")
+          .eq("group_id", groupId)
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+        setSoyMiembro(!!filaMiembro);
       }
     });
   }, []);
+
+  async function unirme() {
+    if (!userId) return;
+    setUniendome(true);
+    try {
+      await unirseAGrupo(groupId, userId);
+      setSoyMiembro(true);
+      await cargarMiembros();
+    } catch (e: any) {
+      console.error("Error al unirse al grupo:", e);
+    } finally {
+      setUniendome(false);
+    }
+  }
+
+  async function cambiarBanner() {
+    setMenuVisible(false);
+    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permiso.granted) {
+      Alert.alert(t("Sin permiso"), t("Necesitamos acceso a tus fotos para elegir un banner."));
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7, base64: true });
+    if (res.canceled || !res.assets?.[0]) return;
+    try {
+      const asset = res.assets[0];
+      const base64 = asset.base64 ?? (await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 }));
+      const nombreArchivo = `${groupId}-${Date.now()}.jpg`;
+      const { error } = await supabase.storage.from("group-banners").upload(nombreArchivo, decode(base64), { contentType: "image/jpeg" });
+      if (error) {
+        Alert.alert(t("No se pudo subir la foto"), error.message);
+        return;
+      }
+      const { data: publicUrl } = supabase.storage.from("group-banners").getPublicUrl(nombreArchivo);
+      await actualizarBannerGrupo(groupId, publicUrl.publicUrl);
+      setGrupo((g) => (g ? { ...g, banner_url: publicUrl.publicUrl } : g));
+    } catch (e: any) {
+      Alert.alert(t("No se pudo subir la foto"), e.message ?? "Revisá tu conexión y probá de nuevo.");
+    }
+  }
 
   async function toggleSilencioPersonal() {
     if (!userId) return;
@@ -77,8 +136,15 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
   }
 
   async function cargarGrupo() {
-    const { data } = await supabase.from("groups").select("banner_url, photo_url, description, comments_suspended_until").eq("id", groupId).maybeSingle();
-    if (data) setGrupo({ banner_url: data.banner_url ?? data.photo_url, photo_url: data.photo_url, description: data.description, comments_suspended_until: data.comments_suspended_until });
+    const { data } = await supabase.from("groups").select("banner_url, photo_url, description, comments_suspended_until, creator_id").eq("id", groupId).maybeSingle();
+    if (data)
+      setGrupo({
+        banner_url: data.banner_url ?? data.photo_url,
+        photo_url: data.photo_url,
+        description: data.description,
+        comments_suspended_until: data.comments_suspended_until,
+        creator_id: data.creator_id,
+      });
   }
 
   async function cargarMiembros() {
@@ -97,6 +163,9 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         ) : (
           <View style={[styles.banner, { backgroundColor: theme.colors.surfaceAlt }]} />
         )}
+        <Pressable style={styles.menuBtnFlotante} onPress={() => setMenuVisible(true)} hitSlop={12}>
+          <Text style={styles.menuBtnFlotanteTexto}>⋯</Text>
+        </Pressable>
         <Pressable
           style={styles.recomendarBtnFlotante}
           onPress={() => navigation.navigate("Recomendar", { kind: "group", groupId, nombre: groupName, posterPath: grupo?.photo_url ?? null })}
@@ -104,14 +173,17 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         >
           <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
         </Pressable>
-        <Pressable style={styles.menuBtnFlotante} onPress={() => setMenuVisible(true)} hitSlop={12}>
-          <Text style={styles.menuBtnFlotanteTexto}>⋯</Text>
-        </Pressable>
       </View>
 
       <View style={styles.container}>
         <Text style={styles.titulo}>{groupName}</Text>
         {grupo?.description && <Text style={styles.descripcion}>{grupo.description}</Text>}
+
+        {soyMiembro === false && (
+          <Pressable style={styles.unirmeBtn} onPress={unirme} disabled={uniendome}>
+            <Text style={styles.unirmeBtnTexto}>{uniendome ? t("Uniéndote...") : t("Unirme al grupo")}</Text>
+          </Pressable>
+        )}
 
         {miembros.length > 0 && (
           <View style={{ marginBottom: 16, marginTop: 8 }}>
@@ -147,7 +219,13 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         {suspendido && <Text style={styles.suspendidoAviso}>{t("Los comentarios de este grupo están suspendidos temporalmente.")}</Text>}
         {miEstado.baneado && <Text style={styles.suspendidoAviso}>Fuiste eliminado de este grupo. Podés verlo, pero no comentar ni volver a unirte.</Text>}
         {!miEstado.baneado && miEstado.silenciado && <Text style={styles.suspendidoAviso}>Un admin te silenció en este grupo.</Text>}
-        <CommentThread targetType="group" targetId={groupId} groupId={groupId} navigation={navigation} soloLectura={suspendido || miEstado.baneado || miEstado.silenciado} />
+        <CommentThread
+          targetType="group"
+          targetId={groupId}
+          groupId={groupId}
+          navigation={navigation}
+          soloLectura={suspendido || miEstado.baneado || miEstado.silenciado || soyMiembro === false}
+        />
       </View>
     </ScrollView>
 
@@ -156,6 +234,9 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
       onCerrar={() => setMenuVisible(false)}
       titulo={groupName}
       opciones={[
+        ...(userId && grupo?.creator_id === userId
+          ? [{ label: t("Cambiar banner"), icono: "image-outline" as const, onPress: cambiarBanner }]
+          : []),
         { label: silenciadoPersonal ? t("Dejar de silenciar") : t("Silenciar grupo"), icono: "volume-mute-outline", onPress: toggleSilencioPersonal },
         { label: t("Salir del grupo"), icono: "exit-outline", destructivo: true, onPress: () => { setMenuVisible(false); setConfirmSalirVisible(true); } },
         { label: t("Denunciar"), icono: "flag-outline", destructivo: true, onPress: () => { setMenuVisible(false); setReportVisible(true); } },
@@ -191,9 +272,11 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   banner: { width: "100%", aspectRatio: 16 / 9, backgroundColor: theme.colors.surfaceAlt },
-  recomendarBtnFlotante: { position: "absolute", top: 12, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
-  menuBtnFlotante: { position: "absolute", top: 12, right: 56, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
+  recomendarBtnFlotante: { position: "absolute", top: 56, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
+  menuBtnFlotante: { position: "absolute", top: 12, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
   menuBtnFlotanteTexto: { fontSize: 20, color: "#FFFFFF" },
+  unirmeBtn: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 12, alignItems: "center", marginTop: 12 },
+  unirmeBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 14 },
   container: { padding: 16 },
   titulo: { fontSize: 20, fontWeight: "700" },
   descripcion: { fontSize: 13, color: theme.colors.textMuted, marginTop: 4 },

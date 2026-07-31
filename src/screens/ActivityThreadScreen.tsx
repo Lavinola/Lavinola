@@ -24,6 +24,8 @@ import ActionSheetModal from "../components/ActionSheetModal";
 import ReportModal from "../components/ReportModal";
 import ConfirmModal from "../components/ConfirmModal";
 import { posterUrl } from "../lib/tmdb";
+import { obtenerPortadasDeLista } from "../lib/lists";
+import QueVemosModal from "../components/QueVemosModal";
 import { formatearFechaHora } from "../lib/dates";
 import { traducirTexto, idiomaCorto } from "../lib/translate";
 import { useT } from "../i18n/i18n";
@@ -50,7 +52,9 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
   const [gifElegido, setGifElegido] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [compatibilidad, setCompatibilidad] = useState<number | null>(null);
-  const [previews, setPreviews] = useState<Record<string, { nombre: string; poster_path: string | null; subtitulo: string | null }>>({});
+  const [queVemosVisible, setQueVemosVisible] = useState(false);
+  const [miPais, setMiPais] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<Record<string, { nombre: string; poster_path: string | null; subtitulo: string | null; posters?: (string | null)[] }>>({});
   const [otroAvatarUrl, setOtroAvatarUrl] = useState<string | null>(null);
   const [otroEsAdmin, setOtroEsAdmin] = useState(false);
   const [silenciado, setSilenciado] = useState(false);
@@ -100,13 +104,14 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     if (uid) {
       marcarChatLeido(chatId, uid);
       marcarNotificacionesDeChatComoLeidas(uid, chatId);
+      const { data: miPerfil } = await supabase.from("profiles").select("country").eq("id", uid).maybeSingle();
+      setMiPais(miPerfil?.country ?? "AR");
     }
     if (otroUserId) {
       const { data: perfil } = await supabase.from("profiles").select("avatar_url, is_admin").eq("id", otroUserId).maybeSingle();
       setOtroAvatarUrl(perfil?.avatar_url ?? null);
       setOtroEsAdmin(!!perfil?.is_admin);
       setOtroLastReadAt(await obtenerUltimaLecturaDelOtro(chatId, otroUserId));
-      if (uid) setCompatibilidad(await calcularCompatibilidad(uid, otroUserId));
     }
     await cargarEstadoChat(uid);
   }
@@ -165,7 +170,10 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
         if (g) setPreviews((prev) => ({ ...prev, [clave]: { nombre: g.name, poster_path: g.photo_url, subtitulo: null } }));
       } else if (m.shared_list_id) {
         const { data: l } = await supabase.from("lists").select("title").eq("id", m.shared_list_id).maybeSingle();
-        if (l) setPreviews((prev) => ({ ...prev, [clave]: { nombre: l.title, poster_path: null, subtitulo: null } }));
+        if (l) {
+          const posters = await obtenerPortadasDeLista(m.shared_list_id);
+          setPreviews((prev) => ({ ...prev, [clave]: { nombre: l.title, poster_path: null, subtitulo: null, posters } }));
+        }
       }
     }
   }
@@ -297,13 +305,15 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             <Text style={styles.tituloNombre} numberOfLines={1}>
               {otroUsername ?? t("Conversación")} {silenciado && "🔇"}
-              {compatibilidad !== null && (
-                <Text style={styles.tituloCompatibilidad}> · {compatibilidad}% {t("de Gustos en común")}</Text>
-              )}
             </Text>
             {otroEsAdmin && <AdminBadge />}
           </View>
         </Pressable>
+        {otroUserId && (
+          <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
+            <Text style={styles.queVemosBtnTexto}>{t("¿Qué vemos?")}</Text>
+          </Pressable>
+        )}
         <Pressable style={styles.tituloMenuBtn} onPress={() => setMenuVisible(true)} hitSlop={10}>
           <Text style={styles.tituloMenuBtnTexto}>⋯</Text>
         </Pressable>
@@ -317,6 +327,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
         renderItem={({ item }) => {
           const esMio = item.sender_id === userId;
           const esLista = !!item.shared_list_id;
+          const esQueVemos = !!item.es_que_vemos;
           const clave = item.tmdb_id ? `title-${item.tmdb_id}` : item.shared_group_id ? `group-${item.shared_group_id}` : `list-${item.shared_list_id}`;
           const preview = item.kind === "shared_title" ? previews[clave] : null;
           const leido = esMio && !!otroLastReadAt && otroLastReadAt >= item.created_at;
@@ -330,18 +341,32 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
           }
 
           return (
-            <Pressable onLongPress={() => tocarMensaje(item)} delayLongPress={350}>
+            <Pressable onLongPress={() => tocarMensaje(item)} delayLongPress={350} style={esQueVemos ? { alignItems: "center" } : undefined}>
               <View
                 style={[
                   styles.burbuja,
                   esMio ? styles.burbujaPropia : styles.burbujaAjena,
                   item.kind === "shared_title" && !esLista && styles.burbujaRecomendacion,
+                  esQueVemos && styles.burbujaQueVemos,
                 ]}
               >
                 {item.kind === "shared_title" && esLista && (
                   <Pressable onPress={() => abrirRecomendacion(item)}>
                     <Text style={styles.recomendacionEtiqueta}>{esMio ? t("Recomendaste la lista") : t("Te recomendó la lista")}</Text>
                     <Text style={styles.listaLinkTexto}>{preview?.nombre ?? "..."}</Text>
+                    {preview?.posters && preview.posters.length > 0 && (
+                      <View style={styles.listaPostersRowChat}>
+                        {preview.posters.map((p, i) => (
+                          <View key={i} style={styles.listaPosterChat}>
+                            {p ? (
+                              <Image source={{ uri: posterUrl(p, "w185")! }} style={styles.listaPosterChatImg} />
+                            ) : (
+                              <View style={[styles.listaPosterChatImg, { backgroundColor: theme.colors.surfaceAlt }]} />
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    )}
                   </Pressable>
                 )}
                 {item.kind === "shared_title" && !esLista && (
@@ -357,13 +382,17 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                       </View>
                     )}
                     <View style={styles.recomendacionTextos}>
-                      <Text style={styles.recomendacionEtiqueta}>
-                        {esMio ? t("Recomendaste") : t("Te recomendó")} {item.shared_group_id ? t("el grupo ") : ""}
+                      <Text style={[styles.recomendacionEtiqueta, esQueVemos && styles.textoQueVemos]}>
+                        {esQueVemos
+                          ? item.item_type === "series"
+                            ? t("Hoy empezamos:")
+                            : t("Hoy vemos:")
+                          : `${esMio ? t("Recomendaste") : t("Te recomendó")} ${item.shared_group_id ? t("el grupo ") : ""}`}
                       </Text>
-                      <Text style={styles.recomendacionTitulo} numberOfLines={2}>
+                      <Text style={[styles.recomendacionTitulo, esQueVemos && styles.textoQueVemos]} numberOfLines={2}>
                         {preview?.nombre ?? "..."}
                       </Text>
-                      {preview?.subtitulo && <Text style={styles.recomendacionSub}>{preview.subtitulo}</Text>}
+                      {preview?.subtitulo && <Text style={[styles.recomendacionSub, esQueVemos && styles.textoQueVemos]}>{preview.subtitulo}</Text>}
                     </View>
                   </Pressable>
                 )}
@@ -507,6 +536,17 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
         { label: t("Eliminar"), destacado: true, onPress: confirmarEliminarMensaje },
       ]}
     />
+    {otroUserId && userId && (
+      <QueVemosModal
+        visible={queVemosVisible}
+        onCerrar={() => setQueVemosVisible(false)}
+        chatId={chatId}
+        userId={userId}
+        otroUserId={otroUserId}
+        watchRegion={miPais ?? "AR"}
+        onEnviado={cargar}
+      />
+    )}
     </>
   );
 }
@@ -524,12 +564,16 @@ const styles = StyleSheet.create({
   tituloBox: { flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   tituloAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
   tituloMenuBtn: { paddingHorizontal: 8, paddingVertical: 6 },
+  queVemosBtn: { backgroundColor: "#000000", borderWidth: 1, borderColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 7, paddingHorizontal: 10, marginRight: 4 },
+  queVemosBtnTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 12 },
   tituloMenuBtnTexto: { fontSize: 22, color: theme.colors.textMuted },
   tituloNombre: { fontSize: 16, fontWeight: "700", flex: 1 },
   tituloCompatibilidad: { fontSize: 13, fontWeight: "400", color: theme.colors.textMuted },
   // Ahora al revés de como estaba: mis mensajes en gris/negro, los del otro en violeta.
   burbuja: { padding: 10, borderRadius: theme.radius.md, marginBottom: 8, maxWidth: "80%" },
   burbujaRecomendacion: { width: "75%", maxWidth: "75%" },
+  burbujaQueVemos: { alignSelf: "center", backgroundColor: theme.colors.primaryLight },
+  textoQueVemos: { color: "#000000", opacity: 1 },
   burbujaPropia: { backgroundColor: theme.colors.surfaceAlt, alignSelf: "flex-end" },
   burbujaAjena: { backgroundColor: "#3D1750", alignSelf: "flex-start" },
   burbujaFecha: { fontSize: 9, opacity: 0.6, marginTop: 4, textAlign: "right" },
@@ -568,6 +612,9 @@ const styles = StyleSheet.create({
   recomendacionTitulo: { fontSize: 13, fontWeight: "700", marginTop: 1 },
   recomendacionSub: { fontSize: 11, opacity: 0.75, marginTop: 2 },
   listaLinkTexto: { fontSize: 14, fontWeight: "700", textDecorationLine: "underline", marginTop: 2, marginBottom: 4 },
+  listaPostersRowChat: { flexDirection: "row", gap: 5, marginTop: 2 },
+  listaPosterChat: { width: 40, aspectRatio: 2 / 3 },
+  listaPosterChatImg: { width: "100%", height: "100%", borderRadius: 4 },
   recomendacionFecha: { fontSize: 9, opacity: 0.6, marginTop: 4, textAlign: "right" },
   gifEnBurbuja: { width: 140, height: 140, borderRadius: 8, marginTop: 4, backgroundColor: theme.colors.surfaceAlt },
   gifPreviewRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingTop: 8, gap: 10 },

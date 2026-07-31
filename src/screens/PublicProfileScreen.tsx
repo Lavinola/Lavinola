@@ -346,9 +346,9 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
           </View>
         </View>
         {puedeVer && nivelInsigniaNumero != null && (
-          <Pressable onPress={() => navigation.navigate("Insignias")} hitSlop={8}>
+          <View>
             <InsigniaChica nivel={nivelInsigniaNumero} size={104} />
-          </Pressable>
+          </View>
         )}
       </View>
       {puedeVer && (perfil as any).favorite_quote ? (
@@ -452,31 +452,6 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
               onVerTodo={() => navigation.navigate("TodasLasSeries", { targetUserId: targetId })}
             />
           )}
-          {grupos.length > 0 && (
-            <View style={styles.filaMiniWrap}>
-              <View style={styles.filaMiniHeader}>
-                <Text style={styles.seccionTitulo}>{t("Grupos")}</Text>
-              </View>
-              <FlatList
-                horizontal
-                data={grupos}
-                keyExtractor={(g) => g.id}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 10 }}
-                renderItem={({ item }) => (
-                  <Pressable style={styles.grupoCard} onPress={() => navigation.navigate("DetalleGrupo", { groupId: item.id, groupName: item.name })}>
-                    {item.photo_url ? (
-                      <Image source={{ uri: item.photo_url }} style={styles.grupoFoto} />
-                    ) : (
-                      <View style={[styles.grupoFoto, { backgroundColor: theme.colors.surfaceAlt }]} />
-                    )}
-                    <Text numberOfLines={1} style={styles.grupoNombre}>{item.name}</Text>
-                  </Pressable>
-                )}
-              />
-            </View>
-          )}
-
           {listas.length > 0 && (
             <View style={styles.filaMiniWrap}>
               <View style={styles.filaMiniHeader}>
@@ -504,6 +479,31 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
                   <Text style={styles.masListas}>{t("Más")}</Text>
                 </Pressable>
               )}
+            </View>
+          )}
+
+          {grupos.length > 0 && (
+            <View style={styles.filaMiniWrap}>
+              <View style={styles.filaMiniHeader}>
+                <Text style={styles.seccionTitulo}>{t("Grupos")}</Text>
+              </View>
+              <FlatList
+                horizontal
+                data={grupos}
+                keyExtractor={(g) => g.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 10 }}
+                renderItem={({ item }) => (
+                  <Pressable style={styles.grupoCard} onPress={() => navigation.navigate("DetalleGrupo", { groupId: item.id, groupName: item.name })}>
+                    {item.photo_url ? (
+                      <Image source={{ uri: item.photo_url }} style={styles.grupoFoto} />
+                    ) : (
+                      <View style={[styles.grupoFoto, { backgroundColor: theme.colors.surfaceAlt }]} />
+                    )}
+                    <Text numberOfLines={1} style={styles.grupoNombre}>{item.name}</Text>
+                  </Pressable>
+                )}
+              />
             </View>
           )}
         </>
@@ -681,6 +681,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 20,
+    marginHorizontal: -16, // cancela el paddingHorizontal de filaMiniWrap, así la línea llega de punta a punta
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderTopWidth: 1,

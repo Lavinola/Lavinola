@@ -17,6 +17,10 @@ export interface Grupo {
 
 export type OrdenGrupos = "popularidad" | "alfabetico" | "fecha" | "ultimo_mensaje";
 
+export async function actualizarBannerGrupo(groupId: string, bannerUrl: string) {
+  await supabase.from("groups").update({ banner_url: bannerUrl }).eq("id", groupId);
+}
+
 export async function crearGrupo(params: {
   creatorId: string;
   name: string;

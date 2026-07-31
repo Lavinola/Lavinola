@@ -42,7 +42,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
   const [favoritos, setFavoritos] = useState<Favorito[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<FiltroEstadoPelicula>("todo");
-  const [orden, setOrden] = useState<Orden>(soloFavoritas ? "personalizado" : "añadida");
+  const [orden, setOrden] = useState<Orden>(soloFavoritas ? "personalizado" : "vista");
   const [ascendente, setAscendente] = useState(false);
   const [generoId, setGeneroId] = useState<number | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);

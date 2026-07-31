@@ -10,8 +10,8 @@ export type OrdenPeliculas = "personalizado" | "añadida" | "vista" | "alfabetic
 export type FiltroEstadoPelicula = "todo" | "vista" | "no_vista";
 
 const OPCIONES_ORDEN: { key: OrdenPeliculas; label: string }[] = [
-  { key: "añadida", label: "Últimas añadidas" },
   { key: "vista", label: "Últimas vistas" },
+  { key: "añadida", label: "Últimas añadidas" },
 ];
 
 const OPCIONES_ESTADO: { key: FiltroEstadoPelicula; label: string }[] = [
@@ -159,7 +159,7 @@ export default function FiltroPeliculasModal({
                 title={t("Restablecer")}
                 variant="outline"
                 onPress={() => {
-                  setOrden(mostrarOrdenPropio ? "personalizado" : soloOpcionesBasicas ? "alfabetico" : "añadida");
+                  setOrden(mostrarOrdenPropio ? "personalizado" : soloOpcionesBasicas ? "alfabetico" : "vista");
                   setAscendente(false);
                   setFiltro("todo");
                   setGeneroId(null);

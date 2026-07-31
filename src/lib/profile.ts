@@ -79,7 +79,17 @@ export async function getStatsSociales(userId: string): Promise<StatsSociales> {
   const [{ count: siguiendo }, { count: seguidores }, { count: comentarios }, { count: posts }] = await Promise.all([
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", userId),
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("followee_id", userId),
-    supabase.from("comentarios").select("*", { count: "exact", head: true }).eq("user_id", userId),
+    // Solo cuenta lo que realmente vas a ver al entrar a "Posts/Comentarios"
+    // de este perfil: comentarios de nivel raíz (no respuestas) hechos en
+    // la ficha de una película/serie/capítulo. NO cuenta comentarios en
+    // grupos, ni comentarios a un post ajeno, ni respuestas a otro
+    // comentario — esas cosas no aparecen en esa pantalla.
+    supabase
+      .from("comentarios")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .is("parent_comment_id", null)
+      .in("target_type", ["series", "movie", "episode"]),
     supabase.from("posts").select("*", { count: "exact", head: true }).eq("user_id", userId),
   ]);
   return { siguiendo: siguiendo ?? 0, seguidores: seguidores ?? 0, comentarios: (comentarios ?? 0) + (posts ?? 0) };

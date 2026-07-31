@@ -9,6 +9,7 @@ import { Text, AppButton } from "./Themed";
 import { DatosRecap } from "../lib/recap";
 import { subirImagenRecap, publicarRecapEnLobby } from "../lib/recapShare";
 import { posterUrl } from "../lib/tmdb";
+import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
 interface Props {
@@ -24,6 +25,7 @@ const ANCHO_TARJETA = Math.min(ANCHO_PANTALLA - 40, 340);
 const ALTO_TARJETA = (ANCHO_TARJETA * 16) / 9;
 
 export default function RecapModal({ visible, onCerrar, datos, cargando, userId }: Props) {
+  const { t } = useT();
   const viewShotRef = useRef<ViewShot>(null);
   const [descargando, setDescargando] = useState(false);
   const [compartiendo, setCompartiendo] = useState(false);
@@ -45,7 +47,7 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
     setDescargando(true);
     try {
       const uri = await capturar();
-      if (!uri) throw new Error("No se pudo generar la imagen.");
+      if (!uri) throw new Error(t("No se pudo generar la imagen."));
 
       // En la web no existe "galería del celular" — en vez de eso, disparamos
       // la descarga normal del navegador.
@@ -61,13 +63,13 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
 
       const permiso = await MediaLibrary.requestPermissionsAsync();
       if (!permiso.granted) {
-        Alert.alert("Sin permiso", "Necesitamos permiso para guardar la imagen en tu galería.");
+        Alert.alert(t("Sin permiso"), t("Necesitamos permiso para guardar la imagen en tu galería."));
         return;
       }
       await MediaLibrary.saveToLibraryAsync(uri);
-      Alert.alert("Listo", "Guardamos la imagen en tu galería.");
+      Alert.alert(t("Listo"), t("Guardamos la imagen en tu galería."));
     } catch (e: any) {
-      Alert.alert("No se pudo descargar", e.message);
+      Alert.alert(t("No se pudo descargar"), e.message);
     } finally {
       setDescargando(false);
     }
@@ -77,7 +79,7 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
     setCompartiendo(true);
     try {
       const uri = await capturar();
-      if (!uri) throw new Error("No se pudo generar la imagen.");
+      if (!uri) throw new Error(t("No se pudo generar la imagen."));
 
       if (Platform.OS === "web") {
         // Algunos navegadores (sobre todo en celular) sí tienen su propio
@@ -99,12 +101,12 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
 
       const disponible = await Sharing.isAvailableAsync();
       if (!disponible) {
-        Alert.alert("No disponible", "Tu dispositivo no permite compartir archivos.");
+        Alert.alert(t("No disponible"), t("Tu dispositivo no permite compartir archivos."));
         return;
       }
       await Sharing.shareAsync(uri);
     } catch (e: any) {
-      Alert.alert("No se pudo compartir", e.message);
+      Alert.alert(t("No se pudo compartir"), e.message);
     } finally {
       setCompartiendo(false);
     }
@@ -115,14 +117,14 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
     setPublicando(true);
     try {
       const uri = await capturar();
-      if (!uri) throw new Error("No se pudo generar la imagen.");
+      if (!uri) throw new Error(t("No se pudo generar la imagen."));
       const imageUrl = await subirImagenRecap(userId, uri);
       await publicarRecapEnLobby(userId, imageUrl, mensajePost);
       setPublicarVisible(false);
       setMensajePost("");
-      Alert.alert("¡Publicado!", "Tu Lavinola Recap ya está en el Lobby.");
+      Alert.alert(t("¡Publicado!"), t("Tu Lavinola Recap ya está en el Lobby."));
     } catch (e: any) {
-      Alert.alert("No se pudo publicar", e.message);
+      Alert.alert(t("No se pudo publicar"), e.message);
     } finally {
       setPublicando(false);
     }
@@ -160,26 +162,26 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
                     LAVINOLA RECAP {datos.year}
                   </Text>
                   <Text style={styles.subtitulo} numberOfLines={2}>
-                    Fin de Temporada, aquí está tu Lavinola Recap {datos.year}
+                    {t("Fin de Temporada, aquí está tu Lavinola Recap {year}").replace("{year}", String(datos.year))}
                   </Text>
 
                   <View style={styles.horasRow}>
                     <View style={styles.horasMitad}>
                       <Ionicons name="film" size={18} color={theme.colors.primaryLight} />
                       <Text style={styles.horasNumero}>{datos.horasPeliculas}h</Text>
-                      <Text style={styles.horasLabel}>viendo películas</Text>
+                      <Text style={styles.horasLabel}>{t("viendo películas")}</Text>
                     </View>
                     <View style={styles.horasDivisor} />
                     <View style={styles.horasMitad}>
                       <Ionicons name="tv" size={18} color={theme.colors.primaryLight} />
                       <Text style={styles.horasNumero}>{datos.horasSeries}h</Text>
-                      <Text style={styles.horasLabel}>viendo series</Text>
+                      <Text style={styles.horasLabel}>{t("viendo series")}</Text>
                     </View>
                   </View>
 
                   {datos.topPeliculas.length > 0 && (
                     <View style={styles.seccion}>
-                      <Text style={styles.seccionTitulo}>Tus películas favoritas</Text>
+                      <Text style={styles.seccionTitulo}>{t("Tus películas favoritas")}</Text>
                       <View style={styles.tiraRow}>
                         {datos.topPeliculas.map((p, i) => (
                           <MiniPoster key={p.tmdb_id} numero={i + 1} posterPath={p.poster_path} />
@@ -190,7 +192,7 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
 
                   {datos.topSeries.length > 0 && (
                     <View style={styles.seccion}>
-                      <Text style={styles.seccionTitulo}>Tus series favoritas</Text>
+                      <Text style={styles.seccionTitulo}>{t("Tus series favoritas")}</Text>
                       <View style={styles.tiraRow}>
                         {datos.topSeries.map((s, i) => (
                           <MiniPoster key={s.tmdb_id} numero={i + 1} posterPath={s.poster_path} />
@@ -201,16 +203,16 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
 
                   {datos.topGeneros.length > 0 && (
                     <View style={styles.seccion}>
-                      <Text style={styles.seccionTitulo}>Tus géneros favoritos</Text>
+                      <Text style={styles.seccionTitulo}>{t("Tus géneros favoritos")}</Text>
                       <Text style={styles.generosTexto} numberOfLines={1}>
-                        {datos.topGeneros.map((g, i) => `${i + 1}. ${g}`).join("   ")}
+                        {datos.topGeneros.map((g, i) => `${i + 1}. ${t(g)}`).join("   ")}
                       </Text>
                     </View>
                   )}
 
                   {datos.topEpisodios.length > 0 && (
                     <View style={styles.seccion}>
-                      <Text style={styles.seccionTitulo}>Tus capítulos favoritos</Text>
+                      <Text style={styles.seccionTitulo}>{t("Tus capítulos favoritos")}</Text>
                       <View style={styles.tiraRow}>
                         {datos.topEpisodios.map((e, i) => (
                           <MiniPoster key={`${e.series_tmdb_id}-${e.season_number}-${e.episode_number}`} numero={i + 1} posterPath={e.poster_path} />
@@ -219,7 +221,7 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
                     </View>
                   )}
 
-                  <Text style={styles.pie}>Gracias por acompañarnos este año 💜</Text>
+                  <Text style={styles.pie}>{t("Gracias por acompañarnos este año 💜")}</Text>
                 </View>
               </View>
             </ViewShot>
@@ -242,14 +244,14 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
       <Modal visible={publicarVisible} transparent animationType="fade" onRequestClose={() => setPublicarVisible(false)}>
         <View style={styles.publicarFondo}>
           <View style={styles.publicarBox}>
-            <Text style={styles.publicarTitulo}>Publicar en el Lobby</Text>
+            <Text style={styles.publicarTitulo}>{t("Publicar en el Lobby")}</Text>
             <View style={styles.publicarPreview}>
               {posterCollage[0] && <Image source={{ uri: posterUrl(posterCollage[0], "w185")! }} style={{ width: 40, height: 60, borderRadius: 4, opacity: 0.5 }} />}
-              <Text style={styles.publicarPreviewTexto}>Se va a ver la imagen de tu Recap, en buen tamaño, arriba del post</Text>
+              <Text style={styles.publicarPreviewTexto}>{t("Se va a ver la imagen de tu Recap, en buen tamaño, arriba del post")}</Text>
             </View>
             <TextInput
               style={styles.publicarInput}
-              placeholder="Escribí algo (opcional)..."
+              placeholder={t("Escribí algo (opcional)...")}
               placeholderTextColor={theme.colors.textFaint}
               value={mensajePost}
               onChangeText={setMensajePost}
@@ -258,10 +260,10 @@ export default function RecapModal({ visible, onCerrar, datos, cargando, userId 
             />
             <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
               <View style={{ flex: 1 }}>
-                <AppButton title="Cancelar" variant="outline" onPress={() => setPublicarVisible(false)} disabled={publicando} />
+                <AppButton title={t("Cancelar")} variant="outline" onPress={() => setPublicarVisible(false)} disabled={publicando} />
               </View>
               <View style={{ flex: 1 }}>
-                <AppButton title={publicando ? "Publicando..." : "Publicar"} onPress={publicarEnLobby} disabled={publicando} />
+                <AppButton title={publicando ? t("Publicando...") : t("Publicar")} onPress={publicarEnLobby} disabled={publicando} />
               </View>
             </View>
           </View>

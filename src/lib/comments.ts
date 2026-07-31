@@ -245,6 +245,7 @@ export async function misComentarios(userId: string): Promise<ComentarioPropio[]
     .from("comentarios")
     .select("id, content, gif_url, created_at, target_type, target_id, group_id")
     .eq("user_id", userId)
+    .is("parent_comment_id", null)
     .in("target_type", ["series", "movie", "episode"])
     .order("created_at", { ascending: false });
   if (error) throw error;

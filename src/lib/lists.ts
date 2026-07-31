@@ -219,3 +219,25 @@ export async function notificarAgregadoALista(listId: string, itemsAgregados: { 
     }))
   );
 }
+
+/** Hasta 5 tapas de una lista (en el orden en que se agregaron), para mostrar una previsualización — usado en el chat al recomendar una lista. */
+export async function obtenerPortadasDeLista(listId: string): Promise<(string | null)[]> {
+  const { data: itemsRows } = await supabase
+    .from("list_items")
+    .select("item_type, tmdb_id")
+    .eq("list_id", listId)
+    .order("added_at", { ascending: true })
+    .limit(5);
+  const items = itemsRows ?? [];
+  const idsSeries = items.filter((i) => i.item_type === "series").map((i) => i.tmdb_id);
+  const idsMovies = items.filter((i) => i.item_type === "movie").map((i) => i.tmdb_id);
+  const [{ data: series }, { data: movies }] = await Promise.all([
+    idsSeries.length ? supabase.from("series_cache").select("tmdb_id, poster_path").in("tmdb_id", idsSeries) : Promise.resolve({ data: [] as any[] }),
+    idsMovies.length ? supabase.from("movies_cache").select("tmdb_id, poster_path").in("tmdb_id", idsMovies) : Promise.resolve({ data: [] as any[] }),
+  ]);
+  const posterSerie: Record<number, string | null> = {};
+  (series ?? []).forEach((s: any) => (posterSerie[s.tmdb_id] = s.poster_path));
+  const posterMovie: Record<number, string | null> = {};
+  (movies ?? []).forEach((m: any) => (posterMovie[m.tmdb_id] = m.poster_path));
+  return items.map((it) => (it.item_type === "series" ? posterSerie[it.tmdb_id] ?? null : posterMovie[it.tmdb_id] ?? null));
+}

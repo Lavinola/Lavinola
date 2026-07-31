@@ -233,7 +233,7 @@ export default function ProfileScreen({ navigation }: any) {
         {recapBannerVisible && recapYear && (
           <Pressable style={styles.recapBanner} onPress={() => abrirRecap(recapYear, false)}>
             <Text style={styles.recapBannerTexto}>LAVINOLA RECAP {recapYear}</Text>
-            <Text style={styles.recapBannerSub}>Tocá para volver a verlo ›</Text>
+            <Text style={styles.recapBannerSub}>{t("Tocá para volver a verlo ›")}</Text>
           </Pressable>
         )}
       </View>
