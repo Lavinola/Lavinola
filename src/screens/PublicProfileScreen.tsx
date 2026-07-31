@@ -405,7 +405,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
                 <Ionicons name="film" size={22} color={theme.colors.primaryLight} />
                 <Text style={styles.statCardTitulo}>{t("Películas")}</Text>
                 <Text style={styles.statCardLabel}>{t("Tiempo dedicado")}</Text>
-                <TiempoDedicadoTexto minutos={statsTiempo.minutosPeliculas} style={styles.statValue} />
+                <TiempoDedicadoTexto minutos={statsTiempo.minutosPeliculas} tamanoNumero={17} />
                 <Text style={styles.statCardLabel}>{t("Películas vistas")}</Text>
                 <Text style={styles.statValue}>{statsTiempo.peliculasVistas}</Text>
               </View>
@@ -413,7 +413,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
                 <Ionicons name="tv" size={22} color={theme.colors.primaryLight} />
                 <Text style={styles.statCardTitulo}>{t("Series")}</Text>
                 <Text style={styles.statCardLabel}>{t("Tiempo dedicado")}</Text>
-                <TiempoDedicadoTexto minutos={statsTiempo.minutosSeries} style={styles.statValue} />
+                <TiempoDedicadoTexto minutos={statsTiempo.minutosSeries} tamanoNumero={17} />
                 <Text style={styles.statCardLabel}>{t("Episodios vistos")}</Text>
                 <Text style={styles.statValue}>{statsTiempo.capitulos}</Text>
               </View>

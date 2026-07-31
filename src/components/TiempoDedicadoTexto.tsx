@@ -1,48 +1,38 @@
 import React from "react";
-import { Text, TextStyle, StyleProp } from "react-native";
+import { Text } from "./Themed";
 import { formatTiempo } from "../lib/stats";
-import { theme } from "../theme";
 
 interface Props {
   minutos: number;
-  style?: StyleProp<TextStyle>; // estilo de los números (letras van un toque más chicas que esto)
+  tamanoNumero?: number; // tamaño de los números — las letras (A/M/D/H) salen un poco más chicas que esto
+  color?: string; // mismo color para números y letras (antes las letras quedaban en gris por error)
 }
 
 /**
- * Muestra "1A 0M 3D 18H" (o "2M 18D 8H" si todavía no hay años) — los
- * números quedan al tamaño que se les pase, y las letras (A/M/D/H) van en
- * mayúscula pero un size menos que los números.
+ * Muestra "1A 0M 3D 18H" (o "2M 18D 8H" si todavía no hay años). Usa el
+ * Text propio de la app (no el de react-native puro) para heredar bien el
+ * color por defecto — antes, al usar el de react-native, los números
+ * quedaban en negro en vez de blanco.
  */
-export default function TiempoDedicadoTexto({ minutos, style }: Props) {
+export default function TiempoDedicadoTexto({ minutos, tamanoNumero = 17, color }: Props) {
   const { anios, meses, dias, horas } = formatTiempo(minutos);
-  const tamanoNumero = (planarizarEstilo(style)?.fontSize as number) ?? 15;
-  const letra = { fontSize: Math.max(tamanoNumero - 2, 9), fontWeight: "700" as const, color: theme.colors.textMuted };
+  const estiloNumero = { fontSize: tamanoNumero, fontWeight: "700" as const, ...(color ? { color } : {}) };
+  const estiloLetra = { fontSize: Math.max(tamanoNumero - 4, 9), fontWeight: "700" as const, ...(color ? { color } : {}) };
 
   return (
-    <Text style={style}>
+    <Text>
       {anios > 0 && (
         <>
-          {anios}
-          <Text style={letra}>A </Text>
+          <Text style={estiloNumero}>{anios}</Text>
+          <Text style={estiloLetra}>A </Text>
         </>
       )}
-      {meses}
-      <Text style={letra}>M </Text>
-      {dias}
-      <Text style={letra}>D </Text>
-      {horas}
-      <Text style={letra}>H</Text>
+      <Text style={estiloNumero}>{meses}</Text>
+      <Text style={estiloLetra}>M </Text>
+      <Text style={estiloNumero}>{dias}</Text>
+      <Text style={estiloLetra}>D </Text>
+      <Text style={estiloNumero}>{horas}</Text>
+      <Text style={estiloLetra}>H</Text>
     </Text>
   );
-}
-
-// Mini-helper para leer el fontSize del style pasado (puede venir como
-// objeto, array de objetos, o undefined) sin depender de StyleSheet.flatten
-// para no forzar un import extra acá.
-function planarizarEstilo(style: StyleProp<TextStyle>): TextStyle | undefined {
-  if (!style) return undefined;
-  if (Array.isArray(style)) {
-    return style.reduce<TextStyle>((acc, s) => ({ ...acc, ...(s as TextStyle) }), {});
-  }
-  return style as TextStyle;
 }

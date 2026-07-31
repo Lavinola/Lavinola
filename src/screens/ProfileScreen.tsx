@@ -286,7 +286,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Ionicons name="film" size={22} color={theme.colors.primaryLight} />
           <Text style={styles.statCardTitulo}>{t("Películas")}</Text>
           <Text style={styles.statCardLabel}>{t("Tiempo dedicado")}</Text>
-          <TiempoDedicadoTexto minutos={stats?.minutosPeliculasVistas ?? 0} style={styles.statValue} />
+          <TiempoDedicadoTexto minutos={stats?.minutosPeliculasVistas ?? 0} tamanoNumero={17} />
           <Text style={styles.statCardLabel}>{t("Películas vistas")}</Text>
           <Text style={styles.statValue}>{stats?.peliculasVistas ?? 0}</Text>
         </View>
@@ -294,7 +294,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Ionicons name="tv" size={22} color={theme.colors.primaryLight} />
           <Text style={styles.statCardTitulo}>{t("Series")}</Text>
           <Text style={styles.statCardLabel}>{t("Tiempo dedicado")}</Text>
-          <TiempoDedicadoTexto minutos={stats?.minutosSeriesVistas ?? 0} style={styles.statValue} />
+          <TiempoDedicadoTexto minutos={stats?.minutosSeriesVistas ?? 0} tamanoNumero={17} />
           <Text style={styles.statCardLabel}>{t("Episodios vistos")}</Text>
           <Text style={styles.statValue}>{stats?.capitulosVistos ?? 0}</Text>
         </View>
