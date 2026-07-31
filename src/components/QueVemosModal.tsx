@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Modal, View, Pressable, Image, ActivityIndicator, StyleSheet } from "react-native";
-import { Alert } from "../lib/alert";
 import { Text } from "./Themed";
 import { GENEROS_PELICULAS, GENEROS_SERIES } from "../lib/tmdbGenres";
 import { getWatchProvidersDisponibles, GrupoPlataforma, posterUrl } from "../lib/tmdb";
@@ -28,6 +27,7 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
   const [plataformasElegidas, setPlataformasElegidas] = useState<Set<string>>(new Set());
   const [buscando, setBuscando] = useState(false);
   const [sinResultado, setSinResultado] = useState(false);
+  const [ayudaVisible, setAyudaVisible] = useState(false);
 
   useEffect(() => {
     if (!visible) {
@@ -37,6 +37,7 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
       setGenerosElegidos(new Set());
       setPlataformasElegidas(new Set());
       setSinResultado(false);
+      setAyudaVisible(false);
     }
   }, [visible]);
 
@@ -68,10 +69,7 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
   }
 
   function mostrarAyuda() {
-    Alert.alert(
-      t("¿Qué vemos?"),
-      t("Elegís si buscás película o serie, filtrás por género y plataforma si querés, y la app les recomienda algo para ver juntos — prioriza títulos que los dos ya tengan pendientes.")
-    );
+    setAyudaVisible((v) => !v);
   }
 
   async function buscar() {
@@ -80,7 +78,7 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
     setSinResultado(false);
     try {
       const idsPlataformas = plataformasDisponibles.filter((p) => plataformasElegidas.has(p.clave)).flatMap((p) => p.provider_ids);
-      const resultado = await elegirQueVemos(userId, otroUserId, tipo, [...generosElegidos], idsPlataformas, watchRegion);
+      const resultado = await elegirQueVemos(chatId, userId, otroUserId, tipo, [...generosElegidos], idsPlataformas, watchRegion);
       if (!resultado) {
         setSinResultado(true);
         return;
@@ -109,6 +107,16 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
               <Text style={styles.ayudaBotonTexto}>?</Text>
             </Pressable>
           </View>
+
+          {ayudaVisible && (
+            <View style={styles.ayudaCaja}>
+              <Text style={styles.ayudaCajaTexto}>
+                {t(
+                  "Elegís si buscás película o serie, filtrás por género y plataforma si querés, y la app les recomienda algo para ver juntos — prioriza títulos que los dos ya tengan pendientes."
+                )}
+              </Text>
+            </View>
+          )}
 
           {paso === "tipo" ? (
             <View style={styles.tipoRow}>
@@ -139,7 +147,10 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
 
               <Text style={styles.seccionTitulo}>{t("Plataforma")}</Text>
               <View style={styles.chipsWrap}>
-                <Pressable style={[styles.chip, plataformasElegidas.size === 0 && styles.chipActivo]} onPress={() => setPlataformasElegidas(new Set())}>
+                <Pressable
+                  style={[styles.chip, styles.chipPlataformaTodas, plataformasElegidas.size === 0 && styles.chipActivo]}
+                  onPress={() => setPlataformasElegidas(new Set())}
+                >
                   <Text style={[styles.chipTexto, plataformasElegidas.size === 0 && styles.chipTextoActivo]}>{t("Todas")}</Text>
                 </Pressable>
                 {plataformasDisponibles
@@ -186,11 +197,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ayudaBotonTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 12 },
+  ayudaCaja: { backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, padding: 10, marginBottom: 12 },
+  ayudaCajaTexto: { fontSize: 12, color: theme.colors.textMuted, lineHeight: 17 },
   tipoRow: { flexDirection: "row", gap: 10 },
   tipoBtn: { flex: 1, backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 18, alignItems: "center" },
   tipoBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 15 },
   seccionTitulo: { fontSize: 11, fontWeight: "800", color: theme.colors.textMuted, textTransform: "uppercase", marginTop: 4, marginBottom: 6 },
-  chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" },
+  chipPlataformaTodas: { height: 36, justifyContent: "center", paddingVertical: 0 },
   chip: { paddingVertical: 6, paddingHorizontal: 11, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceAlt },
   chipActivo: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
   chipTexto: { fontSize: 11.5, color: theme.colors.textMuted, fontWeight: "600" },

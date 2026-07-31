@@ -111,6 +111,13 @@ function elegirAlAzar<T>(lista: T[]): T {
   return lista[Math.floor(Math.random() * lista.length)];
 }
 
+/** Qué tmdb_ids ya recomendó la app en este chat (con "¿Qué vemos?") en las últimas 24hs — para no repetir. */
+async function obtenerRecomendadosUltimas24hs(chatId: string): Promise<Set<number>> {
+  const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabase.from("chat_messages").select("tmdb_id").eq("chat_id", chatId).eq("es_que_vemos", true).gte("created_at", desde);
+  return new Set((data ?? []).map((r: any) => r.tmdb_id).filter((id: number | null): id is number => id != null));
+}
+
 /** A partir de un grupo de candidatos, arma los 2-3 géneros más frecuentes (para el respaldo "lo más parecido"). */
 function generosMasFrecuentesDe(candidatos: CandidatoQueVemos[]): number[] {
   const conteo: Record<number, number> = {};
@@ -175,6 +182,7 @@ function mapResultado(r: any, tipo: "movie" | "series"): ResultadoQueVemos {
 }
 
 export async function elegirQueVemos(
+  chatId: string,
   userIdA: string,
   userIdB: string,
   tipo: "movie" | "series",
@@ -182,13 +190,20 @@ export async function elegirQueVemos(
   plataformas: number[],
   watchRegion: string
 ): Promise<ResultadoQueVemos | null> {
-  const [pendientesA, pendientesB] = await Promise.all([pendientesDeUsuario(userIdA, tipo), pendientesDeUsuario(userIdB, tipo)]);
+  const [pendientesA, pendientesB, recomendadosUltimas24hs] = await Promise.all([
+    pendientesDeUsuario(userIdA, tipo),
+    pendientesDeUsuario(userIdB, tipo),
+    obtenerRecomendadosUltimas24hs(chatId),
+  ]);
 
   const idsA = new Set(pendientesA.keys());
   const idsB = new Set(pendientesB.keys());
-  const idsExcluir = new Set([...idsA, ...idsB]); // para los respaldos por "discover", no tiene sentido recomendar algo que ya tiene alguno de los dos
+  // Para los respaldos por "discover" (parecido / tendencia), ni tiene
+  // sentido recomendar algo que ya tiene alguno de los dos, ni repetir algo
+  // que la app ya recomendó en este mismo chat en las últimas 24hs.
+  const idsExcluir = new Set([...idsA, ...idsB, ...recomendadosUltimas24hs]);
 
-  const compartidos = [...pendientesA.values()].filter((c) => idsB.has(c.tmdbId));
+  const compartidos = [...pendientesA.values()].filter((c) => idsB.has(c.tmdbId) && !recomendadosUltimas24hs.has(c.tmdbId));
 
   // TIER 1: comparten pendiente, y cumple los filtros elegidos.
   if (compartidos.length > 0) {
@@ -213,6 +228,7 @@ export async function elegirQueVemos(
 
   // TIER 2: no comparten nada pendiente — probamos con lo pendiente de CUALQUIERA de los dos, que cumpla filtros.
   const union = new Map<number, CandidatoQueVemos>([...pendientesA, ...pendientesB]);
+  for (const id of recomendadosUltimas24hs) union.delete(id);
   if (union.size > 0) {
     const porGenero = [...union.values()].filter((c) => cumpleGenero(c, generos));
     if (porGenero.length > 0) {
