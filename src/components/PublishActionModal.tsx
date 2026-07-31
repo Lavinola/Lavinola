@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Modal, TextInput, Pressable, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "./Themed";
-import { crearPost, crearPostDeLista } from "../lib/posts";
+import { crearPost, crearPostDeLista, crearPostDeGrupo } from "../lib/posts";
 import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
 import NivelUpModal from "./NivelUpModal";
 import { supabase } from "../lib/supabase";
@@ -21,6 +21,7 @@ interface Props {
     episodeNumber?: number | null;
   }; // si no viene (ej. listas), no se ofrece "Publicar en Lobby"
   publicarListaParams?: { listId: string }; // para publicar una LISTA propia en el Lobby
+  publicarGrupoParams?: { groupId: string }; // para publicar un GRUPO propio (público) en el Lobby
   modoInicial?: "menu" | "publicar"; // "publicar" salta directo al texto, sin pasar por el menú (para cuando ya se sabe que se quiere publicar, como desde el botón flotante)
 }
 
@@ -31,6 +32,7 @@ export default function PublishActionModal({
   recomendarParams,
   publicarParams,
   publicarListaParams,
+  publicarGrupoParams,
   modoInicial = "menu",
 }: Props) {
   const { t } = useT();
@@ -61,7 +63,7 @@ export default function PublishActionModal({
   }
 
   async function publicar() {
-    if (!texto.trim() || (!publicarParams && !publicarListaParams)) return;
+    if (!texto.trim() || (!publicarParams && !publicarListaParams && !publicarGrupoParams)) return;
     setPublicando(true);
     try {
       const { data } = await supabase.auth.getUser();
@@ -69,6 +71,8 @@ export default function PublishActionModal({
       if (!userId) return;
       if (publicarListaParams) {
         await crearPostDeLista({ userId, listId: publicarListaParams.listId, content: texto, hasSpoiler: false });
+      } else if (publicarGrupoParams) {
+        await crearPostDeGrupo({ userId, groupId: publicarGrupoParams.groupId, content: texto, hasSpoiler: false });
       } else if (publicarParams) {
         await crearPost({
           userId,
@@ -102,7 +106,7 @@ export default function PublishActionModal({
               <Pressable style={styles.opcionRect} onPress={irARecomendar}>
                 <Text style={styles.opcionRectTexto}>{t("Recomendar")}</Text>
               </Pressable>
-              {(publicarParams || publicarListaParams) && (
+              {(publicarParams || publicarListaParams || publicarGrupoParams) && (
                 <Pressable style={styles.opcionRect} onPress={() => setModo("publicar")}>
                   <Text style={styles.opcionRectTexto}>{t("Publicar en el Lobby")}</Text>
                 </Pressable>
@@ -121,7 +125,7 @@ export default function PublishActionModal({
                 editable={!publicado}
                 autoFocus
               />
-              {!publicarListaParams && (
+              {!publicarListaParams && !publicarGrupoParams && (
                 <Pressable style={styles.spoilerRow} onPress={() => !publicado && setEsSpoiler(!esSpoiler)}>
                   <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
                   <Text style={styles.spoilerLabel}>{t('¿Tiene spoiler? (aparece oculto hasta que alguien toque "Ver")')}</Text>

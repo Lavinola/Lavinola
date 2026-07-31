@@ -5,6 +5,7 @@ import CommentThread from "../components/CommentThread";
 import ActionSheetModal from "../components/ActionSheetModal";
 import ConfirmModal from "../components/ConfirmModal";
 import ReportModal from "../components/ReportModal";
+import PublishActionModal from "../components/PublishActionModal";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
@@ -35,6 +36,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
     description: string | null;
     comments_suspended_until: string | null;
     creator_id: string | null;
+    visibility: string | null;
   } | null>(null);
   const [miEstado, setMiEstado] = useState<{ baneado: boolean; silenciado: boolean }>({ baneado: false, silenciado: false });
   const [userId, setUserId] = useState<string | null>(null);
@@ -46,6 +48,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
   const [soyMiembro, setSoyMiembro] = useState<boolean | null>(null);
   const [uniendome, setUniendome] = useState(false);
   const [menuTapaBannerVisible, setMenuTapaBannerVisible] = useState(false);
+  const [publishModalVisible, setPublishModalVisible] = useState(false);
 
   useEffect(() => {
     cargarMiembros();
@@ -137,7 +140,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
   }
 
   async function cargarGrupo() {
-    const { data } = await supabase.from("groups").select("banner_url, photo_url, description, comments_suspended_until, creator_id").eq("id", groupId).maybeSingle();
+    const { data } = await supabase.from("groups").select("banner_url, photo_url, description, comments_suspended_until, creator_id, visibility").eq("id", groupId).maybeSingle();
     if (data)
       setGrupo({
         banner_url: data.banner_url ?? data.photo_url,
@@ -145,6 +148,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         description: data.description,
         comments_suspended_until: data.comments_suspended_until,
         creator_id: data.creator_id,
+        visibility: data.visibility,
       });
   }
 
@@ -169,7 +173,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         </Pressable>
         <Pressable
           style={styles.recomendarBtnFlotante}
-          onPress={() => navigation.navigate("Recomendar", { kind: "group", groupId, nombre: groupName, posterPath: grupo?.photo_url ?? null })}
+          onPress={() => setPublishModalVisible(true)}
           hitSlop={12}
         >
           <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
@@ -277,6 +281,14 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
     />
 
     <ReportModal visible={reportVisible} onCerrar={() => setReportVisible(false)} reporterId={userId} targetType="group" targetId={groupId} />
+
+    <PublishActionModal
+      visible={publishModalVisible}
+      onCerrar={() => setPublishModalVisible(false)}
+      navigation={navigation}
+      recomendarParams={{ kind: "group", groupId, nombre: groupName, posterPath: grupo?.photo_url ?? null }}
+      publicarGrupoParams={grupo?.visibility === "public" ? { groupId } : undefined}
+    />
     </>
   );
 }

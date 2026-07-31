@@ -2212,3 +2212,11 @@ alter table profiles add column if not exists ultimo_nivel_insignia_visto intege
 -- en vez de "Te recomendó" / "Recomendaste".
 -- ============================================================
 alter table chat_messages add column if not exists es_que_vemos boolean not null default false;
+
+-- ============================================================
+-- Publicar un grupo PÚBLICO en el Lobby (igual que ya se puede con una
+-- lista propia) — solo grupos públicos, eso se controla del lado de la app.
+-- ============================================================
+alter table posts add column if not exists group_id uuid references groups(id) on delete cascade;
+alter table posts drop constraint if exists posts_item_type_check;
+alter table posts add constraint posts_item_type_check check (item_type in ('series', 'movie', 'episode', 'list', 'recap', 'group'));

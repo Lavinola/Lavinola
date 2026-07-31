@@ -52,6 +52,8 @@ export default function PostCard({
   function abrirTitulo() {
     if (post.item_type === "list" && post.list_id) {
       navigation.navigate("DetalleLista", { listId: post.list_id, listTitle: post.titulo_nombre ?? t("Lista") });
+    } else if (post.item_type === "group" && post.group_id) {
+      navigation.navigate("DetalleGrupo", { groupId: post.group_id, groupName: post.titulo_nombre ?? t("Grupo") });
     } else if (post.item_type === "episode") {
       navigation.navigate("EpisodioDetalle", {
         seriesTmdbId: post.tmdb_id,
@@ -199,6 +201,20 @@ export default function PostCard({
                 <Text style={styles.listaMasTexto}>+</Text>
               </Pressable>
             )}
+          </View>
+        </Pressable>
+      ) : post.item_type === "group" ? (
+        <Pressable style={styles.tituloRow} onPress={abrirTitulo}>
+          {post.poster_path ? (
+            <Image source={{ uri: post.poster_path }} style={styles.poster} />
+          ) : (
+            <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.subtitulo}>{t("Recomienda el grupo")}</Text>
+            <Text style={styles.tituloNombre} numberOfLines={2}>
+              {post.titulo_nombre ?? "..."}
+            </Text>
           </View>
         </Pressable>
       ) : (

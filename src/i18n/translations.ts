@@ -544,6 +544,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   },
   "¡Subiste de nivel!": { en: "You leveled up!", pt: "Você subiu de nível!", it: "Sei salito di livello!" },
   "Unirme al grupo": { en: "Join group", pt: "Entrar no grupo", it: "Unisciti al gruppo" },
+  "Recomienda el grupo": { en: "Recommends the group", pt: "Recomenda o grupo", it: "Consiglia il gruppo" },
   "Este grupo ya no existe": { en: "This group no longer exists", pt: "Este grupo não existe mais", it: "Questo gruppo non esiste più" },
   "Esta lista ya no existe": { en: "This list no longer exists", pt: "Esta lista não existe mais", it: "Questa lista non esiste più" },
   "Este título ya no existe": { en: "This title no longer exists", pt: "Este título não existe mais", it: "Questo titolo non esiste più" },

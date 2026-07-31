@@ -11,11 +11,12 @@ export interface Post {
   user_id: string;
   username: string | null;
   avatar_url: string | null;
-  item_type: "series" | "movie" | "episode" | "list" | "recap";
+  item_type: "series" | "movie" | "episode" | "list" | "recap" | "group";
   tmdb_id: number | null;
   season_number: number | null;
   episode_number: number | null;
   list_id: string | null;
+  group_id: string | null;
   image_url: string | null;
   content: string;
   has_spoiler: boolean;
@@ -66,6 +67,18 @@ export async function crearPostDeLista(params: { userId: string; listId: string;
   if (error) throw error;
 }
 
+/** Publicar un GRUPO propio en el Lobby (solo tiene sentido para grupos públicos — eso se controla del lado de la app, no acá). */
+export async function crearPostDeGrupo(params: { userId: string; groupId: string; content: string; hasSpoiler: boolean }) {
+  const { error } = await supabase.from("posts").insert({
+    user_id: params.userId,
+    item_type: "group",
+    group_id: params.groupId,
+    content: params.content.trim(),
+    has_spoiler: params.hasSpoiler,
+  });
+  if (error) throw error;
+}
+
 /** Publicar la imagen del Lavinola Recap en el Lobby (con mensaje opcional). */
 export async function crearPostRecap(params: { userId: string; imageUrl: string; content: string }) {
   const { error } = await supabase.from("posts").insert({
@@ -82,12 +95,14 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
   const seriesIds = [...new Set(filas.filter((f) => f.item_type === "series" || f.item_type === "episode").map((f) => f.tmdb_id))];
   const movieIds = [...new Set(filas.filter((f) => f.item_type === "movie").map((f) => f.tmdb_id))];
   const listIds = [...new Set(filas.filter((f) => f.item_type === "list").map((f) => f.list_id))];
+  const groupIds = [...new Set(filas.filter((f) => f.item_type === "group").map((f) => f.group_id))];
 
-  const [{ data: seriesRows }, { data: movieRows }, { data: episodiosRows }, { data: listasRows }] = await Promise.all([
+  const [{ data: seriesRows }, { data: movieRows }, { data: episodiosRows }, { data: listasRows }, { data: gruposRows }] = await Promise.all([
     seriesIds.length ? supabase.from("series_cache").select("tmdb_id, name, poster_path, total_seasons").in("tmdb_id", seriesIds) : Promise.resolve({ data: [] as any[] }),
     movieIds.length ? supabase.from("movies_cache").select("tmdb_id, title, poster_path, release_date").in("tmdb_id", movieIds) : Promise.resolve({ data: [] as any[] }),
     seriesIds.length ? supabase.from("episodes_cache").select("series_tmdb_id, season_number, episode_number, name").in("series_tmdb_id", seriesIds) : Promise.resolve({ data: [] as any[] }),
     listIds.length ? supabase.from("lists").select("id, title").in("id", listIds) : Promise.resolve({ data: [] as any[] }),
+    groupIds.length ? supabase.from("groups").select("id, name, photo_url").in("id", groupIds) : Promise.resolve({ data: [] as any[] }),
   ]);
   const series: Record<number, any> = {};
   (seriesRows ?? []).forEach((s: any) => (series[s.tmdb_id] = s));
@@ -97,6 +112,8 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
   (episodiosRows ?? []).forEach((e: any) => (episodios[`${e.series_tmdb_id}:${e.season_number}:${e.episode_number}`] = e));
   const listas: Record<string, any> = {};
   (listasRows ?? []).forEach((l: any) => (listas[l.id] = l));
+  const grupos: Record<string, any> = {};
+  (gruposRows ?? []).forEach((g: any) => (grupos[g.id] = g));
 
   // Preview de portadas para los posts de listas (hasta 5, en el orden en que se agregaron).
   const listaItemsPorLista: Record<string, ListaPreviewItem[]> = {};
@@ -225,6 +242,9 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
       }
     } else if (f.item_type === "list") {
       titulo_nombre = listas[f.list_id]?.title ?? null;
+    } else if (f.item_type === "group") {
+      titulo_nombre = grupos[f.group_id]?.name ?? null;
+      poster_path = grupos[f.group_id]?.photo_url ?? null;
     }
 
     return {
@@ -237,6 +257,7 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
       season_number: f.season_number,
       episode_number: f.episode_number,
       list_id: f.list_id ?? null,
+      group_id: f.group_id ?? null,
       image_url: f.image_url ?? null,
       content: f.content,
       has_spoiler: f.has_spoiler,
@@ -263,7 +284,7 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
 }
 
 const SELECT_POST =
-  "id, user_id, item_type, tmdb_id, season_number, episode_number, list_id, image_url, content, has_spoiler, created_at, profiles!posts_user_id_fkey(username, avatar_url)";
+  "id, user_id, item_type, tmdb_id, season_number, episode_number, list_id, group_id, image_url, content, has_spoiler, created_at, profiles!posts_user_id_fkey(username, avatar_url)";
 
 export async function listarMisPosts(userId: string): Promise<Post[]> {
   const { data, error } = await supabase.from("posts").select(SELECT_POST).eq("user_id", userId).order("created_at", { ascending: false });
