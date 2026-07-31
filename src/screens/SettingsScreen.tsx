@@ -416,6 +416,11 @@ function TabAplicacion({ navigation }: any) {
       <AppButton title={exportando ? t("Preparando...") : t("Descargar todos mis datos (ZIP)")} onPress={exportar} variant="outline" disabled={exportando} />
 
       <View style={{ height: 4 }} />
+      <Pressable onPress={() => navigation.navigate("UsuariosBloqueados")}>
+        <Text style={styles.link}>{t("Usuarios bloqueados")}</Text>
+      </Pressable>
+
+      <View style={{ height: 4 }} />
       <Pressable onPress={() => navigation.navigate("PoliticaPrivacidad")}>
         <Text style={styles.link}>{t("Política de privacidad")}</Text>
       </Pressable>

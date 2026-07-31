@@ -45,6 +45,7 @@ import BadgesScreen from "../screens/BadgesScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import ChooseCoverPhotoScreen from "../screens/ChooseCoverPhotoScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import BlockedUsersScreen from "../screens/BlockedUsersScreen";
 import SuggestScreen from "../screens/SuggestScreen";
 import ManageDislikedScreen from "../screens/ManageDislikedScreen";
 import FollowRequestsScreen from "../screens/FollowRequestsScreen";
@@ -287,6 +288,7 @@ function ProfileStackNav() {
       <ProfileStack.Screen name="Ranking" component={RankingScreen} options={{ title: t("Comparar") }} />
       <ProfileStack.Screen name="SeleccionMultipleFavoritos" component={MultiSelectFavoritesScreen} options={{ title: t("Agregar favoritos") }} />
       <ProfileStack.Screen name="Ajustes" component={SettingsScreen} options={{ title: t("Ajustes") }} />
+      <ProfileStack.Screen name="UsuariosBloqueados" component={BlockedUsersScreen} options={{ title: t("Usuarios bloqueados") }} />
       <ProfileStack.Screen name="PoliticaPrivacidad" component={PrivacyPolicyScreen} options={{ title: t("Política de privacidad") }} />
       <ProfileStack.Screen name="Sugerir" component={SuggestScreen} options={{ title: t("Sugerir mejora") }} />
       <ProfileStack.Screen name="GestionarDescartados" component={ManageDislikedScreen} options={{ title: t("No me interesa") }} />
@@ -413,6 +415,7 @@ const linking = {
           SeleccionMultipleFavoritos: "seleccion-favoritos",
           Ajustes: "ajustes",
           PoliticaPrivacidad: "politica-privacidad",
+          UsuariosBloqueados: "usuarios-bloqueados",
           Sugerir: "sugerir",
           GestionarDescartados: "descartados",
           ...RUTAS_COMUNES,
