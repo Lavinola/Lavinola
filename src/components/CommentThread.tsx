@@ -552,7 +552,10 @@ function RecomendacionPreview({
 
   useEffect(() => {
     (async () => {
-      if (tmdbId && itemType) {
+      if (tmdbId && !itemType) {
+        // tiene tmdbId pero le falta el itemType (dato incompleto/viejo) — hay que resolverlo igual, no dejarlo sin marcar nunca.
+        setEliminado(true);
+      } else if (tmdbId && itemType) {
         const tabla = itemType === "series" ? "series_cache" : "movies_cache";
         const tablaUsuario = itemType === "series" ? "user_series" : "user_movies";
         const columnaId = itemType === "series" ? "series_tmdb_id" : "movie_tmdb_id";
@@ -602,6 +605,8 @@ function RecomendacionPreview({
         const { data } = await supabase.from("lists").select("title").eq("id", listId).maybeSingle();
         if (data) setNombre(data.title);
         else setEliminado(true);
+      } else {
+        setEliminado(true);
       }
     })();
   }, [tmdbId, itemType, groupId, listId]);

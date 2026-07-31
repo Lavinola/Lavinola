@@ -139,34 +139,39 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       if (m.kind !== "shared_title") continue;
       const clave = m.tmdb_id ? `title-${m.tmdb_id}` : m.shared_group_id ? `group-${m.shared_group_id}` : `list-${m.shared_list_id}`;
       if (previews[clave]) continue;
-      if (m.tmdb_id && m.item_type) {
-        const tabla = m.item_type === "series" ? "series_cache" : "movies_cache";
-        const tablaUsuario = m.item_type === "series" ? "user_series" : "user_movies";
-        const columnaId = m.item_type === "series" ? "series_tmdb_id" : "movie_tmdb_id";
-        const [{ data: cache }, { data: custom }] = await Promise.all([
-          supabase.from(tabla).select("*").eq("tmdb_id", m.tmdb_id).maybeSingle(),
-          supabase.from(tablaUsuario).select("custom_poster_path").eq("user_id", m.sender_id).eq(columnaId, m.tmdb_id).maybeSingle(),
-        ]);
-        if (cache) {
-          let nombreFinal = m.item_type === "series" ? cache.name : cache.title;
-          let subtitulo: string | null = null;
-          if (m.item_type === "series" && m.season_number && m.episode_number) {
-            const { data: ep } = await supabase
-              .from("episodes_cache")
-              .select("name")
-              .eq("series_tmdb_id", m.tmdb_id)
-              .eq("season_number", m.season_number)
-              .eq("episode_number", m.episode_number)
-              .maybeSingle();
-            nombreFinal = `${nombreFinal} — ${ep?.name ?? `T${m.season_number}E${m.episode_number}`}`;
-            subtitulo = `T${m.season_number} - E${m.episode_number}`;
-          } else if (m.item_type === "series") {
-            subtitulo = cache.total_seasons ? `${cache.total_seasons} ${cache.total_seasons === 1 ? t("temporada") : t("temporadas")}` : null;
+      if (m.tmdb_id) {
+        if (m.item_type) {
+          const tabla = m.item_type === "series" ? "series_cache" : "movies_cache";
+          const tablaUsuario = m.item_type === "series" ? "user_series" : "user_movies";
+          const columnaId = m.item_type === "series" ? "series_tmdb_id" : "movie_tmdb_id";
+          const [{ data: cache }, { data: custom }] = await Promise.all([
+            supabase.from(tabla).select("*").eq("tmdb_id", m.tmdb_id).maybeSingle(),
+            supabase.from(tablaUsuario).select("custom_poster_path").eq("user_id", m.sender_id).eq(columnaId, m.tmdb_id).maybeSingle(),
+          ]);
+          if (cache) {
+            let nombreFinal = m.item_type === "series" ? cache.name : cache.title;
+            let subtitulo: string | null = null;
+            if (m.item_type === "series" && m.season_number && m.episode_number) {
+              const { data: ep } = await supabase
+                .from("episodes_cache")
+                .select("name")
+                .eq("series_tmdb_id", m.tmdb_id)
+                .eq("season_number", m.season_number)
+                .eq("episode_number", m.episode_number)
+                .maybeSingle();
+              nombreFinal = `${nombreFinal} — ${ep?.name ?? `T${m.season_number}E${m.episode_number}`}`;
+              subtitulo = `T${m.season_number} - E${m.episode_number}`;
+            } else if (m.item_type === "series") {
+              subtitulo = cache.total_seasons ? `${cache.total_seasons} ${cache.total_seasons === 1 ? t("temporada") : t("temporadas")}` : null;
+            } else {
+              subtitulo = cache.release_date ? cache.release_date.slice(0, 4) : null;
+            }
+            setPreviews((prev) => ({ ...prev, [clave]: { nombre: nombreFinal, poster_path: (custom as any)?.custom_poster_path ?? cache.poster_path, subtitulo } }));
           } else {
-            subtitulo = cache.release_date ? cache.release_date.slice(0, 4) : null;
+            setPreviews((prev) => ({ ...prev, [clave]: { nombre: null, poster_path: null, subtitulo: null, eliminado: true } }));
           }
-          setPreviews((prev) => ({ ...prev, [clave]: { nombre: nombreFinal, poster_path: (custom as any)?.custom_poster_path ?? cache.poster_path, subtitulo } }));
         } else {
+          // tiene tmdb_id pero le falta el item_type (dato incompleto/viejo) — igual hay que resolverlo, no dejarlo sin marcar nunca.
           setPreviews((prev) => ({ ...prev, [clave]: { nombre: null, poster_path: null, subtitulo: null, eliminado: true } }));
         }
       } else if (m.shared_group_id) {
@@ -181,6 +186,10 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
         } else {
           setPreviews((prev) => ({ ...prev, [clave]: { nombre: null, poster_path: null, subtitulo: null, eliminado: true } }));
         }
+      } else {
+        // No tiene tmdb_id, ni grupo, ni lista — no debería pasar nunca, pero por
+        // las dudas se resuelve igual, para que jamás quede una carga sin fin.
+        setPreviews((prev) => ({ ...prev, [clave]: { nombre: null, poster_path: null, subtitulo: null, eliminado: true } }));
       }
     }
   }
