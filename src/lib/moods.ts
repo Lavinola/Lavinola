@@ -8,18 +8,18 @@ export type TargetType = "series" | "movie" | "episode";
  * (assets/moods/*.png, ya procesadas para tener transparencia real).
  */
 export const MOODS: { key: string; imagen: any; label: string }[] = [
-  { key: "impactado", imagen: require("../../assets/moods/impactado.png"), label: "Impactado" },
-  { key: "frustrado", imagen: require("../../assets/moods/frustrado.png"), label: "Enojado" },
-  { key: "entretenido", imagen: require("../../assets/moods/entretenido.png"), label: "Entretenido" },
-  { key: "triste", imagen: require("../../assets/moods/triste.png"), label: "Triste" },
-  { key: "pensativo", imagen: require("../../assets/moods/pensativo.png"), label: "Pensativo" },
-  { key: "conmovido", imagen: require("../../assets/moods/conmovido.png"), label: "Conmovido" },
-  { key: "asustado", imagen: require("../../assets/moods/asustado.png"), label: "Asustado" },
-  { key: "aburrido", imagen: require("../../assets/moods/aburrido.png"), label: "Aburrido" },
-  { key: "atrapado", imagen: require("../../assets/moods/atrapado.png"), label: "Atrapado" },
   { key: "feliz", imagen: require("../../assets/moods/feliz.png"), label: "Feliz" },
+  { key: "entretenido", imagen: require("../../assets/moods/entretenido.png"), label: "Entretenido" },
+  { key: "atrapado", imagen: require("../../assets/moods/atrapado.png"), label: "Atrapado" },
+  { key: "conmovido", imagen: require("../../assets/moods/conmovido.png"), label: "Conmovido" },
+  { key: "pensativo", imagen: require("../../assets/moods/pensativo.png"), label: "Pensativo" },
+  { key: "impactado", imagen: require("../../assets/moods/impactado.png"), label: "Impactado" },
+  { key: "triste", imagen: require("../../assets/moods/triste.png"), label: "Triste" },
+  { key: "frustrado", imagen: require("../../assets/moods/frustrado.png"), label: "Enojado" },
+  { key: "asustado", imagen: require("../../assets/moods/asustado.png"), label: "Asustado" },
   { key: "confuso", imagen: require("../../assets/moods/confuso.png"), label: "Confuso" },
   { key: "tenso", imagen: require("../../assets/moods/tenso.png"), label: "Tenso" },
+  { key: "aburrido", imagen: require("../../assets/moods/aburrido.png"), label: "Aburrido" },
 ];
 
 export interface MoodStats {

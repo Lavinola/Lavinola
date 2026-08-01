@@ -152,7 +152,9 @@ function StatsPeliculasTab({ navigation }: any) {
     if (!uid) return;
     setStats(await getEstadisticasPeliculas(uid));
     getActividadMensualPeliculas(uid).then(setActividad);
-    getFavoritosDeElenco(uid).then(setFavoritos);
+    getFavoritosDeElenco(uid)
+      .then(setFavoritos)
+      .catch((e) => console.error("Error al cargar actor/director favorito:", e));
   }
 
   if (!stats) return <ActivityIndicator style={{ marginTop: 32 }} />;

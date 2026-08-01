@@ -30,7 +30,7 @@ export default function ExploreScreen({ navigation, route }: any) {
     <View style={styles.container}>
       <Pressable style={styles.buscadorFalso} onPress={() => navigation.navigate("BuscadorGlobal")}>
         <Ionicons name="search" size={16} color={theme.colors.textMuted} />
-        <Text style={styles.buscadorTexto} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+        <Text style={styles.buscadorTexto} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
           {t("Buscar series, películas, actores, directores, usuarios...")}
         </Text>
       </Pressable>
@@ -405,7 +405,7 @@ function FilaHorizontal({
 
 const styles = StyleSheet.create({
   buscadorFalso: { flexDirection: "row", alignItems: "center", gap: 8, margin: 12, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 12 },
-  buscadorTexto: { color: theme.colors.textFaint, fontSize: 13 },
+  buscadorTexto: { flex: 1, color: theme.colors.textFaint, fontSize: 13 },
   container: { flex: 1 },
   seccion: { marginBottom: 16 },
   seccionHeader: {
