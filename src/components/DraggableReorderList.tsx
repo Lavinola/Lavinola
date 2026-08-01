@@ -12,6 +12,7 @@ interface Props<T> {
 interface FilaProps<T> {
   item: T;
   indice: number;
+  origenIndice: number;
   rowHeight: number;
   id: string;
   arrastrando: boolean;
@@ -33,8 +34,18 @@ interface FilaProps<T> {
  * sin necesidad de recrear el gesto, esos datos se guardan en un ref que
  * se actualiza en cada repintado, y el PanResponder (fijo) siempre lee la
  * versión más nueva de ahí adentro.
+ *
+ * Otro detalle importante: mientras se arrastra un título, su posición en
+ * pantalla ("top") se calcula desde su índice ORIGINAL (el que tenía al
+ * empezar el gesto), no el actual — el actual va cambiando a medida que
+ * empuja a los demás, y el movimiento del dedo (translateY) ya es relativo
+ * a la posición de arranque. Si se usara el índice actual, cada vez que se
+ * reordena un vecino la base salta de golpe y el movimiento del dedo se
+ * sigue sumando arriba de esa base nueva — el título se iba alejando del
+ * dedo cada vez más. Fijando la base de origen, el título siempre queda
+ * exactamente donde está el dedo.
  */
-function Fila<T>({ item, indice, rowHeight, id, arrastrando, translateY, renderRow, onGrant, onMove, onRelease }: FilaProps<T>) {
+function Fila<T>({ item, indice, origenIndice, rowHeight, id, arrastrando, translateY, renderRow, onGrant, onMove, onRelease }: FilaProps<T>) {
   const callbacksRef = useRef({ onGrant, onMove, onRelease, id });
   callbacksRef.current = { onGrant, onMove, onRelease, id };
 
@@ -49,11 +60,13 @@ function Fila<T>({ item, indice, rowHeight, id, arrastrando, translateY, renderR
     })
   );
 
+  const topFijo = (arrastrando ? origenIndice : indice) * rowHeight;
+
   return (
     <Animated.View
       style={{
         position: "absolute",
-        top: indice * rowHeight,
+        top: topFijo,
         left: 0,
         right: 0,
         height: rowHeight,
@@ -125,6 +138,7 @@ export default function DraggableReorderList<T>({ items, keyExtractor, rowHeight
               key={id}
               item={item}
               indice={indice}
+              origenIndice={origenIndiceRef.current}
               rowHeight={rowHeight}
               id={id}
               arrastrando={arrastrandoId === id}
