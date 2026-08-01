@@ -138,6 +138,7 @@ export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeE
       ),
       fetchAllRows<any>((d, h) => supabase.from("user_series").select("series_tmdb_id, series_cache(cast_top)").eq("user_id", userId).range(d, h)),
     ]);
+    console.log(`[favoritosDeElenco] películas vistas: ${peliculas.length}, series seguidas: ${series.length}`);
 
     // Backfill: hasta la última actualización, el director/elenco solo se
     // guardaba cuando volvías a entrar a esa película/serie puntual — así
@@ -149,6 +150,7 @@ export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeE
     // pasos donde algo se pueda romper.
     const peliculasSinDatos = peliculas.filter((p: any) => !p.movies_cache?.director && !(p.movies_cache?.cast_top?.length > 0)).slice(0, TOPE_BACKFILL);
     const seriesSinDatos = series.filter((s: any) => !(s.series_cache?.cast_top?.length > 0)).slice(0, TOPE_BACKFILL);
+    console.log(`[favoritosDeElenco] les falta director/elenco: ${peliculasSinDatos.length} películas, ${seriesSinDatos.length} series (de un tope de ${TOPE_BACKFILL} por visita)`);
 
     const resultadosPeliculas = await enLotes(peliculasSinDatos, CONCURRENCIA_BACKFILL, async (p: any) => {
       try {
@@ -166,6 +168,9 @@ export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeE
         return null;
       }
     });
+    console.log(
+      `[favoritosDeElenco] backfill terminado: ${resultadosPeliculas.filter((r) => r).length}/${peliculasSinDatos.length} películas ok, ${resultadosSeries.filter((r) => r).length}/${seriesSinDatos.length} series ok`
+    );
 
     const mapaPeliculas = new Map(resultadosPeliculas.filter((r): r is NonNullable<typeof r> => !!r).map((r) => [r.id, r.datos]));
     const mapaSeries = new Map(resultadosSeries.filter((r): r is NonNullable<typeof r> => !!r).map((r) => [r.id, r.datos]));
@@ -187,6 +192,9 @@ export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeE
 
     const actorTop = Object.entries(conteoActores).sort((a, b) => b[1] - a[1])[0];
     const directorTop = Object.entries(conteoDirectores).sort((a, b) => b[1] - a[1])[0];
+    console.log(
+      `[favoritosDeElenco] top actor: ${actorTop ? `${actorTop[0]} (${actorTop[1]})` : "ninguno"} — top director: ${directorTop ? `${directorTop[0]} (${directorTop[1]})` : "ninguno"} — ${Object.keys(conteoActores).length} actores distintos, ${Object.keys(conteoDirectores).length} directores distintos en total`
+    );
 
     return {
       actorFavorito: actorTop && actorTop[1] >= 2 ? { nombre: actorTop[0], cantidad: actorTop[1] } : null,

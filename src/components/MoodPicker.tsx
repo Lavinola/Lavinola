@@ -64,9 +64,8 @@ const styles = StyleSheet.create({
   label: {
     position: "absolute",
     top: 61, // 56 (círculo) + 5 (el mismo margen que tenía el spacer)
-    left: "50%",
-    width: 110,
-    marginLeft: -55, // centrado: la mitad del ancho de arriba
+    left: -25,
+    right: -25, // ancla los dos bordes en vez de centrar por margen — más confiable en la web
     fontSize: 9,
     color: theme.colors.textMuted,
     textAlign: "center",
