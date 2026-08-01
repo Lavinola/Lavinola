@@ -376,7 +376,19 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
           }
 
           return (
-            <Pressable onLongPress={() => tocarMensaje(item)} delayLongPress={350} style={esQueVemos ? { alignItems: "center" } : undefined}>
+            <Pressable
+              onLongPress={() => tocarMensaje(item)}
+              delayLongPress={350}
+              style={[
+                esQueVemos ? { alignItems: "center" } : undefined,
+                // En la web, mantener apretado sobre texto dispara el menú
+                // nativo del navegador ("Copiar/Compartir/Seleccionar
+                // todo"), que tapaba a nuestro propio menú (Responder,
+                // etc). Esto lo desactiva puntualmente acá, sin afectar el
+                // resto de la app.
+                Platform.OS === "web" ? ({ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } as any) : undefined,
+              ]}
+            >
               <View
                 style={[
                   styles.burbuja,
