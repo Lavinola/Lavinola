@@ -6,7 +6,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/pagination";
 import { posterUrl } from "../lib/tmdb";
-import { listarFavoritos, moverFavorito, Favorito } from "../lib/favorites";
+import { listarFavoritos, guardarOrdenFavoritos, Favorito } from "../lib/favorites";
+import DraggableReorderList from "../components/DraggableReorderList";
 import FiltroPeliculasModal, { OrdenPeliculas, FiltroEstadoPelicula } from "../components/FiltroPeliculasModal";
 import RatingStars from "../components/RatingStars";
 import AgregarButton from "../components/AgregarButton";
@@ -118,12 +119,6 @@ export default function AllMoviesScreen({ route, navigation }: any) {
     setLoading(false);
   }
 
-  async function mover(tmdbId: number, direccion: "arriba" | "abajo") {
-    if (!userId || soloLectura) return;
-    await moverFavorito(userId, "movie", favoritos, tmdbId, direccion);
-    cargar();
-  }
-
   function ordenarPeliculas(lista: PeliculaRow[]): PeliculaRow[] {
     if (orden === "personalizado") {
       const posicion = new Map(favoritos.map((f, i) => [f.tmdb_id, i]));
@@ -220,13 +215,18 @@ export default function AllMoviesScreen({ route, navigation }: any) {
       {loading ? (
         <ActivityIndicator style={{ marginTop: 32 }} />
       ) : modoReordenar ? (
-        <FlatList
+        <DraggableReorderList
           key="lista-reordenar"
-          data={ordenarPeliculas(listado)}
+          items={ordenarPeliculas(listado)}
           keyExtractor={(m) => String(m.tmdb_id)}
-          ListEmptyComponent={<Text style={styles.vacio}>{t("No hay películas acá todavía.")}</Text>}
-          renderItem={({ item, index }) => (
-            <View style={styles.filaReordenar}>
+          rowHeight={64}
+          onSoltar={async (nuevoOrden) => {
+            if (!userId) return;
+            await guardarOrdenFavoritos(userId, "movie", nuevoOrden);
+            cargar();
+          }}
+          renderRow={(item, arrastrando) => (
+            <View style={[styles.filaReordenar, arrastrando && styles.filaReordenarArrastrando]}>
               {item.poster_path ? (
                 <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.miniPoster} />
               ) : (
@@ -235,12 +235,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
               <Text style={styles.filaReordenarTexto} numberOfLines={1}>
                 {item.title}
               </Text>
-              <Pressable onPress={() => mover(item.tmdb_id, "arriba")} disabled={index === 0} hitSlop={8} style={{ opacity: index === 0 ? 0.3 : 1 }}>
-                <Ionicons name="chevron-up" size={22} color={theme.colors.text} />
-              </Pressable>
-              <Pressable onPress={() => mover(item.tmdb_id, "abajo")} disabled={index === listado.length - 1} hitSlop={8} style={{ opacity: index === listado.length - 1 ? 0.3 : 1, marginLeft: 8 }}>
-                <Ionicons name="chevron-down" size={22} color={theme.colors.text} />
-              </Pressable>
+              <Ionicons name="reorder-three" size={26} color={theme.colors.textFaint} />
             </View>
           )}
         />
@@ -358,6 +353,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   filaReordenar: { flexDirection: "row", alignItems: "center", padding: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border, backgroundColor: theme.colors.background },
+  filaReordenarArrastrando: { backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, borderBottomWidth: 0 },
   filaReordenarActiva: { backgroundColor: theme.colors.surfaceAlt, opacity: 0.9 },
   miniPoster: { width: 40, height: 60, borderRadius: 4, marginRight: 10 },
   filaReordenarTexto: { flex: 1, fontSize: 14, marginRight: 8 },

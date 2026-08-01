@@ -2233,3 +2233,8 @@ alter table series_cache add column if not exists cast_top jsonb;
 -- El nombre del director solo no alcanza para poder navegar a su ficha
 -- (como al tocar un actor) — hace falta su ID de TMDB.
 alter table movies_cache add column if not exists director_id integer;
+
+-- ============================================================
+-- Responder a un mensaje puntual en el chat (como en WhatsApp).
+-- ============================================================
+alter table chat_messages add column if not exists reply_to_id uuid references chat_messages(id) on delete set null;

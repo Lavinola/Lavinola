@@ -232,3 +232,10 @@ export async function moverFavorito(
   await supabase.from("user_favorites").update({ order_index: vecino.order_index }).eq("user_id", userId).eq("item_type", itemType).eq("tmdb_id", actual.tmdb_id);
   await supabase.from("user_favorites").update({ order_index: actual.order_index }).eq("user_id", userId).eq("item_type", itemType).eq("tmdb_id", vecino.tmdb_id);
 }
+
+/** Guarda de una el orden completo, tal cual quedó después de arrastrar y soltar. */
+export async function guardarOrdenFavoritos<T extends { tmdb_id: number }>(userId: string, itemType: "series" | "movie", nuevoOrden: T[]) {
+  await Promise.all(
+    nuevoOrden.map((f, i) => supabase.from("user_favorites").update({ order_index: i }).eq("user_id", userId).eq("item_type", itemType).eq("tmdb_id", f.tmdb_id))
+  );
+}

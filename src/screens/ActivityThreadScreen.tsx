@@ -64,6 +64,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [otroLastReadAt, setOtroLastReadAt] = useState<string | null>(null);
   const [mensajeMenuAccion, setMensajeMenuAccion] = useState<MensajeChat | null>(null);
+  const [respondiendoA, setRespondiendoA] = useState<MensajeChat | null>(null);
   const [reportarMensajeVisible, setReportarMensajeVisible] = useState(false);
   const [reaccionPickerMensajeId, setReaccionPickerMensajeId] = useState<string | null>(null);
   const [traducciones, setTraducciones] = useState<Record<string, string>>({});
@@ -214,9 +215,10 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     if ((!texto.trim() && !gifElegido) || !userId) return;
     Keyboard.dismiss();
     try {
-      await enviarMensajeTexto(chatId, userId, texto.trim(), gifElegido);
+      await enviarMensajeTexto(chatId, userId, texto.trim(), gifElegido, respondiendoA?.id);
       setTexto("");
       setGifElegido(null);
+      setRespondiendoA(null);
       await cargar();
     } catch (e: any) {
       console.error("Error al enviar mensaje:", e);
@@ -226,18 +228,21 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
 
   function tocarMensaje(m: MensajeChat) {
     if (m.deleted) return;
-    if (m.sender_id === userId) {
-      if (m.kind !== "text") return;
-      const dentroDeLaHora = Date.now() - new Date(m.created_at).getTime() < 60 * 60 * 1000;
-      if (!dentroDeLaHora) return;
-    }
     setMensajeMenuAccion(m);
     setMenuMensajeVisible(true);
+  }
+
+  function responderA() {
+    if (!mensajeMenuAccion) return;
+    setEditandoMensajeId(null);
+    setRespondiendoA(mensajeMenuAccion);
+    setMenuMensajeVisible(false);
   }
 
   function empezarAEditar() {
     if (!mensajeMenuAccion) return;
     setMenuMensajeVisible(false);
+    setRespondiendoA(null);
     setEditandoMensajeId(mensajeMenuAccion.id);
     setTexto(mensajeMenuAccion.content ?? "");
   }
@@ -288,6 +293,20 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     } finally {
       setTraduciendoId(null);
     }
+  }
+
+  function vistaPreviaMensaje(m: MensajeChat): string {
+    if (m.deleted) return t("Mensaje eliminado");
+    if (m.kind === "shared_title") {
+      const clave = m.tmdb_id ? `title-${m.tmdb_id}` : m.shared_group_id ? `group-${m.shared_group_id}` : `list-${m.shared_list_id}`;
+      const nombre = previews[clave]?.nombre;
+      if (m.es_que_vemos) return `🎬 ${nombre ?? "..."}`;
+      if (m.shared_group_id) return `👥 ${nombre ?? t("Grupo")}`;
+      if (m.shared_list_id) return `📋 ${nombre ?? t("Lista")}`;
+      return `🎬 ${nombre ?? "..."}`;
+    }
+    if (m.gif_url && !m.content) return "GIF";
+    return m.content ?? "";
   }
 
   function abrirRecomendacion(m: MensajeChat) {
@@ -366,6 +385,23 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                   esQueVemos && styles.burbujaQueVemos,
                 ]}
               >
+                {item.reply_to_id &&
+                  (() => {
+                    const original = mensajes.find((mm) => mm.id === item.reply_to_id);
+                    if (!original) return null;
+                    const esMioOriginal = original.sender_id === userId;
+                    return (
+                      <View style={styles.citaRow}>
+                        <View style={styles.citaBarra} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.citaAutor}>{esMioOriginal ? t("Vos") : otroUsername ?? t("Conversación")}</Text>
+                          <Text style={styles.citaTexto} numberOfLines={1}>
+                            {vistaPreviaMensaje(original)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })()}
                 {item.kind === "shared_title" && esLista && (
                   <Pressable onPress={() => abrirRecomendacion(item)} disabled={preview?.eliminado}>
                     {preview?.eliminado ? (
@@ -504,6 +540,22 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
         </View>
       )}
 
+      {respondiendoA && (
+        <View style={styles.respondiendoRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.respondiendoAutor}>
+              {respondiendoA.sender_id === userId ? t("Vos") : otroUsername ?? t("Conversación")}
+            </Text>
+            <Text style={styles.respondiendoTexto} numberOfLines={1}>
+              {vistaPreviaMensaje(respondiendoA)}
+            </Text>
+          </View>
+          <Pressable onPress={() => setRespondiendoA(null)} hitSlop={8}>
+            <Ionicons name="close" size={18} color={theme.colors.textFaint} />
+          </Pressable>
+        </View>
+      )}
+
       <View style={styles.inputRow}>
         <Pressable style={styles.gifBtn} onPress={abrirGifPicker} disabled={!!editandoMensajeId}>
           <Text style={styles.gifBtnTexto}>GIF</Text>
@@ -537,16 +589,19 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     <ActionSheetModal
       visible={menuMensajeVisible}
       onCerrar={() => setMenuMensajeVisible(false)}
-      opciones={
-        mensajeMenuAccion?.sender_id === userId
+      opciones={[
+        { label: t("Responder"), icono: "arrow-undo-outline", onPress: responderA },
+        ...(mensajeMenuAccion?.sender_id === userId
           ? [
-              { label: t("Editar"), icono: "create-outline", onPress: empezarAEditar },
-              { label: t("Eliminar"), icono: "trash-outline", destructivo: true, onPress: () => { setMenuMensajeVisible(false); setConfirmEliminarMsgVisible(true); } },
+              ...(mensajeMenuAccion?.kind === "text" && Date.now() - new Date(mensajeMenuAccion.created_at).getTime() < 60 * 60 * 1000
+                ? [{ label: t("Editar"), icono: "create-outline" as const, onPress: empezarAEditar }]
+                : []),
+              { label: t("Eliminar"), icono: "trash-outline" as const, destructivo: true, onPress: () => { setMenuMensajeVisible(false); setConfirmEliminarMsgVisible(true); } },
             ]
           : [
-              { label: t("Reportar"), icono: "flag-outline", destructivo: true, onPress: () => { setMenuMensajeVisible(false); setReportarMensajeVisible(true); } },
-            ]
-      }
+              { label: t("Reportar"), icono: "flag-outline" as const, destructivo: true, onPress: () => { setMenuMensajeVisible(false); setReportarMensajeVisible(true); } },
+            ]),
+      ]}
     />
     {mensajeMenuAccion && userId && (
       <ReportModal
@@ -636,6 +691,22 @@ const styles = StyleSheet.create({
   mensajeEliminadoTexto: { fontSize: 13, fontStyle: "italic", opacity: 0.6 },
   editandoRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, paddingTop: 8 },
   editandoBannerTexto: { color: theme.colors.primaryLight, fontSize: 12, fontWeight: "700" },
+  respondiendoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surfaceAlt,
+  },
+  respondiendoAutor: { color: theme.colors.primaryLight, fontSize: 12, fontWeight: "700" },
+  respondiendoTexto: { color: theme.colors.textMuted, fontSize: 12, marginTop: 1 },
+  citaRow: { flexDirection: "row", gap: 6, backgroundColor: "rgba(0,0,0,0.2)", borderRadius: theme.radius.sm, padding: 6, marginBottom: 6 },
+  citaBarra: { width: 3, borderRadius: 2, backgroundColor: theme.colors.primaryLight },
+  citaAutor: { fontSize: 11, fontWeight: "700", opacity: 0.85 },
+  citaTexto: { fontSize: 11.5, opacity: 0.75, marginTop: 1 },
   recomendacionCard: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(0,0,0,0.15)", borderRadius: theme.radius.md, padding: 8, marginBottom: 6 },
   recomendacionPoster: { width: 56, height: 84, borderRadius: 6, marginRight: 10, backgroundColor: theme.colors.surfaceAlt, flexShrink: 0 },
   recomendacionTextos: { flex: 1, minWidth: 0 },

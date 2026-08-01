@@ -26,6 +26,7 @@ export interface MensajeChat {
   shared_group_id: string | null;
   shared_list_id: string | null;
   es_que_vemos: boolean;
+  reply_to_id: string | null;
   created_at: string;
   edited_at: string | null;
   deleted: boolean;
@@ -123,7 +124,7 @@ export async function cargarMensajesChat(chatId: string, userId?: string): Promi
   let query = supabase
     .from("chat_messages")
     .select(
-      "id, sender_id, kind, content, gif_url, item_type, tmdb_id, season_number, episode_number, shared_group_id, shared_list_id, es_que_vemos, created_at, edited_at, deleted"
+      "id, sender_id, kind, content, gif_url, item_type, tmdb_id, season_number, episode_number, shared_group_id, shared_list_id, es_que_vemos, reply_to_id, created_at, edited_at, deleted"
     )
     .eq("chat_id", chatId);
 
@@ -184,7 +185,7 @@ export async function obtenerUltimaLecturaDelOtro(chatId: string, otroUserId: st
   return data?.last_read_at ?? null;
 }
 
-export async function enviarMensajeTexto(chatId: string, senderId: string, content: string, gifUrl?: string | null) {
+export async function enviarMensajeTexto(chatId: string, senderId: string, content: string, gifUrl?: string | null, replyToId?: string | null) {
   if (content.trim()) {
     const resultado = await moderarTexto(content);
     if (!resultado.permitido) {
@@ -198,6 +199,7 @@ export async function enviarMensajeTexto(chatId: string, senderId: string, conte
     kind: "text",
     content: content.slice(0, 500),
     gif_url: gifUrl || null,
+    reply_to_id: replyToId || null,
   });
   if (error) throw error;
 }
@@ -392,7 +394,7 @@ export async function listarChatsDeUsuarioParaAdmin(userId: string): Promise<Cha
 export async function cargarMensajesChatParaAdmin(chatId: string): Promise<MensajeChat[]> {
   const { data, error } = await supabase
     .from("chat_messages")
-    .select("id, sender_id, kind, content, gif_url, item_type, tmdb_id, season_number, episode_number, shared_group_id, shared_list_id, es_que_vemos, created_at, edited_at, deleted")
+    .select("id, sender_id, kind, content, gif_url, item_type, tmdb_id, season_number, episode_number, shared_group_id, shared_list_id, es_que_vemos, reply_to_id, created_at, edited_at, deleted")
     .eq("chat_id", chatId)
     .order("created_at", { ascending: true });
   if (error) throw error;
