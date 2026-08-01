@@ -225,7 +225,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
             await guardarOrdenFavoritos(userId, "movie", nuevoOrden);
             cargar();
           }}
-          renderRow={(item, arrastrando) => (
+          renderRow={(item, arrastrando, handlePanHandlers) => (
             <View style={[styles.filaReordenar, arrastrando && styles.filaReordenarArrastrando]}>
               {item.poster_path ? (
                 <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.miniPoster} />
@@ -235,7 +235,9 @@ export default function AllMoviesScreen({ route, navigation }: any) {
               <Text style={styles.filaReordenarTexto} numberOfLines={1}>
                 {item.title}
               </Text>
-              <Ionicons name="reorder-three" size={26} color={theme.colors.textFaint} />
+              <View {...handlePanHandlers} style={styles.handleArrastre}>
+                <Ionicons name="reorder-three" size={26} color={theme.colors.textFaint} />
+              </View>
             </View>
           )}
         />
@@ -354,6 +356,7 @@ const styles = StyleSheet.create({
   },
   filaReordenar: { flexDirection: "row", alignItems: "center", padding: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border, backgroundColor: theme.colors.background },
   filaReordenarArrastrando: { backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, borderBottomWidth: 0 },
+  handleArrastre: { padding: 10, marginRight: -10 },
   filaReordenarActiva: { backgroundColor: theme.colors.surfaceAlt, opacity: 0.9 },
   miniPoster: { width: 40, height: 60, borderRadius: 4, marginRight: 10 },
   filaReordenarTexto: { flex: 1, fontSize: 14, marginRight: 8 },
