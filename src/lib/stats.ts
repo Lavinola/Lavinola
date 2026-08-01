@@ -2,7 +2,6 @@ import { supabase } from "./supabase";
 import { fetchAllRows } from "./pagination";
 import { GENEROS_SERIES, GENEROS_PELICULAS } from "./tmdbGenres";
 import { listarSeriesConEstado } from "./seriesList";
-import { syncMovie, syncSeries } from "./sync";
 
 export interface ConteoNombre {
   nombre: string;
@@ -104,10 +103,31 @@ export interface FavoritosDeElenco {
 const TOPE_BACKFILL = 40;
 const CONCURRENCIA_BACKFILL = 8;
 
-async function enLotes<T>(items: T[], concurrencia: number, tarea: (item: T) => Promise<void>) {
+async function enLotes<T, R>(items: T[], concurrencia: number, tarea: (item: T) => Promise<R>): Promise<R[]> {
+  const resultados: R[] = [];
   for (let i = 0; i < items.length; i += concurrencia) {
-    await Promise.all(items.slice(i, i + concurrencia).map(tarea));
+    resultados.push(...(await Promise.all(items.slice(i, i + concurrencia).map(tarea))));
   }
+  return resultados;
+}
+
+/** Trae y guarda SOLO el director + elenco de una película (no toda su ficha) — más liviano que syncMovie para este caso puntual, y devuelve el dato directo, sin necesitar un segundo viaje a la base para volver a leerlo. */
+async function backfillDirectorYElencoPelicula(tmdbId: number): Promise<{ director: string | null; cast_top: { id: number; name: string }[] }> {
+  const { getMovieCredits } = await import("./tmdb");
+  const credits = await getMovieCredits(tmdbId);
+  const director = credits.crew?.find((c: any) => c.job === "Director")?.name ?? null;
+  const cast_top = (credits.cast ?? []).slice(0, 10).map((c: any) => ({ id: c.id, name: c.name }));
+  await supabase.from("movies_cache").update({ director, cast_top }).eq("tmdb_id", tmdbId);
+  return { director, cast_top };
+}
+
+/** Trae y guarda SOLO el elenco de una serie — mismo criterio que la de arriba. */
+async function backfillElencoSerie(tmdbId: number): Promise<{ cast_top: { id: number; name: string }[] }> {
+  const { getSeriesCredits } = await import("./tmdb");
+  const credits = await getSeriesCredits(tmdbId);
+  const cast_top = (credits.cast ?? []).slice(0, 10).map((c: any) => ({ id: c.id, name: c.name }));
+  await supabase.from("series_cache").update({ cast_top }).eq("tmdb_id", tmdbId);
+  return { cast_top };
 }
 
 export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeElenco> {
@@ -124,56 +144,43 @@ export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeE
     // que alguien con cientos de títulos vistos de antes puede tener casi
     // todo sin completar todavía. Acá se completa lo que falte (con tope,
     // para no demorar la pantalla una eternidad de una sola vez — con
-    // varias visitas se va completando todo).
-    const peliculasSinDatos = peliculas.filter((p: any) => !p.movies_cache?.director && !p.movies_cache?.cast_top).slice(0, TOPE_BACKFILL);
-    const seriesSinDatos = series.filter((s: any) => !s.series_cache?.cast_top).slice(0, TOPE_BACKFILL);
+    // varias visitas se va completando todo). El resultado de cada backfill
+    // se usa directo (sin volver a consultar la base), para tener menos
+    // pasos donde algo se pueda romper.
+    const peliculasSinDatos = peliculas.filter((p: any) => !p.movies_cache?.director && !(p.movies_cache?.cast_top?.length > 0)).slice(0, TOPE_BACKFILL);
+    const seriesSinDatos = series.filter((s: any) => !(s.series_cache?.cast_top?.length > 0)).slice(0, TOPE_BACKFILL);
 
-    await enLotes(peliculasSinDatos, CONCURRENCIA_BACKFILL, async (p: any) => {
+    const resultadosPeliculas = await enLotes(peliculasSinDatos, CONCURRENCIA_BACKFILL, async (p: any) => {
       try {
-        await syncMovie(p.movie_tmdb_id);
+        return { id: p.movie_tmdb_id, datos: await backfillDirectorYElencoPelicula(p.movie_tmdb_id) };
       } catch (e) {
         console.error(`No se pudo completar el director/elenco de la película ${p.movie_tmdb_id}:`, e);
+        return null;
       }
     });
-    await enLotes(seriesSinDatos, CONCURRENCIA_BACKFILL, async (s: any) => {
+    const resultadosSeries = await enLotes(seriesSinDatos, CONCURRENCIA_BACKFILL, async (s: any) => {
       try {
-        await syncSeries(s.series_tmdb_id);
+        return { id: s.series_tmdb_id, datos: await backfillElencoSerie(s.series_tmdb_id) };
       } catch (e) {
         console.error(`No se pudo completar el elenco de la serie ${s.series_tmdb_id}:`, e);
+        return null;
       }
     });
 
-    // Si backfilleamos algo, volvemos a traer esas filas ya completas.
-    if (peliculasSinDatos.length > 0 || seriesSinDatos.length > 0) {
-      const idsBackfilleadosPeliculas = peliculasSinDatos.map((p: any) => p.movie_tmdb_id);
-      const idsBackfilleadosSeries = seriesSinDatos.map((s: any) => s.series_tmdb_id);
-      const [{ data: peliculasActualizadas }, { data: seriesActualizadas }] = await Promise.all([
-        idsBackfilleadosPeliculas.length
-          ? supabase.from("movies_cache").select("tmdb_id, director, cast_top").in("tmdb_id", idsBackfilleadosPeliculas)
-          : Promise.resolve({ data: [] as any[] }),
-        idsBackfilleadosSeries.length
-          ? supabase.from("series_cache").select("tmdb_id, cast_top").in("tmdb_id", idsBackfilleadosSeries)
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
-      const mapaPeliculas: Record<number, any> = {};
-      (peliculasActualizadas ?? []).forEach((m: any) => (mapaPeliculas[m.tmdb_id] = m));
-      const mapaSeries: Record<number, any> = {};
-      (seriesActualizadas ?? []).forEach((s: any) => (mapaSeries[s.tmdb_id] = s));
-      for (const p of peliculas) if (mapaPeliculas[p.movie_tmdb_id]) p.movies_cache = mapaPeliculas[p.movie_tmdb_id];
-      for (const s of series) if (mapaSeries[s.series_tmdb_id]) s.series_cache = mapaSeries[s.series_tmdb_id];
-    }
+    const mapaPeliculas = new Map(resultadosPeliculas.filter((r): r is NonNullable<typeof r> => !!r).map((r) => [r.id, r.datos]));
+    const mapaSeries = new Map(resultadosSeries.filter((r): r is NonNullable<typeof r> => !!r).map((r) => [r.id, r.datos]));
 
     const conteoActores: Record<string, number> = {};
     const conteoDirectores: Record<string, number> = {};
 
     for (const p of peliculas) {
-      const cache = (p as any).movies_cache;
+      const cache = mapaPeliculas.get(p.movie_tmdb_id) ?? (p as any).movies_cache;
       if (!cache) continue;
       if (cache.director) conteoDirectores[cache.director] = (conteoDirectores[cache.director] ?? 0) + 1;
       for (const actor of cache.cast_top ?? []) conteoActores[actor.name] = (conteoActores[actor.name] ?? 0) + 1;
     }
     for (const s of series) {
-      const cache = (s as any).series_cache;
+      const cache = mapaSeries.get(s.series_tmdb_id) ?? (s as any).series_cache;
       if (!cache) continue;
       for (const actor of cache.cast_top ?? []) conteoActores[actor.name] = (conteoActores[actor.name] ?? 0) + 1;
     }
@@ -187,9 +194,7 @@ export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeE
     };
   } catch (e) {
     // Si algo se cae en el medio (una consulta, el backfill, lo que sea),
-    // mejor devolver "no hay dato" que dejar la promesa colgada — antes,
-    // sin este try/catch, un error acá hacía que las tarjetas de actor y
-    // director favorito directamente desaparecieran sin aviso.
+    // mejor devolver "no hay dato" que dejar la promesa colgada.
     console.error("Error al calcular actor/director favorito:", e);
     return { actorFavorito: null, directorFavorito: null };
   }
