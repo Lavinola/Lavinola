@@ -432,6 +432,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   const [imdb, setImdb] = useState<NotaImdb | null>(null);
   const [cantidadFavoritos, setCantidadFavoritos] = useState(0);
   const [trailer, setTrailer] = useState<{ key: string; name: string } | null>(null);
+  const [director, setDirector] = useState<string | null>(null);
   const [recomendados, setRecomendados] = useState<any[]>([]);
   const [fechaVista, setFechaVista] = useState<string | null>(null);
   const [primeraFechaVista, setPrimeraFechaVista] = useState<string | null>(null);
@@ -500,6 +501,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
 
     const credits = tipo === "series" ? await getSeriesCredits(tmdbId) : await getMovieCredits(tmdbId);
     setReparto((credits.cast ?? []).slice(0, 15));
+    setDirector(tipo === "movie" ? credits.crew?.find((c: any) => c.job === "Director")?.name ?? null : null);
     setCantidadFavoritos(await contarFavoritosDeTitulo(tipo, tmdbId));
 
     const videos = tipo === "series" ? await getSeriesVideos(tmdbId) : await getMovieVideos(tmdbId);
@@ -643,6 +645,12 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
           <Text style={styles.seccionTitulo}>{t("Sinopsis")}</Text>
           <Text style={styles.overview}>{titulo.overview}</Text>
         </>
+      )}
+
+      {director && (
+        <Text style={styles.directorTexto}>
+          {t("Dirigida por")} <Text style={{ fontWeight: "700" }}>{director}</Text>
+        </Text>
       )}
 
       {trailer && (
@@ -972,6 +980,7 @@ const styles = StyleSheet.create({
   plataformaLogoBox: { width: 48, height: 48, borderRadius: 10, overflow: "hidden", backgroundColor: theme.colors.surfaceAlt },
   plataformaLogo: { width: 48, height: 48 },
   overview: { fontSize: 14, lineHeight: 20 },
+  directorTexto: { fontSize: 13, color: theme.colors.textMuted, marginTop: 10 },
   trailerBtn: {
     flexDirection: "row",
     alignItems: "center",

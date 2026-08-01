@@ -2220,3 +2220,13 @@ alter table chat_messages add column if not exists es_que_vemos boolean not null
 alter table posts add column if not exists group_id uuid references groups(id) on delete cascade;
 alter table posts drop constraint if exists posts_item_type_check;
 alter table posts add constraint posts_item_type_check check (item_type in ('series', 'movie', 'episode', 'list', 'recap', 'group'));
+
+-- ============================================================
+-- Director (solo películas) y elenco principal (películas y series) —
+-- guardados al sincronizar, para poder calcular "actor que más se repite" y
+-- "director favorito" en Estadísticas sin pegarle a TMDB por cada título
+-- del usuario cada vez que entra a esa pantalla.
+-- ============================================================
+alter table movies_cache add column if not exists director text;
+alter table movies_cache add column if not exists cast_top jsonb;
+alter table series_cache add column if not exists cast_top jsonb;

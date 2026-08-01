@@ -43,6 +43,92 @@ export interface EstadisticasPeliculas {
 
 const HACE_7_DIAS = () => new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+export interface ActividadMes {
+  mes: string; // "YYYY-MM"
+  etiqueta: string; // "Ene", "Feb", ... para mostrar
+  cantidad: number;
+}
+
+const NOMBRES_MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+function ultimos12Meses(): { clave: string; etiqueta: string }[] {
+  const hoy = new Date();
+  const meses: { clave: string; etiqueta: string }[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    meses.push({ clave: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, etiqueta: NOMBRES_MES[d.getMonth()] });
+  }
+  return meses;
+}
+
+/** Cuántos capítulos vio el usuario por mes, en los últimos 12 meses. */
+export async function getActividadMensualSeries(userId: string): Promise<ActividadMes[]> {
+  const desde = new Date();
+  desde.setMonth(desde.getMonth() - 11, 1);
+  const filas = await fetchAllRows<any>((d, h) =>
+    supabase.from("user_episodes_watched").select("watched_at").eq("user_id", userId).gte("watched_at", desde.toISOString()).range(d, h)
+  );
+  const conteo: Record<string, number> = {};
+  for (const f of filas) {
+    const clave = (f.watched_at ?? "").slice(0, 7);
+    if (clave) conteo[clave] = (conteo[clave] ?? 0) + 1;
+  }
+  return ultimos12Meses().map((m) => ({ mes: m.clave, etiqueta: m.etiqueta, cantidad: conteo[m.clave] ?? 0 }));
+}
+
+/** Cuántas películas vio el usuario por mes, en los últimos 12 meses. */
+export async function getActividadMensualPeliculas(userId: string): Promise<ActividadMes[]> {
+  const desde = new Date();
+  desde.setMonth(desde.getMonth() - 11, 1);
+  const filas = await fetchAllRows<any>((d, h) =>
+    supabase.from("user_movies").select("watched_at").eq("user_id", userId).eq("watched", true).gte("watched_at", desde.toISOString()).range(d, h)
+  );
+  const conteo: Record<string, number> = {};
+  for (const f of filas) {
+    const clave = (f.watched_at ?? "").slice(0, 7);
+    if (clave) conteo[clave] = (conteo[clave] ?? 0) + 1;
+  }
+  return ultimos12Meses().map((m) => ({ mes: m.clave, etiqueta: m.etiqueta, cantidad: conteo[m.clave] ?? 0 }));
+}
+
+export interface FavoritosDeElenco {
+  actorFavorito: ConteoNombre | null; // combina elenco de películas y series vistas
+  directorFavorito: ConteoNombre | null; // solo películas — las series no tienen un único director
+}
+
+/** Actor/actriz y director que más se repiten entre lo que el usuario ya vio (usa el elenco guardado al sincronizar cada título — no pega contra TMDB acá). */
+export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeElenco> {
+  const [peliculas, series] = await Promise.all([
+    fetchAllRows<any>((d, h) =>
+      supabase.from("user_movies").select("movies_cache(director, cast_top)").eq("user_id", userId).eq("watched", true).range(d, h)
+    ),
+    fetchAllRows<any>((d, h) => supabase.from("user_series").select("series_cache(cast_top)").eq("user_id", userId).range(d, h)),
+  ]);
+
+  const conteoActores: Record<string, number> = {};
+  const conteoDirectores: Record<string, number> = {};
+
+  for (const p of peliculas) {
+    const cache = (p as any).movies_cache;
+    if (!cache) continue;
+    if (cache.director) conteoDirectores[cache.director] = (conteoDirectores[cache.director] ?? 0) + 1;
+    for (const actor of cache.cast_top ?? []) conteoActores[actor.name] = (conteoActores[actor.name] ?? 0) + 1;
+  }
+  for (const s of series) {
+    const cache = (s as any).series_cache;
+    if (!cache) continue;
+    for (const actor of cache.cast_top ?? []) conteoActores[actor.name] = (conteoActores[actor.name] ?? 0) + 1;
+  }
+
+  const actorTop = Object.entries(conteoActores).sort((a, b) => b[1] - a[1])[0];
+  const directorTop = Object.entries(conteoDirectores).sort((a, b) => b[1] - a[1])[0];
+
+  return {
+    actorFavorito: actorTop && actorTop[1] >= 2 ? { nombre: actorTop[0], cantidad: actorTop[1] } : null,
+    directorFavorito: directorTop && directorTop[1] >= 2 ? { nombre: directorTop[0], cantidad: directorTop[1] } : null,
+  };
+}
+
 export async function getEstadisticasSeries(userId: string): Promise<EstadisticasSeries> {
   const vistos = await fetchAllRows((desde, hasta) =>
     supabase

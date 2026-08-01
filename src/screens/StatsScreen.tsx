@@ -6,9 +6,15 @@ import { supabase } from "../lib/supabase";
 import {
   getEstadisticasSeries,
   getEstadisticasPeliculas,
+  getActividadMensualSeries,
+  getActividadMensualPeliculas,
+  getFavoritosDeElenco,
   formatTiempo,
   EstadisticasSeries,
   EstadisticasPeliculas,
+  ActividadMes,
+  FavoritosDeElenco,
+  ConteoNombre,
 } from "../lib/stats";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -37,6 +43,8 @@ export default function StatsScreen({ navigation }: any) {
 function StatsSeriesTab({ navigation }: any) {
   const { t, locale } = useT();
   const [stats, setStats] = useState<EstadisticasSeries | null>(null);
+  const [actividad, setActividad] = useState<ActividadMes[] | null>(null);
+  const [favoritos, setFavoritos] = useState<FavoritosDeElenco | null>(null);
 
   useEffect(() => {
     cargar();
@@ -47,6 +55,8 @@ function StatsSeriesTab({ navigation }: any) {
     const uid = userData.user?.id;
     if (!uid) return;
     setStats(await getEstadisticasSeries(uid));
+    getActividadMensualSeries(uid).then(setActividad);
+    getFavoritosDeElenco(uid).then(setFavoritos);
   }
 
   if (!stats) return <ActivityIndicator style={{ marginTop: 32 }} />;
@@ -72,6 +82,12 @@ function StatsSeriesTab({ navigation }: any) {
         <Text style={styles.subdato}>{t("{n} en los últimos 7 días").replace("{n}", String(stats.episodiosUltimos7Dias))}</Text>
       </Card>
 
+      {actividad && (
+        <Card titulo={t("Tu actividad, mes a mes")}>
+          <GraficoBarras datos={actividad} />
+        </Card>
+      )}
+
       <Card titulo={t("Series añadidas")}>
         <Text style={styles.numeroGrande}>{stats.seriesAnadidas}</Text>
         <Text style={styles.subdato}>{t("{n} aún en producción").replace("{n}", String(stats.seriesEnProduccion))}</Text>
@@ -93,8 +109,18 @@ function StatsSeriesTab({ navigation }: any) {
       </Card>
 
       <Card titulo={t("Géneros populares")}>
+        <GraficoGeneros items={stats.generosPopulares} />
         <TablaConteo items={stats.generosPopulares} columna={t("Series")} />
       </Card>
+
+      {favoritos?.actorFavorito && (
+        <Card titulo={t("El actor/actriz que más se repite")}>
+          <Text style={styles.numeroGrande} numberOfLines={2} adjustsFontSizeToFit>
+            {favoritos.actorFavorito.nombre}
+          </Text>
+          <Text style={styles.subdato}>{t("Lo/la viste en {n} títulos").replace("{n}", String(favoritos.actorFavorito.cantidad))}</Text>
+        </Card>
+      )}
 
       <Card titulo={t("Dónde lo viste")}>
         <TablaConteo items={stats.plataformasPopulares} columna={t("Series")} />
@@ -128,6 +154,8 @@ function StatsSeriesTab({ navigation }: any) {
 function StatsPeliculasTab({ navigation }: any) {
   const { t, locale } = useT();
   const [stats, setStats] = useState<EstadisticasPeliculas | null>(null);
+  const [actividad, setActividad] = useState<ActividadMes[] | null>(null);
+  const [favoritos, setFavoritos] = useState<FavoritosDeElenco | null>(null);
 
   useEffect(() => {
     cargar();
@@ -138,6 +166,8 @@ function StatsPeliculasTab({ navigation }: any) {
     const uid = userData.user?.id;
     if (!uid) return;
     setStats(await getEstadisticasPeliculas(uid));
+    getActividadMensualPeliculas(uid).then(setActividad);
+    getFavoritosDeElenco(uid).then(setFavoritos);
   }
 
   if (!stats) return <ActivityIndicator style={{ marginTop: 32 }} />;
@@ -162,13 +192,38 @@ function StatsPeliculasTab({ navigation }: any) {
         <Text style={styles.subdato}>{t("{n} en los últimos 7 días").replace("{n}", String(stats.peliculasVistasUltimos7Dias))}</Text>
       </Card>
 
+      {actividad && (
+        <Card titulo={t("Tu actividad, mes a mes")}>
+          <GraficoBarras datos={actividad} />
+        </Card>
+      )}
+
       <Card titulo={t("Películas añadidas")}>
         <Text style={styles.numeroGrande}>{stats.peliculasAnadidas}</Text>
       </Card>
 
       <Card titulo={t("Géneros de películas populares")}>
+        <GraficoGeneros items={stats.generosPopulares} />
         <TablaConteo items={stats.generosPopulares} columna={t("Películas")} />
       </Card>
+
+      {favoritos?.actorFavorito && (
+        <Card titulo={t("El actor/actriz que más se repite")}>
+          <Text style={styles.numeroGrande} numberOfLines={2} adjustsFontSizeToFit>
+            {favoritos.actorFavorito.nombre}
+          </Text>
+          <Text style={styles.subdato}>{t("Lo/la viste en {n} títulos").replace("{n}", String(favoritos.actorFavorito.cantidad))}</Text>
+        </Card>
+      )}
+
+      {favoritos?.directorFavorito && (
+        <Card titulo={t("Tu director/a favorito/a")}>
+          <Text style={styles.numeroGrande} numberOfLines={2} adjustsFontSizeToFit>
+            {favoritos.directorFavorito.nombre}
+          </Text>
+          <Text style={styles.subdato}>{t("Dirigió {n} películas que viste").replace("{n}", String(favoritos.directorFavorito.cantidad))}</Text>
+        </Card>
+      )}
 
       <Card titulo={t("Calificaciones votadas")}>
         <Text style={styles.numeroGrande}>{stats.calificacionesVotadas}</Text>
@@ -192,6 +247,52 @@ function StatsPeliculasTab({ navigation }: any) {
         </Text>
       </Card>
     </ScrollView>
+  );
+}
+
+const COLORES_GENEROS = ["#A63FE0", "#C066F0", "#7A2BB0", "#E091FA", "#5A1A80", "#D67AF5", "#8F3FC0", "#4A1266"];
+
+function GraficoBarras({ datos }: { datos: ActividadMes[] }) {
+  const max = Math.max(...datos.map((d) => d.cantidad), 1);
+  return (
+    <View style={styles.barrasWrap}>
+      {datos.map((d) => (
+        <View key={d.mes} style={styles.barraColumna}>
+          <View style={styles.barraFondo}>
+            <View style={[styles.barraRelleno, { height: `${Math.max((d.cantidad / max) * 100, d.cantidad > 0 ? 6 : 0)}%` }]} />
+          </View>
+          <Text style={styles.barraEtiqueta}>{d.etiqueta}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function GraficoGeneros({ items }: { items: ConteoNombre[] }) {
+  const { t } = useT();
+  if (items.length === 0) return null;
+  const total = items.reduce((acc, i) => acc + i.cantidad, 0);
+  if (total === 0) return null;
+  const top = items.slice(0, 8);
+
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <View style={styles.tortaBarra}>
+        {top.map((item, i) => (
+          <View key={item.nombre} style={{ width: `${(item.cantidad / total) * 100}%`, backgroundColor: COLORES_GENEROS[i % COLORES_GENEROS.length] }} />
+        ))}
+      </View>
+      <View style={styles.tortaLeyenda}>
+        {top.map((item, i) => (
+          <View key={item.nombre} style={styles.tortaLeyendaItem}>
+            <View style={[styles.tortaLeyendaColor, { backgroundColor: COLORES_GENEROS[i % COLORES_GENEROS.length] }]} />
+            <Text style={styles.tortaLeyendaTexto}>
+              {t(item.nombre)} · {Math.round((item.cantidad / total) * 100)}%
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -235,4 +336,14 @@ const styles = StyleSheet.create({
   filaTabla: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   tablaHeader: { fontSize: 11, color: theme.colors.textFaint, textTransform: "uppercase" },
   tablaTexto: { fontSize: 13 },
+  barrasWrap: { flexDirection: "row", alignItems: "flex-end", height: 110, gap: 4 },
+  barraColumna: { flex: 1, alignItems: "center" },
+  barraFondo: { width: "100%", height: 84, justifyContent: "flex-end", backgroundColor: theme.colors.surfaceAlt, borderRadius: 4, overflow: "hidden" },
+  barraRelleno: { width: "100%", backgroundColor: theme.colors.primary, borderRadius: 4 },
+  barraEtiqueta: { fontSize: 9, color: theme.colors.textFaint, marginTop: 4, textTransform: "uppercase" },
+  tortaBarra: { flexDirection: "row", height: 22, borderRadius: 6, overflow: "hidden", marginBottom: 10 },
+  tortaLeyenda: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  tortaLeyendaItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  tortaLeyendaColor: { width: 10, height: 10, borderRadius: 3 },
+  tortaLeyendaTexto: { fontSize: 11.5, color: theme.colors.textMuted },
 });

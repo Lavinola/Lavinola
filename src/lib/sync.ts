@@ -12,7 +12,7 @@
  * ese título (pantalla en blanco, o el "+" que no queda guardado).
  */
 import { supabase } from "./supabase";
-import { getSeriesDetails, getSeasonEpisodes, getMovieDetails } from "./tmdb";
+import { getSeriesDetails, getSeasonEpisodes, getMovieDetails, getMovieCredits, getSeriesCredits } from "./tmdb";
 
 const STALE_AFTER_HOURS = 24;
 
@@ -26,15 +26,16 @@ function isStale(syncedAt: string | null) {
 export async function syncSeries(tmdbId: number): Promise<void> {
   const { data: existing } = await supabase
     .from("series_cache")
-    .select("synced_at, total_seasons, first_air_date, total_episodes")
+    .select("synced_at, total_seasons, first_air_date, total_episodes, cast_top")
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
 
   // Si el cache es reciente PERO le faltan campos que agregamos en una
   // versión más nueva del schema (series cacheadas hace tiempo, antes de
-  // trackear total_seasons/first_air_date), lo tratamos como si estuviera
-  // vencido para que se autocomplete solo, sin esperar las 24hs de rigor.
-  const leFaltanCamposNuevos = existing && (!existing.total_seasons || !existing.first_air_date);
+  // trackear total_seasons/first_air_date/cast_top), lo tratamos como si
+  // estuviera vencido para que se autocomplete solo, sin esperar las 24hs
+  // de rigor.
+  const leFaltanCamposNuevos = existing && (!existing.total_seasons || !existing.first_air_date || !existing.cast_top);
   // Si la ficha existe y no está vencida, igual chequeamos que tenga
   // episodios cargados de verdad — una importación anterior interrumpida (de
   // antes de que la función se auto-relance sola) podía guardar la ficha de
@@ -55,6 +56,14 @@ export async function syncSeries(tmdbId: number): Promise<void> {
 
   const details = await getSeriesDetails(tmdbId);
 
+  let castTop: { id: number; name: string }[] = [];
+  try {
+    const credits = await getSeriesCredits(tmdbId);
+    castTop = (credits.cast ?? []).slice(0, 10).map((c: any) => ({ id: c.id, name: c.name }));
+  } catch (e) {
+    console.error("syncSeries: no se pudieron traer los créditos:", e);
+  }
+
   const { error: errorSerie } = await supabase.from("series_cache").upsert({
     tmdb_id: tmdbId,
     name: details.name,
@@ -70,6 +79,7 @@ export async function syncSeries(tmdbId: number): Promise<void> {
     seasons_meta: (details.seasons ?? [])
       .filter((s: any) => s.season_number > 0)
       .map((s: any) => ({ season_number: s.season_number, air_date: s.air_date || null, episode_count: s.episode_count ?? 0, name: s.name })),
+    cast_top: castTop,
     synced_at: new Date().toISOString(),
   });
   if (errorSerie) {
@@ -166,13 +176,31 @@ export async function refrescarMetaSerie(tmdbId: number): Promise<void> {
 export async function syncMovie(tmdbId: number): Promise<void> {
   const { data: existing } = await supabase
     .from("movies_cache")
-    .select("synced_at")
+    .select("synced_at, director, cast_top")
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
 
-  if (existing && !isStale(existing.synced_at)) return;
+  // Igual que en syncSeries: si el cache es reciente pero le falta el
+  // director o el elenco (películas cacheadas antes de que existiera esto),
+  // se trata como vencido para que se autocomplete solo.
+  const leFaltanCamposNuevos = existing && (!existing.director || !existing.cast_top);
+  if (existing && !isStale(existing.synced_at) && !leFaltanCamposNuevos) return;
 
   const details = await getMovieDetails(tmdbId);
+
+  // Director + elenco principal — se guardan acá (no hace falta pedirlos de
+  // nuevo cada vez) para poder calcular "actor que más se repite" y
+  // "director favorito" en Estadísticas sin tener que consultar TMDB por
+  // cada película del usuario cada vez que entra a esa pantalla.
+  let director: string | null = null;
+  let castTop: { id: number; name: string }[] = [];
+  try {
+    const credits = await getMovieCredits(tmdbId);
+    director = credits.crew?.find((c: any) => c.job === "Director")?.name ?? null;
+    castTop = (credits.cast ?? []).slice(0, 10).map((c: any) => ({ id: c.id, name: c.name }));
+  } catch (e) {
+    console.error("syncMovie: no se pudieron traer los créditos:", e);
+  }
 
   const { error } = await supabase.from("movies_cache").upsert({
     tmdb_id: tmdbId,
@@ -183,6 +211,8 @@ export async function syncMovie(tmdbId: number): Promise<void> {
     runtime_minutes: details.runtime ?? null,
     release_date: details.release_date || null,
     genre_ids: (details.genres ?? []).map((g: any) => g.id),
+    director,
+    cast_top: castTop,
     synced_at: new Date().toISOString(),
   });
   if (error) {
