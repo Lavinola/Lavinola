@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, FlatList, TextInput, Pressable, Image, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, ActivityIndicator } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
@@ -239,6 +240,12 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     setMenuMensajeVisible(false);
   }
 
+  async function copiarMensaje() {
+    if (!mensajeMenuAccion?.content) return;
+    await Clipboard.setStringAsync(mensajeMenuAccion.content);
+    setMenuMensajeVisible(false);
+  }
+
   function empezarAEditar() {
     if (!mensajeMenuAccion) return;
     setMenuMensajeVisible(false);
@@ -475,7 +482,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                     </View>
                   </Pressable>
                 )}
-                {item.content ? <Text>{traducciones[item.id] ?? item.content}</Text> : null}
+                {item.content ? <Text style={styles.mensajeTexto}>{traducciones[item.id] ?? item.content}</Text> : null}
                 {item.gif_url && <Image source={{ uri: item.gif_url }} style={styles.gifEnBurbuja} />}
                 {item.edited_at && <Text style={styles.editadoTexto}>{t("mensaje editado")}</Text>}
                 <View style={styles.pieMensajeRow}>
@@ -603,6 +610,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       onCerrar={() => setMenuMensajeVisible(false)}
       opciones={[
         { label: t("Responder"), icono: "arrow-undo-outline", onPress: responderA },
+        ...(mensajeMenuAccion?.content ? [{ label: t("Copiar"), icono: "copy-outline" as const, onPress: copiarMensaje }] : []),
         ...(mensajeMenuAccion?.sender_id === userId
           ? [
               ...(mensajeMenuAccion?.kind === "text" && Date.now() - new Date(mensajeMenuAccion.created_at).getTime() < 60 * 60 * 1000
@@ -658,6 +666,8 @@ function IconoReaccionChat({ emoji }: { emoji: string }) {
 }
 
 const styles = StyleSheet.create({
+  mensajeTexto:
+    Platform.OS === "web" ? ({ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } as any) : {},
   container: { flex: 1, backgroundColor: theme.colors.background },
   tituloBox: { flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   tituloAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
