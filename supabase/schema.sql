@@ -2230,3 +2230,6 @@ alter table posts add constraint posts_item_type_check check (item_type in ('ser
 alter table movies_cache add column if not exists director text;
 alter table movies_cache add column if not exists cast_top jsonb;
 alter table series_cache add column if not exists cast_top jsonb;
+-- El nombre del director solo no alcanza para poder navegar a su ficha
+-- (como al tocar un actor) — hace falta su ID de TMDB.
+alter table movies_cache add column if not exists director_id integer;

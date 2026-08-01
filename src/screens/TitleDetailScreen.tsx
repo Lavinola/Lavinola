@@ -433,6 +433,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   const [cantidadFavoritos, setCantidadFavoritos] = useState(0);
   const [trailer, setTrailer] = useState<{ key: string; name: string } | null>(null);
   const [director, setDirector] = useState<string | null>(null);
+  const [directorId, setDirectorId] = useState<number | null>(null);
   const [recomendados, setRecomendados] = useState<any[]>([]);
   const [fechaVista, setFechaVista] = useState<string | null>(null);
   const [primeraFechaVista, setPrimeraFechaVista] = useState<string | null>(null);
@@ -501,7 +502,9 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
 
     const credits = tipo === "series" ? await getSeriesCredits(tmdbId) : await getMovieCredits(tmdbId);
     setReparto((credits.cast ?? []).slice(0, 15));
-    setDirector(tipo === "movie" ? credits.crew?.find((c: any) => c.job === "Director")?.name ?? null : null);
+    const directorCredit = tipo === "movie" ? credits.crew?.find((c: any) => c.job === "Director") : null;
+    setDirector(directorCredit?.name ?? null);
+    setDirectorId(directorCredit?.id ?? null);
     setCantidadFavoritos(await contarFavoritosDeTitulo(tipo, tmdbId));
 
     const videos = tipo === "series" ? await getSeriesVideos(tmdbId) : await getMovieVideos(tmdbId);
@@ -648,9 +651,11 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       )}
 
       {director && (
-        <Text style={styles.directorTexto}>
-          {t("Dirigida por")} <Text style={{ fontWeight: "700" }}>{director}</Text>
-        </Text>
+        <Pressable onPress={() => directorId && navigation.navigate("Actor", { personId: directorId })} disabled={!directorId}>
+          <Text style={styles.directorTexto}>
+            {t("Dirigida por")} <Text style={[{ fontWeight: "700" }, !!directorId && styles.directorTappeable]}>{director}</Text>
+          </Text>
+        </Pressable>
       )}
 
       {trailer && (
@@ -981,6 +986,7 @@ const styles = StyleSheet.create({
   plataformaLogo: { width: 48, height: 48 },
   overview: { fontSize: 14, lineHeight: 20 },
   directorTexto: { fontSize: 13, color: theme.colors.textMuted, marginTop: 10 },
+  directorTappeable: { textDecorationLine: "underline", color: theme.colors.primaryLight },
   trailerBtn: {
     flexDirection: "row",
     alignItems: "center",

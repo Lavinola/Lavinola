@@ -264,6 +264,11 @@ export function searchMovies(query: string) {
   return tmdbFetch<any>(`/search/movie`, { query }, "en-US");
 }
 
+/** Busca personas (actores/actrices, directores/as) por nombre. */
+export function searchPerson(query: string) {
+  return tmdbFetch<any>(`/search/person`, { query }, "en-US");
+}
+
 export function multiSearch(query: string) {
   return tmdbFetch<any>(`/search/multi`, { query }, "en-US");
 }

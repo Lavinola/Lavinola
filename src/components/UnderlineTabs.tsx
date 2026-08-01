@@ -7,6 +7,7 @@ interface Props<T extends string> {
   opciones: { key: T; label: string }[];
   valor: T;
   onCambiar: (v: T) => void;
+  multilinea?: boolean; // si el label trae un "\n", se muestra en 2 renglones centrados en vez de achicarse a 1
 }
 
 /**
@@ -16,7 +17,7 @@ interface Props<T extends string> {
  * confundan con el resto de los selectores de la app (que son óvalos
  * violeta llenos).
  */
-export default function UnderlineTabs<T extends string>({ opciones, valor, onCambiar }: Props<T>) {
+export default function UnderlineTabs<T extends string>({ opciones, valor, onCambiar, multilinea }: Props<T>) {
   const [anchoTotal, setAnchoTotal] = useState(0);
   const indiceActivo = Math.max(0, opciones.findIndex((o) => o.key === valor));
   const anim = useRef(new Animated.Value(indiceActivo)).current;
@@ -36,7 +37,12 @@ export default function UnderlineTabs<T extends string>({ opciones, valor, onCam
       <View style={styles.filaBotones}>
         {opciones.map((o) => (
           <Pressable key={o.key} style={styles.boton} onPress={() => onCambiar(o.key)}>
-            <Text style={[styles.texto, valor === o.key && styles.textoActivo]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            <Text
+              style={[styles.texto, valor === o.key && styles.textoActivo, multilinea && styles.textoMultilinea]}
+              numberOfLines={multilinea ? 2 : 1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
               {o.label}
             </Text>
           </Pressable>
@@ -64,6 +70,7 @@ const styles = StyleSheet.create({
   filaBotones: { flexDirection: "row" },
   boton: { flex: 1, paddingVertical: 12, paddingHorizontal: 4, alignItems: "center" },
   texto: { fontSize: 14, fontWeight: "700", color: theme.colors.primaryLight, opacity: 0.55 },
+  textoMultilinea: { textAlign: "center", lineHeight: 16 },
   textoActivo: { opacity: 1 },
   rielSubrayado: { height: 2, width: "100%" },
   subrayado: { height: 2, backgroundColor: theme.colors.primary, position: "absolute", left: 0 },

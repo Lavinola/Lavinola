@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { FlatList, View, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "../components/Themed";
 import { supabase } from "../lib/supabase";
-import { getRankingTiempoSeries, getRankingTiempoPeliculas, formatTiempo, PuestoRanking } from "../lib/stats";
+import { getRankingTiempoSeries, getRankingTiempoPeliculas, PuestoRanking } from "../lib/stats";
+import TiempoDedicadoTexto from "../components/TiempoDedicadoTexto";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -34,13 +35,12 @@ export default function RankingScreen({ route, navigation }: Props) {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={styles.header}>
         <Text style={styles.headerTexto}>{t("CLASIFICACIÓN")}</Text>
-        <Text style={styles.headerTexto}>{t("TIEMPO EMPLEADO")}</Text>
+        <Text style={styles.headerTexto}>{t("TIEMPO DEDICADO")}</Text>
       </View>
       <FlatList
         data={ranking}
         keyExtractor={(r) => r.userId}
         renderItem={({ item, index }) => {
-          const tFormato = formatTiempo(item.minutos);
           return (
             <Pressable
               style={[styles.fila, item.soyYo && styles.filaPropia]}
@@ -57,10 +57,7 @@ export default function RankingScreen({ route, navigation }: Props) {
                 <Text style={styles.nombre}>{item.username ?? t("Usuario")}</Text>
                 {item.soyYo && <Text style={styles.tu}>{t("TU")}</Text>}
               </View>
-              <Text style={styles.tiempo}>
-                {tFormato.anios > 0 ? `${tFormato.anios}a ` : ""}
-                {tFormato.meses}m {tFormato.dias}d {tFormato.horas}h
-              </Text>
+              <TiempoDedicadoTexto minutos={item.minutos} tamanoNumero={13} />
             </Pressable>
           );
         }}

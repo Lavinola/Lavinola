@@ -4,17 +4,16 @@ import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";
-import { searchSeries, searchMovies, posterUrl } from "../lib/tmdb";
+import { searchSeries, searchMovies, searchPerson, posterUrl } from "../lib/tmdb";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie } from "../lib/sync";
 import { buscarUsuarios, listarUsuariosRecomendados, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
-import { buscarGrupos, listarGruposRecomendados, unirseAGrupo, Grupo } from "../lib/groups";
 import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/pagination";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
-type Tab = "titulos" | "usuarios" | "grupos";
+type Tab = "titulos" | "personas" | "usuarios";
 
 interface ResultadoTitulo {
   id: number;
@@ -25,6 +24,13 @@ interface ResultadoTitulo {
   popularidad: number;
 }
 
+interface ResultadoPersona {
+  id: number;
+  nombre: string;
+  foto: string | null;
+  conocidoPor: string; // "Actor/Actriz" o "Dirección" — sale de known_for_department de TMDB
+}
+
 export default function GlobalSearchScreen({ route, navigation }: any) {
   const { t } = useT();
   const [tab, setTab] = useState<Tab>(route?.params?.tabInicial ?? "titulos");
@@ -33,7 +39,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
   const [titulos, setTitulos] = useState<ResultadoTitulo[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioBasico[]>([]);
-  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [personas, setPersonas] = useState<ResultadoPersona[]>([]);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [agregando, setAgregando] = useState<number | null>(null);
@@ -45,7 +51,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
       setUserId(uid);
       if (uid) {
         await cargarAgregados(uid);
-        if (tab !== "titulos") cargarRecomendaciones(uid, tab);
+        if (tab === "usuarios") cargarRecomendaciones(uid, tab);
       }
     });
   });
@@ -53,8 +59,6 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   async function cargarRecomendaciones(uid: string, tabActual: Tab) {
     if (tabActual === "usuarios") {
       setUsuarios(await listarUsuariosRecomendados(uid));
-    } else if (tabActual === "grupos") {
-      setGrupos(await listarGruposRecomendados(uid));
     }
   }
 
@@ -74,11 +78,11 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     if (texto.trim().length < 2) {
       idPedidoRef.current++; // invalida cualquier búsqueda en vuelo
       setTitulos([]);
-      if (userId && tab !== "titulos") {
+      setPersonas([]);
+      if (userId && tab === "usuarios") {
         cargarRecomendaciones(userId, tab);
       } else {
         setUsuarios([]);
-        setGrupos([]);
       }
       return;
     }
@@ -114,9 +118,18 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
         if (idPedidoRef.current !== miId) return;
         setUsuarios(data);
       } else {
-        const data = await buscarGrupos(texto.trim(), userId);
+        const data = await searchPerson(texto);
         if (idPedidoRef.current !== miId) return;
-        setGrupos(data);
+        const resultados: ResultadoPersona[] = (data.results ?? [])
+          .filter((p: any) => p.profile_path || p.known_for_department)
+          .sort((a: any, b: any) => (b.popularity ?? 0) - (a.popularity ?? 0))
+          .map((p: any) => ({
+            id: p.id,
+            nombre: p.name,
+            foto: p.profile_path,
+            conocidoPor: p.known_for_department === "Directing" ? t("Dirección") : t("Actor/Actriz"),
+          }));
+        setPersonas(resultados);
       }
     } catch (e: any) {
       console.error("Error al buscar:", e);
@@ -129,7 +142,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   function cambiarTab(t: Tab) {
     setTab(t);
     if (query.trim().length >= 2) buscar(query);
-    else if (userId && t !== "titulos") cargarRecomendaciones(userId, t);
+    else if (userId && t === "usuarios") cargarRecomendaciones(userId, t);
   }
 
   async function agregarTitulo(item: ResultadoTitulo) {
@@ -160,12 +173,6 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     }
   }
 
-  async function unirseGrupo(g: Grupo) {
-    if (!userId) return;
-    await unirseAGrupo(g.id, userId);
-    buscar(query);
-  }
-
   async function toggleFollow(u: UsuarioBasico) {
     if (!userId || u.solicitudPendiente) return;
     try {
@@ -187,7 +194,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
         <Ionicons name="search" size={18} color={theme.colors.primaryLight} />
         <TextInput
           style={styles.input}
-          placeholder={t("Buscar películas, series, grupos, usuarios...")}
+          placeholder={t("Buscar series, películas, actores, directores, usuarios...")}
           placeholderTextColor={theme.colors.textFaint}
           value={query}
           onChangeText={buscar}
@@ -198,12 +205,13 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
       </View>
       <UnderlineTabs
         opciones={[
-          { key: "titulos", label: t("Series y películas") },
-          { key: "grupos", label: t("Grupos") },
+          { key: "titulos", label: t("Series") + "\n" + t("Películas") },
+          { key: "personas", label: t("Actores") + "\n" + t("Directores") },
           { key: "usuarios", label: t("Usuarios") },
         ]}
         valor={tab}
         onCambiar={cambiarTab}
+        multilinea
       />
 
       {loading && <ActivityIndicator style={{ marginTop: 16 }} />}
@@ -280,25 +288,23 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
         />
       )}
 
-      {tab === "grupos" && (
+      {tab === "personas" && (
         <FlatList
           keyboardShouldPersistTaps="handled"
-          data={grupos}
-          keyExtractor={(g) => g.id}
+          data={personas}
+          keyExtractor={(p) => String(p.id)}
           contentContainerStyle={{ padding: 12 }}
           renderItem={({ item }) => (
-            <Pressable style={styles.card} onPress={() => navigation.navigate("DetalleGrupo", { groupId: item.id, groupName: item.name })}>
-              {item.photo_url ? (
-                <Image source={{ uri: item.photo_url }} style={styles.avatar} />
+            <Pressable style={styles.card} onPress={() => navigation.navigate("Actor", { personId: item.id })}>
+              {item.foto ? (
+                <Image source={{ uri: posterUrl(item.foto, "w185")! }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, { backgroundColor: theme.colors.surfaceAlt }]} />
               )}
-              <Text style={styles.nombre}>{item.name}</Text>
-              {!item.soyMiembro && (
-                <Pressable style={styles.joinBtn} onPress={() => unirseGrupo(item)}>
-                  <Text style={styles.addBtnTexto}>{t("Unirme")}</Text>
-                </Pressable>
-              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.nombre}>{item.nombre}</Text>
+                <Text style={styles.anio}>{item.conocidoPor}</Text>
+              </View>
             </Pressable>
           )}
         />
@@ -319,7 +325,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     paddingHorizontal: 12,
   },
-  input: { flex: 1, color: theme.colors.text, paddingVertical: 10, ...(Platform.OS === "web" ? { outlineStyle: "none" as any } : {}) },
+  input: { flex: 1, fontSize: 14, color: theme.colors.text, paddingVertical: 10, ...(Platform.OS === "web" ? { outlineStyle: "none" as any } : {}) },
   card: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
   cardInfo: { flexDirection: "row", alignItems: "center", flex: 1 },
   followBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 10 },

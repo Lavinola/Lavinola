@@ -27,7 +27,19 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
     try {
       const [detalle, creditosData] = await Promise.all([getPersonDetails(personId), getPersonCombinedCredits(personId)]);
       setPersona(detalle);
-      const todos = [...(creditosData.cast ?? [])]
+      navigation.setOptions({ title: detalle?.name ?? t("Actor/Actriz") });
+      // Combinamos actuación (cast) y dirección (crew, job="Director") —
+      // si no, alguien que es director pero no actúa quedaría con la
+      // filmografía vacía.
+      const actuacion = creditosData.cast ?? [];
+      const direccion = (creditosData.crew ?? []).filter((c: any) => c.job === "Director");
+      const combinados = [...actuacion, ...direccion];
+      const sinDuplicados = new Map<string, any>();
+      for (const c of combinados) {
+        const clave = `${c.media_type}-${c.id}`;
+        if (!sinDuplicados.has(clave)) sinDuplicados.set(clave, c);
+      }
+      const todos = [...sinDuplicados.values()]
         .filter((c: any) => c.poster_path)
         .sort((a: any, b: any) => {
           const fechaA = a.release_date || a.first_air_date || "";
@@ -44,7 +56,7 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
     const tipo = item.media_type === "movie" ? "movie" : "series";
     if (tipo === "series") await syncSeries(item.id);
     else await syncMovie(item.id);
-    navigation.navigate("DetalleTitulo", { tmdbId: item.id, tipo });
+    navigation.push("DetalleTitulo", { tmdbId: item.id, tipo });
   }
 
   if (loading) return <ActivityIndicator style={{ marginTop: 32 }} />;

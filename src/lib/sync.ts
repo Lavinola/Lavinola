@@ -193,10 +193,13 @@ export async function syncMovie(tmdbId: number): Promise<void> {
   // "director favorito" en Estadísticas sin tener que consultar TMDB por
   // cada película del usuario cada vez que entra a esa pantalla.
   let director: string | null = null;
+  let directorId: number | null = null;
   let castTop: { id: number; name: string }[] = [];
   try {
     const credits = await getMovieCredits(tmdbId);
-    director = credits.crew?.find((c: any) => c.job === "Director")?.name ?? null;
+    const directorCredit = credits.crew?.find((c: any) => c.job === "Director");
+    director = directorCredit?.name ?? null;
+    directorId = directorCredit?.id ?? null;
     castTop = (credits.cast ?? []).slice(0, 10).map((c: any) => ({ id: c.id, name: c.name }));
   } catch (e) {
     console.error("syncMovie: no se pudieron traer los créditos:", e);
@@ -212,6 +215,7 @@ export async function syncMovie(tmdbId: number): Promise<void> {
     release_date: details.release_date || null,
     genre_ids: (details.genres ?? []).map((g: any) => g.id),
     director,
+    director_id: directorId,
     cast_top: castTop,
     synced_at: new Date().toISOString(),
   });

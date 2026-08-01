@@ -44,7 +44,6 @@ function StatsSeriesTab({ navigation }: any) {
   const { t, locale } = useT();
   const [stats, setStats] = useState<EstadisticasSeries | null>(null);
   const [actividad, setActividad] = useState<ActividadMes[] | null>(null);
-  const [favoritos, setFavoritos] = useState<FavoritosDeElenco | null>(null);
 
   useEffect(() => {
     cargar();
@@ -56,7 +55,6 @@ function StatsSeriesTab({ navigation }: any) {
     if (!uid) return;
     setStats(await getEstadisticasSeries(uid));
     getActividadMensualSeries(uid).then(setActividad);
-    getFavoritosDeElenco(uid).then(setFavoritos);
   }
 
   if (!stats) return <ActivityIndicator style={{ marginTop: 32 }} />;
@@ -82,12 +80,6 @@ function StatsSeriesTab({ navigation }: any) {
         <Text style={styles.subdato}>{t("{n} en los últimos 7 días").replace("{n}", String(stats.episodiosUltimos7Dias))}</Text>
       </Card>
 
-      {actividad && (
-        <Card titulo={t("Tu actividad, mes a mes")}>
-          <GraficoBarras datos={actividad} />
-        </Card>
-      )}
-
       <Card titulo={t("Series añadidas")}>
         <Text style={styles.numeroGrande}>{stats.seriesAnadidas}</Text>
         <Text style={styles.subdato}>{t("{n} aún en producción").replace("{n}", String(stats.seriesEnProduccion))}</Text>
@@ -108,22 +100,15 @@ function StatsSeriesTab({ navigation }: any) {
         </View>
       </Card>
 
-      <Card titulo={t("Géneros populares")}>
-        <GraficoGeneros items={stats.generosPopulares} />
-        <TablaConteo items={stats.generosPopulares} columna={t("Series")} />
-      </Card>
-
-      {favoritos?.actorFavorito && (
-        <Card titulo={t("El actor/actriz que más se repite")}>
-          <Text style={styles.numeroGrande} numberOfLines={2} adjustsFontSizeToFit>
-            {favoritos.actorFavorito.nombre}
-          </Text>
-          <Text style={styles.subdato}>{t("Lo/la viste en {n} títulos").replace("{n}", String(favoritos.actorFavorito.cantidad))}</Text>
+      {actividad && (
+        <Card titulo={t("Tu actividad, mes a mes")}>
+          <GraficoBarras datos={actividad} />
         </Card>
       )}
 
-      <Card titulo={t("Dónde lo viste")}>
-        <TablaConteo items={stats.plataformasPopulares} columna={t("Series")} />
+      <Card titulo={t("Géneros populares")}>
+        <GraficoGeneros items={stats.generosPopulares} />
+        <TablaConteo items={stats.generosPopulares} columna={t("Series")} />
       </Card>
 
       <Card titulo={t("Calificaciones votadas")}>
@@ -131,21 +116,21 @@ function StatsSeriesTab({ navigation }: any) {
         <Text style={styles.subdato}>{t("en {n} series").replace("{n}", String(stats.calificacionesVotadas))}</Text>
       </Card>
 
-      <Card titulo={t("Comentarios")}>
-        <Text style={styles.numeroGrande}>{stats.comentariosCantidad}</Text>
-        <Text style={styles.subdato}>{t("en {n} series").replace("{n}", String(stats.comentariosEnCuantasSeries))}</Text>
-      </Card>
-
-      <Card titulo={t("Me gusta conseguidos")}>
-        <Text style={styles.numeroGrande}>{stats.meGustaConseguidos}</Text>
-        <Text style={styles.subdato}>{t("en tus comentarios sobre series")}</Text>
-      </Card>
-
       <Card titulo={t("Episodios pendientes")}>
         <Text style={styles.numeroGrande}>{stats.episodiosPendientes.toLocaleString(locale)}</Text>
         <Text style={styles.subdato}>
           {t("{d}d {h}h para verlos todos ({horas} horas)").replace("{d}", String(tPendientes.dias)).replace("{h}", String(tPendientes.horas)).replace("{horas}", String(Math.round(stats.minutosEpisodiosPendientes / 60)))}
         </Text>
+      </Card>
+
+      <Card titulo={t("Comentarios")}>
+        <Text style={styles.numeroGrande}>{stats.comentariosCantidad}</Text>
+        <Text style={styles.subdato}>{t("en {n} series").replace("{n}", String(stats.comentariosEnCuantasSeries))}</Text>
+      </Card>
+
+      <Card titulo={t("Me gusta recibidos")}>
+        <Text style={styles.numeroGrande}>{stats.meGustaConseguidos}</Text>
+        <Text style={styles.subdato}>{t("en tus comentarios sobre series")}</Text>
       </Card>
     </ScrollView>
   );
@@ -198,26 +183,17 @@ function StatsPeliculasTab({ navigation }: any) {
         </Card>
       )}
 
-      <Card titulo={t("Películas añadidas")}>
-        <Text style={styles.numeroGrande}>{stats.peliculasAnadidas}</Text>
-      </Card>
-
-      <Card titulo={t("Géneros de películas populares")}>
-        <GraficoGeneros items={stats.generosPopulares} />
-        <TablaConteo items={stats.generosPopulares} columna={t("Películas")} />
-      </Card>
-
       {favoritos?.actorFavorito && (
-        <Card titulo={t("El actor/actriz que más se repite")}>
+        <Card titulo={t("Actor/actriz favorito/a:")}>
           <Text style={styles.numeroGrande} numberOfLines={2} adjustsFontSizeToFit>
             {favoritos.actorFavorito.nombre}
           </Text>
-          <Text style={styles.subdato}>{t("Lo/la viste en {n} títulos").replace("{n}", String(favoritos.actorFavorito.cantidad))}</Text>
+          <Text style={styles.subdato}>{t("Lo elegiste en {n} películas").replace("{n}", String(favoritos.actorFavorito.cantidad))}</Text>
         </Card>
       )}
 
       {favoritos?.directorFavorito && (
-        <Card titulo={t("Tu director/a favorito/a")}>
+        <Card titulo={t("Director/a favorito/a")}>
           <Text style={styles.numeroGrande} numberOfLines={2} adjustsFontSizeToFit>
             {favoritos.directorFavorito.nombre}
           </Text>
@@ -225,19 +201,14 @@ function StatsPeliculasTab({ navigation }: any) {
         </Card>
       )}
 
+      <Card titulo={t("Géneros de películas populares")}>
+        <GraficoGeneros items={stats.generosPopulares} />
+        <TablaConteo items={stats.generosPopulares} columna={t("Películas")} />
+      </Card>
+
       <Card titulo={t("Calificaciones votadas")}>
         <Text style={styles.numeroGrande}>{stats.calificacionesVotadas}</Text>
         <Text style={styles.subdato}>{t("en {n} películas").replace("{n}", String(stats.calificacionesVotadas))}</Text>
-      </Card>
-
-      <Card titulo={t("Comentarios")}>
-        <Text style={styles.numeroGrande}>{stats.comentariosCantidad}</Text>
-        <Text style={styles.subdato}>{t("en {n} películas").replace("{n}", String(stats.comentariosEnCuantasPeliculas))}</Text>
-      </Card>
-
-      <Card titulo={t("Me gusta conseguidos")}>
-        <Text style={styles.numeroGrande}>{stats.meGustaConseguidos}</Text>
-        <Text style={styles.subdato}>{t("en tus comentarios sobre películas")}</Text>
       </Card>
 
       <Card titulo={t("Películas pendientes")}>
@@ -245,6 +216,16 @@ function StatsPeliculasTab({ navigation }: any) {
         <Text style={styles.subdato}>
           {t("{d}d {h}h para verlas todas ({horas} horas)").replace("{d}", String(tPendientes.dias)).replace("{h}", String(tPendientes.horas)).replace("{horas}", String(Math.round(stats.minutosPeliculasPendientes / 60)))}
         </Text>
+      </Card>
+
+      <Card titulo={t("Comentarios")}>
+        <Text style={styles.numeroGrande}>{stats.comentariosCantidad}</Text>
+        <Text style={styles.subdato}>{t("en {n} películas").replace("{n}", String(stats.comentariosEnCuantasPeliculas))}</Text>
+      </Card>
+
+      <Card titulo={t("Me gusta recibidos")}>
+        <Text style={styles.numeroGrande}>{stats.meGustaConseguidos}</Text>
+        <Text style={styles.subdato}>{t("en tus comentarios sobre películas")}</Text>
       </Card>
     </ScrollView>
   );
