@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { fetchAllRows } from "./pagination";
 import { GENEROS_SERIES, GENEROS_PELICULAS } from "./tmdbGenres";
 import { listarSeriesConEstado } from "./seriesList";
+import { syncMovie, syncSeries } from "./sync";
 
 export interface ConteoNombre {
   nombre: string;
@@ -97,13 +98,68 @@ export interface FavoritosDeElenco {
 }
 
 /** Actor/actriz y director que más se repiten entre lo que el usuario ya vio (usa el elenco guardado al sincronizar cada título — no pega contra TMDB acá). */
+// No tiene sentido backfillear miles de títulos de una sola vez (tardaría
+// una eternidad la primera vez) — con esto alcanza para ir completando de a
+// poco en cada visita a Estadísticas, sin demorar demasiado la pantalla.
+const TOPE_BACKFILL = 150;
+const CONCURRENCIA_BACKFILL = 10;
+
+async function enLotes<T>(items: T[], concurrencia: number, tarea: (item: T) => Promise<void>) {
+  for (let i = 0; i < items.length; i += concurrencia) {
+    await Promise.all(items.slice(i, i + concurrencia).map(tarea));
+  }
+}
+
 export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeElenco> {
   const [peliculas, series] = await Promise.all([
     fetchAllRows<any>((d, h) =>
-      supabase.from("user_movies").select("movies_cache(director, cast_top)").eq("user_id", userId).eq("watched", true).range(d, h)
+      supabase.from("user_movies").select("movie_tmdb_id, movies_cache(director, cast_top)").eq("user_id", userId).eq("watched", true).range(d, h)
     ),
-    fetchAllRows<any>((d, h) => supabase.from("user_series").select("series_cache(cast_top)").eq("user_id", userId).range(d, h)),
+    fetchAllRows<any>((d, h) => supabase.from("user_series").select("series_tmdb_id, series_cache(cast_top)").eq("user_id", userId).range(d, h)),
   ]);
+
+  // Backfill: hasta la última actualización, el director/elenco solo se
+  // guardaba cuando volvías a entrar a esa película/serie puntual — así que
+  // alguien con cientos de títulos vistos de antes puede tener casi todo
+  // sin completar todavía. Acá se completa lo que falte (con tope, para no
+  // demorar la pantalla una eternidad de una sola vez).
+  const peliculasSinDatos = peliculas.filter((p: any) => !p.movies_cache?.director && !p.movies_cache?.cast_top).slice(0, TOPE_BACKFILL);
+  const seriesSinDatos = series.filter((s: any) => !s.series_cache?.cast_top).slice(0, TOPE_BACKFILL);
+
+  await enLotes(peliculasSinDatos, CONCURRENCIA_BACKFILL, async (p: any) => {
+    try {
+      await syncMovie(p.movie_tmdb_id);
+    } catch (e) {
+      console.error(`No se pudo completar el director/elenco de la película ${p.movie_tmdb_id}:`, e);
+    }
+  });
+  await enLotes(seriesSinDatos, CONCURRENCIA_BACKFILL, async (s: any) => {
+    try {
+      await syncSeries(s.series_tmdb_id);
+    } catch (e) {
+      console.error(`No se pudo completar el elenco de la serie ${s.series_tmdb_id}:`, e);
+    }
+  });
+
+  // Si backfilleamos algo, volvemos a traer esas filas ya completas.
+  if (peliculasSinDatos.length > 0 || seriesSinDatos.length > 0) {
+    const idsBackfilleadosPeliculas = peliculasSinDatos.map((p: any) => p.movie_tmdb_id);
+    const idsBackfilleadosSeries = seriesSinDatos.map((s: any) => s.series_tmdb_id);
+    const [{ data: peliculasActualizadas }, { data: seriesActualizadas }] = await Promise.all([
+      idsBackfilleadosPeliculas.length
+        ? supabase.from("movies_cache").select("tmdb_id, director, cast_top").in("tmdb_id", idsBackfilleadosPeliculas)
+        : Promise.resolve({ data: [] as any[] }),
+      idsBackfilleadosSeries.length
+        ? supabase.from("series_cache").select("tmdb_id, cast_top").in("tmdb_id", idsBackfilleadosSeries)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const mapaPeliculas: Record<number, any> = {};
+    (peliculasActualizadas ?? []).forEach((m: any) => (mapaPeliculas[m.tmdb_id] = m));
+    const mapaSeries: Record<number, any> = {};
+    (seriesActualizadas ?? []).forEach((s: any) => (mapaSeries[s.tmdb_id] = s));
+    for (const p of peliculas) if (mapaPeliculas[p.movie_tmdb_id]) p.movies_cache = mapaPeliculas[p.movie_tmdb_id];
+    for (const s of series) if (mapaSeries[s.series_tmdb_id]) s.series_cache = mapaSeries[s.series_tmdb_id];
+  }
 
   const conteoActores: Record<string, number> = {};
   const conteoDirectores: Record<string, number> = {};

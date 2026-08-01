@@ -20,13 +20,20 @@ import { theme } from "../theme";
 type SubTab = "lobby" | "misPosts" | "grupos" | "chats";
 type LobbySubTab = "paraTi" | "siguiendo";
 
-export default function CommunityScreen({ navigation }: any) {
+export default function CommunityScreen({ navigation, route }: any) {
   const { t } = useT();
   const [subTab, setSubTab] = useState<SubTab>("lobby");
   const [lobbySubTab, setLobbySubTab] = useState<LobbySubTab>("paraTi");
   const [gruposNoLeidos, setGruposNoLeidos] = useState(0);
   const [chatsNoLeidos, setChatsNoLeidos] = useState(0);
   const { visible: fabVisible, onScroll: onScrollFeed } = useOcultarAlScrollear();
+
+  // Doble toque en el ícono de Comunidad (armado en navigation/index.tsx) —
+  // vuelve al Lobby estés donde estés, mandando una señal nueva cada vez
+  // (con Date.now()) para que dispare incluso si ya estabas en "lobby".
+  useEffect(() => {
+    if (route?.params?.irALobby) setSubTab("lobby");
+  }, [route?.params?.irALobby]);
 
   useEffect(() => {
     cargarBadges();

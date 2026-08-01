@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     paddingHorizontal: 12,
   },
-  input: { flex: 1, fontSize: 14, color: theme.colors.text, paddingVertical: 10, ...(Platform.OS === "web" ? { outlineStyle: "none" as any } : {}) },
+  input: { flex: 1, fontSize: 12.5, color: theme.colors.text, paddingVertical: 10, ...(Platform.OS === "web" ? { outlineStyle: "none" as any } : {}) },
   card: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
   cardInfo: { flexDirection: "row", alignItems: "center", flex: 1 },
   followBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 10 },

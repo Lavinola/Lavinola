@@ -337,12 +337,6 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
                   <CastVotePicker reparto={reparto} miVoto={castStats.miVoto} porcentajes={castStats.porcentajes} onVotar={votarActorPropio} />
                 </>
               )}
-
-              <WatchedPlatformPicker
-                opciones={(providers?.flatrate ?? []).map((p: any) => p.provider_name)}
-                valor={miPlataforma}
-                onCambiar={elegirPlataforma}
-              />
             </View>
           ) : (
             <Text style={styles.sinVer}>{t("Marcá este capítulo como visto para poder calificarlo.")}</Text>

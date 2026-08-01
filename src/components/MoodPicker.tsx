@@ -26,7 +26,7 @@ export default function MoodPicker({ miMood, porcentajes, onElegir }: Props) {
             <View style={[styles.circulo, elegida && styles.circuloElegido]}>
               <Image source={m.imagen} style={styles.carita} resizeMode="contain" />
             </View>
-            <Text style={[styles.label, elegida && styles.labelElegido]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
+            <Text style={[styles.label, elegida && styles.labelElegido]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.45}>
               {m.label}
             </Text>
             {yaVoto && <Text style={styles.porcentaje}>{porcentajes[m.key] ?? 0}%</Text>}

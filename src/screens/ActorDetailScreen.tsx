@@ -46,7 +46,7 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
           const fechaB = b.release_date || b.first_air_date || "";
           return fechaB.localeCompare(fechaA);
         });
-      setCreditos(todos.slice(0, 30));
+      setCreditos(todos.slice(0, 100));
     } finally {
       setLoading(false);
     }

@@ -615,12 +615,6 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
               <CastVotePicker reparto={reparto} miVoto={castStats.miVoto} porcentajes={castStats.porcentajes} onVotar={votarActorPropio} />
             </>
           )}
-
-          <WatchedPlatformPicker
-            opciones={tipo === "movie" ? [t("Cine"), ...(providers?.flatrate ?? []).map((p: any) => p.provider_name)] : (providers?.flatrate ?? []).map((p: any) => p.provider_name)}
-            valor={miPlataforma}
-            onCambiar={elegirPlataforma}
-          />
         </View>
       ) : (
         userId && <Text style={styles.sinVer}>{t("Terminala para poder calificarla.")}</Text>

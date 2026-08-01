@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { View, Text, StyleSheet, Platform, useWindowDimensions } from "react-native";
 import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -431,6 +431,29 @@ export default function RootNavigation() {
   const [modoRecuperacion, setModoRecuperacion] = useState(false);
   const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
   const { t } = useT();
+  const ultimoTapComunidadRef = useRef(0);
+  const ultimoTapExplorarRef = useRef(0);
+
+  // Doble toque en Comunidad → Lobby, o en Explorar → Descubrir, estés
+  // donde estés dentro de esa pestaña. tabPress se dispara siempre (incluso
+  // ya estando en esa pestaña), así que solo hace falta medir el tiempo
+  // entre dos toques seguidos.
+  function alTocarTabDoble(navigation: any, tabName: "Comunidad" | "Explorar", ultimoTapRef: React.MutableRefObject<number>) {
+    return {
+      tabPress: () => {
+        const ahora = Date.now();
+        const esDobleToque = ahora - ultimoTapRef.current < 400;
+        ultimoTapRef.current = ahora;
+        if (esDobleToque) {
+          if (tabName === "Comunidad") {
+            navigation.navigate("Comunidad", { screen: "CommunityHome", params: { irALobby: ahora } });
+          } else {
+            navigation.navigate("Explorar", { screen: "ExploreHome", params: { irADescubrir: ahora } });
+          }
+        }
+      },
+    };
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -546,8 +569,14 @@ export default function RootNavigation() {
             options={{
               tabBarLabel: ({ color }: { color: string }) => <EtiquetaComunidad color={color} texto={t("Comunidad")} />,
             }}
+            listeners={({ navigation }) => alTocarTabDoble(navigation, "Comunidad", ultimoTapComunidadRef)}
           />
-          <Tab.Screen name="Explorar" component={ExploreStackNav} options={{ tabBarLabel: t("Explorar") }} />
+          <Tab.Screen
+            name="Explorar"
+            component={ExploreStackNav}
+            options={{ tabBarLabel: t("Explorar") }}
+            listeners={({ navigation }) => alTocarTabDoble(navigation, "Explorar", ultimoTapExplorarRef)}
+          />
           <Tab.Screen name="Perfil" component={ProfileStackNav} options={{ tabBarLabel: t("Perfil") }} />
         </Tab.Navigator>
       </NavigationContainer>

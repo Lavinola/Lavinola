@@ -42,15 +42,20 @@ export default function ActivityScreen({ navigation }: any) {
         keyExtractor={(c) => c.chatId}
         contentContainerStyle={{ padding: 12 }}
         ListHeaderComponent={
-          <View style={styles.buscadorConLupa}>
-            <Ionicons name="search" size={16} color={theme.colors.primaryLight} />
-            <TextInput
-              style={styles.buscadorInput}
-              placeholder={t("Buscar chat...")}
-              placeholderTextColor={theme.colors.textFaint}
-              value={busqueda}
-              onChangeText={setBusqueda}
-            />
+          <View style={styles.buscadorFilaConBoton}>
+            <View style={[styles.buscadorConLupa, { flex: 1, marginBottom: 0 }]}>
+              <Ionicons name="search" size={16} color={theme.colors.primaryLight} />
+              <TextInput
+                style={styles.buscadorInput}
+                placeholder={t("Buscar chat...")}
+                placeholderTextColor={theme.colors.textFaint}
+                value={busqueda}
+                onChangeText={setBusqueda}
+              />
+            </View>
+            <Pressable style={styles.nuevoChatBtn} onPress={() => navigation.navigate("BuscadorGlobal", { tabInicial: "usuarios" })} hitSlop={8}>
+              <Ionicons name="add" size={22} color={theme.colors.primaryLight} />
+            </Pressable>
           </View>
         }
         ListEmptyComponent={
@@ -133,6 +138,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 12,
+  },
+  buscadorFilaConBoton: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  nuevoChatBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: theme.radius.md,
+    backgroundColor: "#000000",
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
   buscadorInput: { flex: 1, color: theme.colors.text, fontSize: 14, padding: 0 },
   topRow: { flexDirection: "row", padding: 12 },

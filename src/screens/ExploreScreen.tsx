@@ -16,15 +16,23 @@ import TopMonthlyScreen from "./TopMonthlyScreen";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
-export default function ExploreScreen({ navigation }: any) {
+export default function ExploreScreen({ navigation, route }: any) {
   const { t } = useT();
   const [subTab, setSubTab] = useState<"descubrir" | "topMensual" | "noticias">("descubrir");
+
+  // Doble toque en el ícono de Explorar — vuelve a Descubrir estés donde
+  // estés (mismo mecanismo que el de Comunidad → Lobby).
+  useEffect(() => {
+    if (route?.params?.irADescubrir) setSubTab("descubrir");
+  }, [route?.params?.irADescubrir]);
 
   return (
     <View style={styles.container}>
       <Pressable style={styles.buscadorFalso} onPress={() => navigation.navigate("BuscadorGlobal")}>
         <Ionicons name="search" size={16} color={theme.colors.textMuted} />
-        <Text style={styles.buscadorTexto}>{t("Buscar series, películas, usuarios, grupos...")}</Text>
+        <Text style={styles.buscadorTexto} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {t("Buscar series, películas, actores, directores, usuarios...")}
+        </Text>
       </Pressable>
       <TopPills
         variante="rect"

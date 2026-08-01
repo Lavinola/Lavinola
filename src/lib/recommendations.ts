@@ -56,7 +56,7 @@ function mezclarRecomendaciones(porSemilla: any[][], idsExcluir: Set<number>): a
   return [...conteo.values()]
     .sort((a, b) => b.veces - a.veces || (b.item.popularity ?? 0) - (a.item.popularity ?? 0))
     .map((c) => c.item)
-    .slice(0, 10);
+    .slice(0, 30); // igual que en tendencia: de más, para que después de filtrar lo ya agregado siga quedando un margen cómodo
 }
 
 export async function recomendarSeries(userId: string): Promise<any[]> {

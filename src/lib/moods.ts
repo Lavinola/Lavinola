@@ -10,10 +10,10 @@ export type TargetType = "series" | "movie" | "episode";
 export const MOODS: { key: string; imagen: any; label: string }[] = [
   { key: "impactado", imagen: require("../../assets/moods/impactado.png"), label: "Impactado" },
   { key: "frustrado", imagen: require("../../assets/moods/frustrado.png"), label: "Enojado" },
+  { key: "entretenido", imagen: require("../../assets/moods/entretenido.png"), label: "Entretenido" },
   { key: "triste", imagen: require("../../assets/moods/triste.png"), label: "Triste" },
   { key: "pensativo", imagen: require("../../assets/moods/pensativo.png"), label: "Pensativo" },
   { key: "conmovido", imagen: require("../../assets/moods/conmovido.png"), label: "Conmovido" },
-  { key: "entretenido", imagen: require("../../assets/moods/entretenido.png"), label: "Entretenido" },
   { key: "asustado", imagen: require("../../assets/moods/asustado.png"), label: "Asustado" },
   { key: "aburrido", imagen: require("../../assets/moods/aburrido.png"), label: "Aburrido" },
   { key: "atrapado", imagen: require("../../assets/moods/atrapado.png"), label: "Atrapado" },

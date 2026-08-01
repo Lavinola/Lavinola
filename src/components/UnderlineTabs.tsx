@@ -68,7 +68,7 @@ export default function UnderlineTabs<T extends string>({ opciones, valor, onCam
 const styles = StyleSheet.create({
   barra: { backgroundColor: "#000000" },
   filaBotones: { flexDirection: "row" },
-  boton: { flex: 1, paddingVertical: 12, paddingHorizontal: 4, alignItems: "center" },
+  boton: { flex: 1, paddingVertical: 12, paddingHorizontal: 4, alignItems: "center", justifyContent: "center" },
   texto: { fontSize: 14, fontWeight: "700", color: theme.colors.primaryLight, opacity: 0.55 },
   textoMultilinea: { textAlign: "center", lineHeight: 16 },
   textoActivo: { opacity: 1 },
