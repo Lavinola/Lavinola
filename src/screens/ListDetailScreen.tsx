@@ -43,10 +43,11 @@ export default function ListDetailScreen({ route, navigation }: any) {
   async function cargar(silencioso = false) {
     if (!silencioso) setLoading(true);
     const [{ data: listaData }, { data }] = await Promise.all([
-      supabase.from("lists").select("description").eq("id", listId).maybeSingle(),
+      supabase.from("lists").select("description, user_id").eq("id", listId).maybeSingle(),
       supabase.from("list_items").select("item_type, tmdb_id, added_at").eq("list_id", listId),
     ]);
     setDescripcion(listaData?.description ?? null);
+    const ownerId = listaData?.user_id ?? null;
 
     // Antes esto traía cada título UNO POR UNO (una consulta aparte por
     // cada fila) — con listas grandes, eso se sentía lento. Ahora se trae
@@ -54,16 +55,28 @@ export default function ListDetailScreen({ route, navigation }: any) {
     const filas = data ?? [];
     const idsSeries = [...new Set(filas.filter((f) => f.item_type === "series").map((f) => f.tmdb_id))];
     const idsMovies = [...new Set(filas.filter((f) => f.item_type === "movie").map((f) => f.tmdb_id))];
-    const [seriesCache, moviesCache] = await Promise.all([
+    const [seriesCache, moviesCache, customSeriesPosters, customMoviePosters] = await Promise.all([
       idsSeries.length > 0
         ? supabase.from("series_cache").select("tmdb_id, name, poster_path, first_air_date, total_seasons").in("tmdb_id", idsSeries)
         : Promise.resolve({ data: [] }),
       idsMovies.length > 0
         ? supabase.from("movies_cache").select("tmdb_id, title, poster_path, release_date, runtime_minutes").in("tmdb_id", idsMovies)
         : Promise.resolve({ data: [] }),
+      // El póster que se ve en la lista tiene que ser el mismo que eligió
+      // el dueño de la lista en la ficha del título (si es que eligió uno
+      // propio) — antes esto no se miraba acá, así que cambiarlo desde la
+      // ficha no se reflejaba nunca en las listas.
+      ownerId && idsSeries.length > 0
+        ? supabase.from("user_series").select("series_tmdb_id, custom_poster_path").eq("user_id", ownerId).in("series_tmdb_id", idsSeries)
+        : Promise.resolve({ data: [] }),
+      ownerId && idsMovies.length > 0
+        ? supabase.from("user_movies").select("movie_tmdb_id, custom_poster_path").eq("user_id", ownerId).in("movie_tmdb_id", idsMovies)
+        : Promise.resolve({ data: [] }),
     ]);
     const seriesMap = new Map((seriesCache.data ?? []).map((r: any) => [r.tmdb_id, r]));
     const moviesMap = new Map((moviesCache.data ?? []).map((r: any) => [r.tmdb_id, r]));
+    const customSeriesMap = new Map((customSeriesPosters.data ?? []).map((r: any) => [r.series_tmdb_id, r.custom_poster_path]));
+    const customMovieMap = new Map((customMoviePosters.data ?? []).map((r: any) => [r.movie_tmdb_id, r.custom_poster_path]));
 
     const resultado: ItemLista[] = filas.map((fila) => {
       if (fila.item_type === "series") {
@@ -72,7 +85,7 @@ export default function ListDetailScreen({ route, navigation }: any) {
           item_type: "series" as const,
           tmdb_id: fila.tmdb_id,
           nombre: cache?.name ?? "—",
-          poster_path: cache?.poster_path ?? null,
+          poster_path: customSeriesMap.get(fila.tmdb_id) ?? cache?.poster_path ?? null,
           added_at: fila.added_at,
           anio: cache?.first_air_date ? cache.first_air_date.slice(0, 4) : null,
           runtime_minutes: null,
@@ -84,7 +97,7 @@ export default function ListDetailScreen({ route, navigation }: any) {
           item_type: "movie" as const,
           tmdb_id: fila.tmdb_id,
           nombre: cache?.title ?? "—",
-          poster_path: cache?.poster_path ?? null,
+          poster_path: customMovieMap.get(fila.tmdb_id) ?? cache?.poster_path ?? null,
           added_at: fila.added_at,
           anio: cache?.release_date ? cache.release_date.slice(0, 4) : null,
           runtime_minutes: cache?.runtime_minutes ?? null,

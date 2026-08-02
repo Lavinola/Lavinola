@@ -255,7 +255,13 @@ function NodoComentario({
       setGifElegido(null);
       setMostrandoInput(false);
       await onReply();
-      await abrirRespuestas();
+      // Antes acá se llamaba a abrirRespuestas(), que en realidad es un
+      // interruptor (si ya estaban abiertas, las cierra) — si respondías
+      // con la lista de respuestas ya abierta, tu respuesta se guardaba
+      // bien pero la lista se colapsaba en vez de mostrarla actualizada,
+      // y parecía que había desaparecido. Ahora siempre se vuelve a
+      // cargar y se deja abierta, sin importar cómo estaba antes.
+      setRespuestas(await cargarRespuestas(comentario.id, userId));
     } catch (e: any) {
       console.error("Error al postear respuesta:", e);
       Alert.alert("No se pudo publicar", e.message ?? "Revisá tu conexión y probá de nuevo.");
