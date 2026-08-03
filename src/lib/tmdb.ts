@@ -44,8 +44,8 @@ async function tmdbFetch<T>(path: string, params: Record<string, string> = {}, i
 }
 
 // ---------- Series ----------
-export function getSeriesDetails(tmdbId: number) {
-  return tmdbFetch<any>(`/tv/${tmdbId}`);
+export function getSeriesDetails(tmdbId: number, idiomaForzado?: string) {
+  return tmdbFetch<any>(`/tv/${tmdbId}`, {}, idiomaForzado);
   // trae: name, overview, poster_path, status ('Ended'|'Canceled'|'Returning Series'), number_of_episodes, seasons[]
 }
 
@@ -225,8 +225,8 @@ export async function getWatchProvidersDisponibles(tipo: "series" | "movie", wat
 }
 
 // ---------- Películas ----------
-export function getMovieDetails(tmdbId: number) {
-  return tmdbFetch<any>(`/movie/${tmdbId}`);
+export function getMovieDetails(tmdbId: number, idiomaForzado?: string) {
+  return tmdbFetch<any>(`/movie/${tmdbId}`, {}, idiomaForzado);
   // trae: title, overview, poster_path, runtime, release_date
 }
 

@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/pagination";
 import { posterUrl } from "../lib/tmdb";
 import { listarFavoritos, guardarOrdenFavoritos, Favorito } from "../lib/favorites";
+import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 import DraggableReorderList from "../components/DraggableReorderList";
 import FiltroPeliculasModal, { OrdenPeliculas, FiltroEstadoPelicula } from "../components/FiltroPeliculasModal";
 import RatingStars from "../components/RatingStars";
@@ -110,6 +111,10 @@ export default function AllMoviesScreen({ route, navigation }: any) {
         genre_ids: r.movies_cache.genre_ids ?? [],
       }));
     setMovies(rows);
+    localizarNombres(rows.map((r) => ({ tipo: "movie" as const, tmdbId: r.tmdb_id }))).then((mapa) => {
+      if (mapa.size === 0) return;
+      setMovies((prev) => prev.map((r) => (mapa.has(claveLocalizacion("movie", r.tmdb_id)) ? { ...r, title: mapa.get(claveLocalizacion("movie", r.tmdb_id))! } : r)));
+    });
 
     if (soloFavoritas) {
       const favs = await listarFavoritos(uid);

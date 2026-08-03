@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { fetchAllRows } from "./pagination";
+import { localizarNombres, claveLocalizacion } from "./titleLocalization";
 
 export interface Favorito {
   tmdb_id: number;
@@ -178,7 +179,7 @@ export async function listarFavoritos(userId: string): Promise<Favorito[]> {
   const userSeriesMap = new Map((userSeries.data ?? []).map((r: any) => [r.series_tmdb_id, r]));
   const userMoviesMap = new Map((userMovies.data ?? []).map((r: any) => [r.movie_tmdb_id, r]));
 
-  return favs.map((fav) => {
+  const resultado = favs.map((fav) => {
     if (fav.item_type === "series") {
       const cache = seriesCacheMap.get(fav.tmdb_id);
       const custom = userSeriesMap.get(fav.tmdb_id);
@@ -203,6 +204,13 @@ export async function listarFavoritos(userId: string): Promise<Favorito[]> {
       };
     }
   });
+
+  // Lista chica y curada (favoritos) — es rápido pedir el nombre en el
+  // idioma de quien mira antes de devolver, en vez de mostrar lo que haya
+  // quedado guardado en el caché compartido.
+  const mapaLocalizado = await localizarNombres(resultado.map((f) => ({ tipo: f.item_type, tmdbId: f.tmdb_id })));
+  if (mapaLocalizado.size === 0) return resultado;
+  return resultado.map((f) => (mapaLocalizado.has(claveLocalizacion(f.item_type, f.tmdb_id)) ? { ...f, nombre: mapaLocalizado.get(claveLocalizacion(f.item_type, f.tmdb_id))! } : f));
 }
 
 /** Guarda el orden nuevo completo después de arrastrar y soltar. */

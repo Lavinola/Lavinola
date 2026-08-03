@@ -5,7 +5,6 @@ import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
-import { fetchAllRows } from "../lib/pagination";
 import { posterUrl, getMovieWatchProviders, getWatchProvidersDisponibles, GrupoPlataforma } from "../lib/tmdb";
 import { formatearFecha } from "../lib/dates";
 import CalificarModal from "../components/CalificarModal";
@@ -13,6 +12,8 @@ import { toggleVistaPelicula } from "../lib/watchStatus";
 import OrdenPeliculasModal from "../components/OrdenPeliculasModal";
 import FiltroPendientesModal from "../components/FiltroPendientesModal";
 import { promedioPuntuacionPeliculas } from "../lib/stats";
+import { cacheSincronicaPeliculas, obtenerPeliculas, actualizarCachePeliculas, cargarDatosPeliculas } from "../lib/moviesListCache";
+import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 
 function diasHasta(fecha: string | null): number {
   if (!fecha) return 0;
@@ -65,45 +66,45 @@ export default function MoviesScreen({ navigation }: any) {
   );
 
   async function cargar() {
-    setLoading(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    // Si ya se había precargado en segundo plano (al abrir la app, o en
+    // una visita anterior a esta pantalla), lo pintamos al toque en vez
+    // de mostrar el spinner y esperar de nuevo — y de todas formas
+    // seguimos abajo pidiendo la versión más fresca en segundo plano.
+    const yaListo = cacheSincronicaPeliculas(userId);
+    if (yaListo) {
+      setWatchRegion(yaListo.watchRegion);
+      setMovies(yaListo.movies);
+      setPuntuaciones(yaListo.puntuaciones);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) return;
+      const datos = yaListo ? await cargarDatosPeliculas(userId) : await obtenerPeliculas(userId);
+      setWatchRegion(datos.watchRegion);
+      setMovies(datos.movies);
+      setPuntuaciones(datos.puntuaciones);
+      actualizarCachePeliculas(userId, datos);
 
-      const { data: perfil } = await supabase.from("profiles").select("country").eq("id", userId).maybeSingle();
-      if (perfil?.country) setWatchRegion(perfil.country);
-
-      const data = await fetchAllRows((desde, hasta) =>
-        supabase
-          .from("user_movies")
-          .select("watched, added_at, custom_poster_path, movies_cache(*)")
-          .eq("user_id", userId)
-          .order("added_at", { ascending: false })
-          .range(desde, hasta)
-      );
-
-      const rows: PeliculaRow[] = (data ?? [])
-        .filter((r: any) => r.movies_cache) // por si algún título no llegó a sincronizarse bien
-        .map((r: any) => ({
-          tmdb_id: r.movies_cache.tmdb_id,
-          title: r.movies_cache.title,
-          poster_path: r.custom_poster_path ?? r.movies_cache.poster_path,
-          watched: r.watched,
-          release_date: r.movies_cache.release_date,
-          runtime_minutes: r.movies_cache.runtime_minutes,
-          added_at: r.added_at,
-          genre_ids: r.movies_cache.genre_ids ?? [],
-        }));
-      setMovies(rows);
-
-      const puntuaciones = await promedioPuntuacionPeliculas(rows.map((r) => r.tmdb_id));
-      setPuntuaciones(puntuaciones);
+      // Los nombres del caché compartido pueden estar en otro idioma —
+      // esto se pide aparte y se actualiza solo, sin bloquear la pantalla.
+      localizarNombres(datos.movies.map((m) => ({ tipo: "movie" as const, tmdbId: m.tmdb_id }))).then((mapa) => {
+        if (mapa.size === 0) return;
+        setMovies((prev) => prev.map((m) => (mapa.has(claveLocalizacion("movie", m.tmdb_id)) ? { ...m, title: mapa.get(claveLocalizacion("movie", m.tmdb_id))! } : m)));
+      });
     } catch (e: any) {
       console.error("Error al cargar tus películas:", e);
       Alert.alert(t("No se pudieron cargar tus películas"), e.message ?? "Probá de nuevo.");
     } finally {
-      setLoading(false);
+      if (!yaListo) setLoading(false);
     }
   }
 

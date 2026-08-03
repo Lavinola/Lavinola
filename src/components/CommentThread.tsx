@@ -29,6 +29,7 @@ import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
 import NivelUpModal from "./NivelUpModal";
 import QueVemosModal from "./QueVemosModal";
 import { listarMiembrosIds } from "../lib/groups";
+import { localizarNombre } from "../lib/titleLocalization";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -137,7 +138,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
           <TextInput
             placeholderTextColor={theme.colors.textFaint}
             style={styles.input}
-            placeholder={t("Comentar (texto y/o GIF, sin fotos)...")}
+            placeholder={t("Comentar (texto y/o GIF)...")}
             value={nuevoTexto}
             onChangeText={setNuevoTexto}
             multiline
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
   ordenText: { fontSize: 12, color: theme.colors.textMuted },
   ordenTextActive: { fontSize: 12, color: "#000000", fontWeight: "700" },
   inputRow: { flexDirection: "row", alignItems: "stretch", marginTop: 6, marginBottom: 6 },
-  input: { flex: 1, height: 40, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 8, marginRight: 6, color: theme.colors.text, backgroundColor: theme.colors.surface },
+  input: { flex: 1, minHeight: 40, maxHeight: 120, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 8, marginRight: 6, color: theme.colors.text, backgroundColor: theme.colors.surface },
   queVemosBtn: {
     alignSelf: "flex-start",
     borderWidth: 1,
@@ -551,9 +552,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   queVemosBtnTexto: { color: theme.colors.primaryLight, fontWeight: "700", fontSize: 12 },
-  gifBtn: { justifyContent: "center", alignItems: "center", height: 40, borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 10, marginRight: 6 },
+  gifBtn: { justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 10, marginRight: 6 },
   gifBtnTexto: { color: theme.colors.primaryLight, fontSize: 12, fontWeight: "700" },
-  enviarBtn: { justifyContent: "center", alignItems: "center", height: 40, backgroundColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 10 },
+  enviarBtn: { justifyContent: "center", alignItems: "center", backgroundColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 10 },
   enviarBtnText: { color: "#000000", fontSize: 12, fontWeight: "700" },
   gifPreviewBox: { alignSelf: "flex-start", marginBottom: 6 },
   gifPreview: { width: 100, height: 100, borderRadius: 8, backgroundColor: theme.colors.surfaceAlt },
@@ -628,7 +629,8 @@ function RecomendacionPreview({
             : Promise.resolve({ data: null as any }),
         ]);
         if (data) {
-          let nombreFinal = itemType === "series" ? data.name : data.title;
+          const nombreCache = itemType === "series" ? data.name : data.title;
+          let sufijoEpisodio: string | null = null;
           if (itemType === "series" && seasonNumber && episodeNumber) {
             const { data: ep } = await supabase
               .from("episodes_cache")
@@ -637,7 +639,7 @@ function RecomendacionPreview({
               .eq("season_number", seasonNumber)
               .eq("episode_number", episodeNumber)
               .maybeSingle();
-            nombreFinal = `${nombreFinal} — ${ep?.name ?? `T${seasonNumber}E${episodeNumber}`}`;
+            sufijoEpisodio = ep?.name ?? `T${seasonNumber}E${episodeNumber}`;
             setSubtitulo(`T${seasonNumber} - E${episodeNumber}`);
           } else {
             setSubtitulo(
@@ -650,8 +652,14 @@ function RecomendacionPreview({
                 : null
             );
           }
-          setNombre(nombreFinal);
+          setNombre(sufijoEpisodio ? `${nombreCache} — ${sufijoEpisodio}` : nombreCache);
           setPosterPath(custom?.custom_poster_path ?? data.poster_path);
+
+          // El nombre del caché compartido puede estar en otro idioma — se
+          // pide aparte y se actualiza solo, sin bloquear el resto de la tarjetita.
+          localizarNombre(itemType, tmdbId).then((localizado) => {
+            if (localizado) setNombre(sufijoEpisodio ? `${localizado} — ${sufijoEpisodio}` : localizado);
+          });
         } else {
           setEliminado(true);
         }

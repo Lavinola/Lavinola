@@ -7,6 +7,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/pagination";
 import { posterUrl } from "../lib/tmdb";
+import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 import { getPerfilPublico, getCoverPosterPath, getStatsSociales, PerfilCompleto, StatsSociales } from "../lib/profile";
 import { seguirRespetandoPrivacidad, tengoSolicitudPendiente } from "../lib/followRequests";
 import { progresoDeSeries, ProgresoSerie } from "../lib/seriesList";
@@ -186,6 +187,16 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
 
     const suspension = viewerProfile?.is_admin || viewerProfile?.is_moderator ? await estaSuspendido(targetId) : null;
 
+    // Los nombres del caché compartido pueden estar en otro idioma —
+    // como esta pantalla ya espera a tener todo listo antes de pintar,
+    // pedimos esto también antes de mostrar, en vez de dejarlo para
+    // después (acá no queremos que se vea completo y después cambie).
+    const mapaLocalizado = await localizarNombres(favoritos.map((f) => ({ tipo: f.tipo, tmdbId: f.item.tmdb_id })));
+    const favoritosLocalizados =
+      mapaLocalizado.size === 0
+        ? favoritos
+        : favoritos.map((f) => (mapaLocalizado.has(claveLocalizacion(f.tipo, f.item.tmdb_id)) ? { ...f, item: { ...f.item, nombre: mapaLocalizado.get(claveLocalizacion(f.tipo, f.item.tmdb_id))! } } : f));
+
     // Recién ahora, con absolutamente todo listo, se pinta la pantalla
     // completa de una — nada de secciones a medio cargar.
     setPerfil(p);
@@ -202,8 +213,8 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
     setSuspension(suspension);
     setProgreso(progreso);
     setStatsTiempo(statsTiempo);
-    setFavSeries(p.show_favorite_series ? favoritos.filter((f) => f.tipo === "series").map((f) => f.item) : []);
-    setFavPeliculas(p.show_favorite_movies ? favoritos.filter((f) => f.tipo === "movie").map((f) => f.item) : []);
+    setFavSeries(p.show_favorite_series ? favoritosLocalizados.filter((f) => f.tipo === "series").map((f) => f.item) : []);
+    setFavPeliculas(p.show_favorite_movies ? favoritosLocalizados.filter((f) => f.tipo === "movie").map((f) => f.item) : []);
     setGrupos(gruposPublicos);
     setListas(listasVisibles);
     setListasSeguidas(listasSeguidasIds);

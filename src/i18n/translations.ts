@@ -235,7 +235,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Traduciendo...": { en: "Translating...", pt: "Traduzindo...", it: "Traduzione in corso..." },
   "Ver original": { en: "View original", pt: "Ver original", it: "Vedi originale" },
   Traducir: { en: "Translate", pt: "Traduzir", it: "Traduci" },
-  "Comentar (texto y/o GIF, sin fotos)...": { en: "Comment (text and/or GIF, no photos)...", pt: "Comentar (texto e/ou GIF, sem fotos)...", it: "Commenta (testo e/o GIF, niente foto)..." },
+  "Comentar (texto y/o GIF)...": { en: "Comment (text and/or GIF)...", pt: "Comentar (texto e/ou GIF)...", it: "Commenta (testo e/o GIF)..." },
   Publicar: { en: "Post", pt: "Publicar", it: "Pubblica" },
   "Tu respuesta...": { en: "Your reply...", pt: "Sua resposta...", it: "La tua risposta..." },
   "Ocultar respuestas": { en: "Hide replies", pt: "Ocultar respostas", it: "Nascondi risposte" },
