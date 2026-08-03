@@ -5,6 +5,7 @@ import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";
 import { searchSeries, searchMovies, searchPerson, posterUrl } from "../lib/tmdb";
+import { parecido, palabrasClave } from "../lib/textMatch";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie } from "../lib/sync";
 import { buscarUsuarios, listarUsuariosRecomendados, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
@@ -22,6 +23,91 @@ interface ResultadoTitulo {
   tipo: "series" | "movie";
   anio: string | null;
   popularidad: number;
+}
+
+function mapearSerie(s: any): ResultadoTitulo {
+  return {
+    id: s.id,
+    titulo: s.name,
+    poster_path: s.poster_path,
+    tipo: "series",
+    anio: s.first_air_date ? s.first_air_date.slice(0, 4) : null,
+    popularidad: s.popularity ?? 0,
+  };
+}
+
+function mapearPelicula(p: any): ResultadoTitulo {
+  return {
+    id: p.id,
+    titulo: p.title,
+    poster_path: p.poster_path,
+    tipo: "movie",
+    anio: p.release_date ? p.release_date.slice(0, 4) : null,
+    popularidad: p.popularity ?? 0,
+  };
+}
+
+// Idiomas en los que se busca en simultáneo — TMDB guarda el título de cada
+// título en varios idiomas y países (ej: "Cuidado, Hércules vigila" en
+// Latinoamérica es "Nuestra pandilla" en España), y el buscador de TMDB
+// solo encuentra por el título en el idioma que le pidas. Buscando en
+// varios idiomas a la vez y juntando los resultados, cubrimos más casos.
+const IDIOMAS_BUSQUEDA = ["es-419", "es-ES", "en-US"];
+
+function dedupeYOrdenar(items: ResultadoTitulo[]): ResultadoTitulo[] {
+  const vistos = new Map<string, ResultadoTitulo>();
+  for (const item of items) {
+    const clave = `${item.tipo}-${item.id}`;
+    if (!vistos.has(clave)) vistos.set(clave, item);
+  }
+  return [...vistos.values()].sort((a, b) => b.popularidad - a.popularidad);
+}
+
+/**
+ * Busca títulos tolerando dos cosas que el buscador de TMDB no resuelve
+ * solo: (1) que el título esté en otro idioma/región (busca en varios a la
+ * vez), y (2) errores de tipeo — si la búsqueda "tal cual" no encuentra
+ * nada o casi nada, prueba de nuevo con cada palabra importante por
+ * separado (el motor de TMDB tolera algo de esto) y se queda solo con lo
+ * que resulte razonablemente parecido a lo que escribiste. No es perfecto
+ * (no hay forma de "adivinar" cualquier error de tipeo con certeza), pero
+ * ayuda en la mayoría de los casos.
+ */
+async function buscarTitulosTolerante(texto: string): Promise<ResultadoTitulo[]> {
+  const busquedas = IDIOMAS_BUSQUEDA.flatMap((idioma) => [searchSeries(texto, idioma), searchMovies(texto, idioma)]);
+  const resultados = await Promise.all(busquedas);
+  const directos: ResultadoTitulo[] = [];
+  resultados.forEach((r, i) => {
+    const esSerie = i % 2 === 0;
+    const items = (r.results ?? []).map(esSerie ? mapearSerie : mapearPelicula);
+    directos.push(...items);
+  });
+  const mezclaDirecta = dedupeYOrdenar(directos);
+
+  if (mezclaDirecta.length >= 3) return mezclaDirecta;
+
+  // Muy pocos (o ningún) resultado directo — probamos tolerando errores de
+  // tipeo: buscamos cada palabra clave por separado, y nos quedamos con lo
+  // que quede razonablemente parecido al texto completo que escribiste.
+  const claves = palabrasClave(texto);
+  if (claves.length === 0) return mezclaDirecta;
+
+  const busquedasFallback = claves.flatMap((palabra) => [searchSeries(palabra), searchMovies(palabra)]);
+  const resultadosFallback = await Promise.all(busquedasFallback);
+  const candidatos: ResultadoTitulo[] = [];
+  resultadosFallback.forEach((r, i) => {
+    const esSerie = i % 2 === 0;
+    const items = (r.results ?? []).map(esSerie ? mapearSerie : mapearPelicula);
+    candidatos.push(...items);
+  });
+
+  const conParecido = dedupeYOrdenar(candidatos)
+    .map((item) => ({ item, score: parecido(texto, item.titulo) }))
+    .filter(({ score }) => score >= 0.45) // bastante parecido, no cualquier cosa
+    .sort((a, b) => b.score - a.score)
+    .map(({ item }) => item);
+
+  return dedupeYOrdenar([...mezclaDirecta, ...conParecido]);
 }
 
 interface ResultadoPersona {
@@ -91,27 +177,8 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     setErrorBusqueda(null);
     try {
       if (tab === "titulos") {
-        const [series, movies] = await Promise.all([searchSeries(texto), searchMovies(texto)]);
+        const mezcla = await buscarTitulosTolerante(texto);
         if (idPedidoRef.current !== miId) return; // llegó tarde, ya hay una búsqueda más nueva en curso
-        const mezcla: ResultadoTitulo[] = [
-          ...(series.results ?? []).map((s: any) => ({
-            id: s.id,
-            titulo: s.name,
-            poster_path: s.poster_path,
-            tipo: "series" as const,
-            anio: s.first_air_date ? s.first_air_date.slice(0, 4) : null,
-            popularidad: s.popularity ?? 0,
-          })),
-          ...(movies.results ?? []).map((p: any) => ({
-            id: p.id,
-            titulo: p.title,
-            poster_path: p.poster_path,
-            tipo: "movie" as const,
-            anio: p.release_date ? p.release_date.slice(0, 4) : null,
-            popularidad: p.popularity ?? 0,
-          })),
-        ];
-        mezcla.sort((a, b) => b.popularidad - a.popularidad);
         setTitulos(mezcla);
       } else if (tab === "usuarios") {
         const data = await buscarUsuarios(texto.trim(), userId);

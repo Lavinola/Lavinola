@@ -256,12 +256,12 @@ export async function getMovieWatchProviders(tmdbId: number, watchRegion: string
 }
 
 // ---------- Búsqueda (usada por el importador de TV Time para matching) ----------
-export function searchSeries(query: string) {
-  return tmdbFetch<any>(`/search/tv`, { query }, "en-US");
+export function searchSeries(query: string, idioma = "en-US") {
+  return tmdbFetch<any>(`/search/tv`, { query }, idioma);
 }
 
-export function searchMovies(query: string) {
-  return tmdbFetch<any>(`/search/movie`, { query }, "en-US");
+export function searchMovies(query: string, idioma = "en-US") {
+  return tmdbFetch<any>(`/search/movie`, { query }, idioma);
 }
 
 /** Busca personas (actores/actrices, directores/as) por nombre. */

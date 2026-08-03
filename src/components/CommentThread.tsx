@@ -386,6 +386,10 @@ function NodoComentario({
               {emojisUsados.length > 0 ? emojisUsados.map(([, n]) => n).reduce((a, b) => a + b, 0) : totalReacciones || ""}
             </Text>
           </Pressable>
+          <Pressable onPress={abrirRespuestas} style={styles.resumenReaccion}>
+            <Ionicons name="chatbubble-outline" size={16} color={theme.colors.textMuted} />
+            <Text style={styles.accionTexto}>{respuestas ? respuestas.length : comentario.reply_count > 0 ? comentario.reply_count : ""}</Text>
+          </Pressable>
           <Pressable onPress={() => setMostrandoInput(!mostrandoInput)}>
             <Text style={styles.accionTexto}>{t("Responder")}</Text>
           </Pressable>
@@ -423,14 +427,6 @@ function NodoComentario({
               </Pressable>
             </View>
           </>
-        )}
-
-        {comentario.reply_count > 0 && (
-          <Pressable onPress={abrirRespuestas}>
-            <Text style={styles.verRespuestas}>
-              {respuestas ? t("Ocultar respuestas") : t("Ver {n} respuestas más").replace("{n}", String(comentario.reply_count))}
-            </Text>
-          </Pressable>
         )}
       </View>
 
