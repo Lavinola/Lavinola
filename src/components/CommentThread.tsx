@@ -126,12 +126,6 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
         </View>
       )}
 
-      {!soloLectura && targetType === "group" && groupId && (
-        <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
-          <Text style={styles.queVemosBtnTexto}>{t("¿Qué vemos?")}</Text>
-        </Pressable>
-      )}
-
       {!soloLectura && (
         <View style={styles.inputRow}>
           <TextInput
@@ -143,12 +137,21 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
             multiline
             maxLength={2500}
           />
-          <Pressable style={styles.gifBtn} onPress={() => abrirGifPicker(setGifElegido)}>
-            <Text style={styles.gifBtnTexto}>GIF</Text>
-          </Pressable>
-          <Pressable style={styles.enviarBtn} onPress={enviar}>
-            <Text style={styles.enviarBtnText}>{t("Publicar")}</Text>
-          </Pressable>
+          <View>
+            {targetType === "group" && groupId && (
+              <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
+                <Text style={styles.queVemosBtnTexto}>{t("¿Qué vemos?")}</Text>
+              </Pressable>
+            )}
+            <View style={{ flexDirection: "row" }}>
+              <Pressable style={styles.gifBtn} onPress={() => abrirGifPicker(setGifElegido)}>
+                <Text style={styles.gifBtnTexto}>GIF</Text>
+              </Pressable>
+              <Pressable style={styles.enviarBtn} onPress={enviar}>
+                <Text style={styles.enviarBtnText}>{t("Publicar")}</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
       )}
 
@@ -224,15 +227,16 @@ function NodoComentario({
   const [reportarVisible, setReportarVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
 
-  // Se traen las respuestas apenas se monta el comentario (si es que tiene
-  // alguna), para que el numerito de la burbujita sea siempre preciso
-  // desde el principio, en vez de aparecer recién cuando se toca la
-  // burbujita — que era lo que hacía que pareciera que el número
-  // "aparecía y desaparecía".
+  // Se traen las respuestas apenas se monta el comentario, para que el
+  // numerito de la burbujita sea siempre preciso desde el principio. Antes
+  // esto se saltaba si comentario.reply_count parecía ser 0 — pero ese
+  // valor viene de la consulta de comentarios raíz y en la práctica no
+  // estaba siendo confiable al volver a entrar al grupo (quedaba en
+  // blanco hasta tocar la burbujita). Trayendo la lista real siempre, el
+  // número que se muestra es siempre el correcto, sin depender de ese
+  // contador guardado.
   useEffect(() => {
-    if (comentario.reply_count > 0) {
-      cargarRespuestas(comentario.id, userId).then(setRespuestas);
-    }
+    cargarRespuestas(comentario.id, userId).then(setRespuestas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comentario.id]);
   const [confirmEliminarVisible, setConfirmEliminarVisible] = useState(false);
@@ -539,13 +543,13 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: "row", alignItems: "flex-end", marginTop: 6, marginBottom: 6 },
   input: { flex: 1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, padding: 8, marginRight: 6, maxHeight: 80, color: theme.colors.text, backgroundColor: theme.colors.surface },
   queVemosBtn: {
-    alignSelf: "flex-start",
+    alignSelf: "stretch",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: theme.colors.primary,
     borderRadius: theme.radius.pill,
     paddingVertical: 6,
-    paddingHorizontal: 14,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   queVemosBtnTexto: { color: theme.colors.primaryLight, fontWeight: "700", fontSize: 12 },
   gifBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 10, marginRight: 6 },

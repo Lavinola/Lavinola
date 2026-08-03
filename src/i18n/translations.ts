@@ -544,6 +544,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   },
   "¡Subiste de nivel!": { en: "You leveled up!", pt: "Você subiu de nível!", it: "Sei salito di livello!" },
   "Unirme al grupo": { en: "Join group", pt: "Entrar no grupo", it: "Unisciti al gruppo" },
+  "Sugerencias para ti:": { en: "Suggestions for you:", pt: "Sugestões para você:", it: "Suggerimenti per te:" },
   Copiar: { en: "Copy", pt: "Copiar", it: "Copia" },
   "Mensaje eliminado": { en: "Message deleted", pt: "Mensagem apagada", it: "Messaggio eliminato" },
   "Actor/actriz favorito/a:": { en: "Favorite actor:", pt: "Ator/atriz favorito/a:", it: "Attore/attrice preferito/a:" },

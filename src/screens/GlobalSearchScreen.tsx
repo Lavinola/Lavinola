@@ -366,6 +366,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           data={usuarios}
           keyExtractor={(u) => u.id}
           contentContainerStyle={{ padding: 12 }}
+          ListHeaderComponent={query.trim().length < 2 && usuarios.length > 0 ? <Text style={styles.sugerenciasTitulo}>{t("Sugerencias para ti:")}</Text> : null}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Pressable style={styles.cardInfo} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
@@ -438,6 +439,7 @@ const styles = StyleSheet.create({
   poster: { width: 40, height: 60, borderRadius: 4, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
   nombre: { flex: 1, fontSize: 15 },
+  sugerenciasTitulo: { fontSize: 13, fontWeight: "700", color: theme.colors.textMuted, marginBottom: 8 },
   anio: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   addBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
   addBtnTexto: { color: "#000000", fontSize: 16, fontWeight: "700" },
