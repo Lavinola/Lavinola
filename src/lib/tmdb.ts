@@ -21,6 +21,10 @@ export function setTmdbLanguage(lang: string) {
   currentLanguage = lang;
 }
 
+export function getTmdbLanguage() {
+  return currentLanguage;
+}
+
 async function tmdbFetch<T>(path: string, params: Record<string, string> = {}, idiomaForzado?: string): Promise<T> {
   const url = new URL(`${TMDB_BASE}${path}`);
   const conIdioma = { language: idiomaForzado ?? currentLanguage, ...params };

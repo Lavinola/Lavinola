@@ -644,6 +644,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     />
     {otroUserId && userId && (
       <QueVemosModal
+        modo="chat"
         visible={queVemosVisible}
         onCerrar={() => setQueVemosVisible(false)}
         chatId={chatId}

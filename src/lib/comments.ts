@@ -22,6 +22,7 @@ export interface Comentario {
   shared_list_id: string | null;
   shared_season_number: number | null;
   shared_episode_number: number | null;
+  es_que_vemos: boolean;
 }
 
 const NIVEL_COLAPSO = 4; // a partir de este nivel de anidamiento, la UI colapsa en "ver N respuestas más"
@@ -54,7 +55,7 @@ export async function cargarComentariosRaiz(
 ): Promise<Comentario[]> {
   let query = supabase
     .from("comentarios")
-    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, profiles!comentarios_user_id_fkey(username, avatar_url)")
+    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, profiles!comentarios_user_id_fkey(username, avatar_url)")
     .eq("target_type", targetType)
     .eq("target_id", targetId)
     .is("parent_comment_id", null);
@@ -73,7 +74,7 @@ export async function cargarComentariosRaiz(
 export async function cargarRespuestas(parentCommentId: string, userId?: string | null): Promise<Comentario[]> {
   const { data, error } = await supabase
     .from("comentarios")
-    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, profiles!comentarios_user_id_fkey(username, avatar_url)")
+    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, profiles!comentarios_user_id_fkey(username, avatar_url)")
     .eq("parent_comment_id", parentCommentId)
     .order("created_at", { ascending: true });
 
@@ -117,6 +118,7 @@ async function conLikes(filas: any[], userId?: string | null): Promise<Comentari
       shared_list_id: f.shared_list_id ?? null,
       shared_season_number: f.shared_season_number ?? null,
       shared_episode_number: f.shared_episode_number ?? null,
+      es_que_vemos: f.es_que_vemos ?? false,
     };
   });
 }
@@ -136,6 +138,7 @@ export async function recomendarEnGrupo(params: {
   episodeNumber?: number;
   recomendarGroupId?: string;
   recomendarListaId?: string;
+  esQueVemos?: boolean;
 }) {
   if (params.nota?.trim()) {
     const resultado = await moderarTexto(params.nota);
@@ -156,6 +159,7 @@ export async function recomendarEnGrupo(params: {
     shared_episode_number: params.itemType === "episode" ? params.episodeNumber ?? null : null,
     shared_group_id: params.recomendarGroupId ?? null,
     shared_list_id: params.recomendarListaId ?? null,
+    es_que_vemos: params.esQueVemos ?? false,
   });
   if (error) throw error;
 }

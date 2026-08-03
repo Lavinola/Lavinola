@@ -137,59 +137,100 @@ export async function seguidoresDe(userId: string, viewerId: string | null): Pro
  *     todos los usuarios de la base, solo sobre una muestra chica.
  * Nunca incluye a quien ya sigue, ni a sí mismo.
  */
+/**
+ * Recomienda siempre (hasta) 10 usuarios, combinando tres señales:
+ * - Siguiendo en común: gente que sigue a las mismas cuentas que yo sigo.
+ * - Seguidores en común: gente que mis propios seguidores también siguen.
+ * - % de gustos en común (calcularCompatibilidad).
+ * No se expone en ningún lado el motivo de cada recomendación — a
+ * propósito, para que la lista se vea simple, sin justificaciones.
+ */
 export async function listarUsuariosRecomendados(userId: string): Promise<UsuarioBasico[]> {
-  const [{ data: sigo }, { data: solicitudes }] = await Promise.all([
+  const [{ data: sigo }, { data: meSiguen }, { data: solicitudes }] = await Promise.all([
     supabase.from("follows").select("followee_id").eq("follower_id", userId),
+    supabase.from("follows").select("follower_id").eq("followee_id", userId),
     supabase.from("follow_requests").select("target_id").eq("requester_id", userId).eq("status", "pending"),
   ]);
   const sigoIds = (sigo ?? []).map((f: any) => f.followee_id);
+  const seguidoresIds = (meSiguen ?? []).map((f: any) => f.follower_id);
   const sigoSet = new Set(sigoIds);
   const solicitudesSet = new Set((solicitudes ?? []).map((s: any) => s.target_id));
   const excluir = new Set([userId, ...sigoIds]);
 
-  const pesoPorId = new Map<string, number>();
+  const puntajeSocial = new Map<string, number>();
 
-  // Segundo grado: a quién sigue la gente que yo sigo.
+  // Siguiendo en común: quién sigue a las mismas cuentas que yo.
   if (sigoIds.length > 0) {
-    const { data: segundoGrado } = await supabase.from("follows").select("followee_id").in("follower_id", sigoIds);
-    const conteo: Record<string, number> = {};
-    (segundoGrado ?? []).forEach((f: any) => {
-      if (excluir.has(f.followee_id)) return;
-      conteo[f.followee_id] = (conteo[f.followee_id] ?? 0) + 1;
+    const { data } = await supabase.from("follows").select("follower_id").in("followee_id", sigoIds);
+    (data ?? []).forEach((f: any) => {
+      if (excluir.has(f.follower_id)) return;
+      puntajeSocial.set(f.follower_id, (puntajeSocial.get(f.follower_id) ?? 0) + 1);
     });
-    Object.entries(conteo)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 15)
-      .forEach(([id, veces]) => pesoPorId.set(id, 1000 + veces)); // prioridad alta sobre compatibilidad
   }
 
-  // Compatibilidad de gustos, sobre una muestra chica de perfiles (evita decenas de consultas pesadas).
-  const { data: candidatosPerfil } = await supabase
-    .from("profiles")
-    .select("id")
-    .neq("id", userId)
-    .order("created_at", { ascending: false })
-    .limit(30);
-  const candidatosIds = (candidatosPerfil ?? [])
-    .map((p: any) => p.id as string)
-    .filter((id: string) => !excluir.has(id) && !pesoPorId.has(id))
-    .slice(0, 12);
-
-  if (candidatosIds.length > 0) {
-    const compatibilidades = await Promise.all(
-      candidatosIds.map(async (id) => ({ id, score: await calcularCompatibilidad(userId, id) }))
-    );
-    compatibilidades
-      .filter((c) => (c.score ?? 0) >= 40)
-      .forEach((c) => pesoPorId.set(c.id, c.score ?? 0));
+  // Seguidores en común: a quién siguen mis propios seguidores.
+  if (seguidoresIds.length > 0) {
+    const { data } = await supabase.from("follows").select("followee_id").in("follower_id", seguidoresIds);
+    (data ?? []).forEach((f: any) => {
+      if (excluir.has(f.followee_id)) return;
+      puntajeSocial.set(f.followee_id, (puntajeSocial.get(f.followee_id) ?? 0) + 1);
+    });
   }
 
-  if (pesoPorId.size === 0) return [];
-
-  const idsFinal = [...pesoPorId.entries()]
+  const candidatosSociales = [...puntajeSocial.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20)
     .map(([id]) => id);
+
+  // Para calcular % de gustos hace falta un puñado de candidatos — si la
+  // parte social no alcanzó a juntar suficientes, se completa con
+  // perfiles recientes.
+  let poolCompat = candidatosSociales;
+  if (poolCompat.length < 15) {
+    const { data: candidatosPerfil } = await supabase
+      .from("profiles")
+      .select("id")
+      .neq("id", userId)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    const extra = (candidatosPerfil ?? [])
+      .map((p: any) => p.id as string)
+      .filter((id: string) => !excluir.has(id) && !poolCompat.includes(id));
+    poolCompat = [...poolCompat, ...extra].slice(0, 25);
+  }
+
+  const compatibilidades = await Promise.all(poolCompat.map(async (id) => ({ id, compat: (await calcularCompatibilidad(userId, id)) ?? 0 })));
+  const compatPorId = new Map(compatibilidades.map((c) => [c.id, c.compat]));
+
+  // Puntaje final: combina la señal social (normalizada a 0-100) con el %
+  // de gustos en común, mitad y mitad.
+  const maxSocial = Math.max(1, ...puntajeSocial.values());
+  const puntajeFinal = new Map<string, number>();
+  for (const id of poolCompat) {
+    const social = ((puntajeSocial.get(id) ?? 0) / maxSocial) * 100;
+    const compat = compatPorId.get(id) ?? 0;
+    puntajeFinal.set(id, social * 0.5 + compat * 0.5);
+  }
+
+  let idsFinal = [...puntajeFinal.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+
+  // Si con todo esto no se llega a 10, se completa con los perfiles que
+  // tienen más seguidores (en vez de los más recientes) — la idea es que
+  // siempre haya 10 para mostrar, con la mejor opción disponible si no
+  // hubo suficientes coincidencias reales.
+  if (idsFinal.length < 10) {
+    const { data: relleno } = await supabase.rpc("usuarios_mas_seguidos", {
+      p_excluir: [...excluir, ...idsFinal],
+      p_limite: 10 - idsFinal.length,
+    });
+    for (const r of relleno ?? []) {
+      if (idsFinal.length >= 10) break;
+      idsFinal.push((r as any).id as string);
+    }
+  }
+
+  idsFinal = idsFinal.slice(0, 10);
+  if (idsFinal.length === 0) return [];
 
   const { data: perfiles } = await supabase.from("profiles").select("id, username, avatar_url").in("id", idsFinal);
   const perfilPorId = new Map((perfiles ?? []).map((p: any) => [p.id, p]));

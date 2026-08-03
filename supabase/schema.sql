@@ -2238,3 +2238,26 @@ alter table movies_cache add column if not exists director_id integer;
 -- Responder a un mensaje puntual en el chat (como en WhatsApp).
 -- ============================================================
 alter table chat_messages add column if not exists reply_to_id uuid references chat_messages(id) on delete set null;
+
+-- ============================================================
+-- Perfiles con más seguidores — para completar la lista de "usuarios
+-- recomendados" cuando no alcanzan las coincidencias por seguidores/
+-- siguiendo en común o gustos. Se cuenta directo con SQL (en vez de traer
+-- todas las filas de follows a la app y contarlas ahí) para que sea rápido
+-- incluso con muchos usuarios.
+-- ============================================================
+create or replace function usuarios_mas_seguidos(p_excluir uuid[], p_limite int)
+returns table (id uuid, cantidad_seguidores bigint) as $$
+  select followee_id as id, count(*) as cantidad_seguidores
+  from follows
+  where followee_id != all(p_excluir)
+  group by followee_id
+  order by cantidad_seguidores desc
+  limit p_limite;
+$$ language sql stable;
+
+-- ============================================================
+-- ¿Qué vemos? en grupos — mismo mecanismo que en el chat privado, pero
+-- como comentario especial en vez de mensaje de chat.
+-- ============================================================
+alter table comentarios add column if not exists es_que_vemos boolean not null default false;

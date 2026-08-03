@@ -27,6 +27,8 @@ import { MOODS } from "../lib/moods";
 import IconoReaccion, { REACCIONES_ICONO } from "./IconoReaccion";
 import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
 import NivelUpModal from "./NivelUpModal";
+import QueVemosModal from "./QueVemosModal";
+import { listarMiembrosIds } from "../lib/groups";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -54,20 +56,25 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
   const [userId, setUserId] = useState<string | null>(null);
   const [idiomaUsuario, setIdiomaUsuario] = useState("en");
   const [siguiendoIds, setSiguiendoIds] = useState<Set<string> | null>(null);
+  const [miPais, setMiPais] = useState<string | null>(null);
+  const [miembroIds, setMiembroIds] = useState<string[]>([]);
+  const [queVemosVisible, setQueVemosVisible] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       const uid = data.user?.id ?? null;
       setUserId(uid);
       if (uid) {
-        const { data: perfil } = await supabase.from("profiles").select("content_language").eq("id", uid).maybeSingle();
+        const { data: perfil } = await supabase.from("profiles").select("content_language, country").eq("id", uid).maybeSingle();
         setIdiomaUsuario(idiomaCorto(perfil?.content_language));
+        setMiPais(perfil?.country ?? "AR");
         if (soloSiguiendo) {
           const { data: sigo } = await supabase.from("follows").select("followee_id").eq("follower_id", uid);
           setSiguiendoIds(new Set((sigo ?? []).map((f: any) => f.followee_id)));
         }
       }
     });
+    if (targetType === "group" && groupId) listarMiembrosIds(groupId).then(setMiembroIds);
     cargar();
   }, [orden]);
 
@@ -119,6 +126,12 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
         </View>
       )}
 
+      {!soloLectura && targetType === "group" && groupId && (
+        <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
+          <Text style={styles.queVemosBtnTexto}>{t("¿Qué vemos?")}</Text>
+        </Pressable>
+      )}
+
       {!soloLectura && (
         <View style={styles.inputRow}>
           <TextInput
@@ -162,6 +175,18 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
         ))}
     </View>
     <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
+    {targetType === "group" && groupId && userId && (
+      <QueVemosModal
+        modo="grupo"
+        visible={queVemosVisible}
+        onCerrar={() => setQueVemosVisible(false)}
+        groupId={groupId}
+        userId={userId}
+        miembroIds={miembroIds}
+        watchRegion={miPais ?? "AR"}
+        onEnviado={cargar}
+      />
+    )}
     </>
   );
 }
@@ -194,9 +219,22 @@ function NodoComentario({
   mostrarTipo?: boolean;
 }) {
   const [respuestas, setRespuestas] = useState<Comentario[] | null>(null);
+  const [expandido, setExpandido] = useState(false);
   const [mostrandoInput, setMostrandoInput] = useState(false);
   const [reportarVisible, setReportarVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+
+  // Se traen las respuestas apenas se monta el comentario (si es que tiene
+  // alguna), para que el numerito de la burbujita sea siempre preciso
+  // desde el principio, en vez de aparecer recién cuando se toca la
+  // burbujita — que era lo que hacía que pareciera que el número
+  // "aparecía y desaparecía".
+  useEffect(() => {
+    if (comentario.reply_count > 0) {
+      cargarRespuestas(comentario.id, userId).then(setRespuestas);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comentario.id]);
   const [confirmEliminarVisible, setConfirmEliminarVisible] = useState(false);
   const [eliminado, setEliminado] = useState(false);
   const [reaccionesPickerVisible, setReaccionesPickerVisible] = useState(false);
@@ -226,12 +264,16 @@ function NodoComentario({
   }
 
   async function abrirRespuestas() {
-    if (respuestas) {
-      setRespuestas(null); // toggle: si ya estaban abiertas, las cierra
+    if (expandido) {
+      setExpandido(false);
       return;
     }
-    const data = await cargarRespuestas(comentario.id, userId);
-    setRespuestas(data);
+    if (!respuestas) {
+      // Por si todavía no se cargaron solas (ej. si reply_count estaba en
+      // 0 al montar pero en realidad sí hay respuestas).
+      setRespuestas(await cargarRespuestas(comentario.id, userId));
+    }
+    setExpandido(true);
   }
 
   function abrirGifPicker() {
@@ -262,6 +304,7 @@ function NodoComentario({
       // y parecía que había desaparecido. Ahora siempre se vuelve a
       // cargar y se deja abierta, sin importar cómo estaba antes.
       setRespuestas(await cargarRespuestas(comentario.id, userId));
+      setExpandido(true);
     } catch (e: any) {
       console.error("Error al postear respuesta:", e);
       Alert.alert("No se pudo publicar", e.message ?? "Revisá tu conexión y probá de nuevo.");
@@ -359,6 +402,7 @@ function NodoComentario({
             autorUsername={comentario.autor_username}
             autorId={comentario.user_id}
             navigation={navigation}
+            esQueVemos={comentario.es_que_vemos}
           />
         )}
         {comentario.content ? <ExpandableText texto={traduccion ?? comentario.content} style={styles.contenido} /> : null}
@@ -388,7 +432,7 @@ function NodoComentario({
           </Pressable>
           <Pressable onPress={abrirRespuestas} style={styles.resumenReaccion}>
             <Ionicons name="chatbubble-outline" size={16} color={theme.colors.textMuted} />
-            <Text style={styles.accionTexto}>{respuestas ? respuestas.length : comentario.reply_count > 0 ? comentario.reply_count : ""}</Text>
+            <Text style={styles.accionTexto}>{respuestas ? respuestas.length || "" : comentario.reply_count > 0 ? comentario.reply_count : ""}</Text>
           </Pressable>
           <Pressable onPress={() => setMostrandoInput(!mostrandoInput)}>
             <Text style={styles.accionTexto}>{t("Responder")}</Text>
@@ -430,21 +474,22 @@ function NodoComentario({
         )}
       </View>
 
-      {respuestas?.map((r) => (
-        <NodoComentario
-          key={r.id}
-          comentario={r}
-          nivel={nivel + 1}
-          userId={userId}
-          idiomaUsuario={idiomaUsuario}
-          onReply={onReply}
-          targetType={targetType}
-          targetId={targetId}
-          groupId={groupId}
-          navigation={navigation}
-          resaltado={r.id === highlightCommentId}
-          highlightCommentId={highlightCommentId}
-        />
+      {expandido &&
+        respuestas?.map((r) => (
+          <NodoComentario
+            key={r.id}
+            comentario={r}
+            nivel={nivel + 1}
+            userId={userId}
+            idiomaUsuario={idiomaUsuario}
+            onReply={onReply}
+            targetType={targetType}
+            targetId={targetId}
+            groupId={groupId}
+            navigation={navigation}
+            resaltado={r.id === highlightCommentId}
+            highlightCommentId={highlightCommentId}
+          />
       ))}
       <ActionSheetModal
         visible={reportarVisible}
@@ -493,6 +538,16 @@ const styles = StyleSheet.create({
   ordenTextActive: { fontSize: 12, color: "#000000", fontWeight: "700" },
   inputRow: { flexDirection: "row", alignItems: "flex-end", marginTop: 6, marginBottom: 6 },
   input: { flex: 1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, padding: 8, marginRight: 6, maxHeight: 80, color: theme.colors.text, backgroundColor: theme.colors.surface },
+  queVemosBtn: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radius.pill,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  queVemosBtnTexto: { color: theme.colors.primaryLight, fontWeight: "700", fontSize: 12 },
   gifBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 10, marginRight: 6 },
   gifBtnTexto: { color: theme.colors.primaryLight, fontSize: 12, fontWeight: "700" },
   enviarBtn: { backgroundColor: theme.colors.primary, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 10 },
@@ -535,6 +590,7 @@ function RecomendacionPreview({
   autorUsername,
   autorId,
   navigation,
+  esQueVemos,
 }: {
   itemType: "series" | "movie" | null;
   tmdbId: number | null;
@@ -545,6 +601,7 @@ function RecomendacionPreview({
   autorUsername: string | null;
   autorId?: string | null;
   navigation?: any;
+  esQueVemos?: boolean;
 }) {
   const { t } = useT();
   const [nombre, setNombre] = useState<string | null>(null);
@@ -624,7 +681,7 @@ function RecomendacionPreview({
   }
 
   return (
-    <Pressable style={stylesRecomendacion.card} onPress={abrir} disabled={eliminado}>
+    <Pressable style={[stylesRecomendacion.card, esQueVemos && stylesRecomendacion.cardQueVemos]} onPress={abrir} disabled={eliminado}>
       {posterPath ? (
         <Image source={{ uri: groupId ? posterPath : posterUrl(posterPath, "w185")! }} style={stylesRecomendacion.poster} />
       ) : (
@@ -634,17 +691,20 @@ function RecomendacionPreview({
       )}
       <View style={{ flex: 1 }}>
         {eliminado ? (
-          <Text style={stylesRecomendacion.etiqueta}>
+          <Text style={[stylesRecomendacion.etiqueta, esQueVemos && stylesRecomendacion.textoQueVemos]}>
             {groupId ? t("Este grupo ya no existe") : listId ? t("Esta lista ya no existe") : t("Este título ya no existe")}
           </Text>
         ) : (
           <>
-            <Text style={stylesRecomendacion.etiqueta}>
-              {autorUsername ?? t("Alguien")} {t("recomendó ")}
-              {groupId ? t("el grupo ") : ""}
+            <Text style={[stylesRecomendacion.etiqueta, esQueVemos && stylesRecomendacion.textoQueVemos]}>
+              {esQueVemos
+                ? itemType === "series"
+                  ? t("Hoy empezamos:")
+                  : t("Hoy vemos:")
+                : `${autorUsername ?? t("Alguien")} ${t("recomendó ")}${groupId ? t("el grupo ") : ""}`}
             </Text>
-            <Text style={stylesRecomendacion.titulo}>{nombre ?? "..."}</Text>
-            {subtitulo && <Text style={stylesRecomendacion.sub}>{subtitulo}</Text>}
+            <Text style={[stylesRecomendacion.titulo, esQueVemos && stylesRecomendacion.textoQueVemos]}>{nombre ?? "..."}</Text>
+            {subtitulo && <Text style={[stylesRecomendacion.sub, esQueVemos && stylesRecomendacion.textoQueVemos]}>{subtitulo}</Text>}
           </>
         )}
       </View>
@@ -654,8 +714,10 @@ function RecomendacionPreview({
 
 const stylesRecomendacion = StyleSheet.create({
   card: { flexDirection: "row", alignItems: "center", backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, padding: 8, marginTop: 4, marginBottom: 4 },
+  cardQueVemos: { backgroundColor: theme.colors.primary, alignSelf: "center" },
   poster: { width: 56, height: 84, borderRadius: 6, marginRight: 10 },
   etiqueta: { fontSize: 10, color: theme.colors.textMuted },
   titulo: { fontSize: 13, fontWeight: "700", color: theme.colors.text, marginTop: 1 },
   sub: { fontSize: 11, color: theme.colors.textMuted, marginTop: 2 },
+  textoQueVemos: { color: "#000000", opacity: 1 },
 });

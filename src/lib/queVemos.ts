@@ -181,6 +181,89 @@ function mapResultado(r: any, tipo: "movie" | "series"): ResultadoQueVemos {
   };
 }
 
+/** Qué tmdb_ids ya recomendó la app en este GRUPO (con "¿Qué vemos?") en las últimas 24hs — para no repetir. */
+async function obtenerRecomendadosUltimas24hsGrupo(groupId: string): Promise<Set<number>> {
+  const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabase
+    .from("comentarios")
+    .select("shared_tmdb_id")
+    .eq("group_id", groupId)
+    .eq("es_que_vemos", true)
+    .gte("created_at", desde);
+  return new Set((data ?? []).map((r: any) => r.shared_tmdb_id).filter((id: number | null): id is number => id != null));
+}
+
+/**
+ * Como elegirQueVemos, pero para un grupo entero en vez de dos personas —
+ * mira lo pendiente de TODOS los miembros. El "compartido" acá no exige
+ * que sea pendiente para TODOS (con grupos grandes, casi nunca pasaría),
+ * sino que prioriza lo que más miembros tengan pendiente en común.
+ */
+export async function elegirQueVemosGrupo(
+  groupId: string,
+  miembroIds: string[],
+  tipo: "movie" | "series",
+  generos: number[],
+  plataformas: number[],
+  watchRegion: string
+): Promise<ResultadoQueVemos | null> {
+  const [pendientesPorMiembro, recomendadosUltimas24hs] = await Promise.all([
+    Promise.all(miembroIds.map((id) => pendientesDeUsuario(id, tipo))),
+    obtenerRecomendadosUltimas24hsGrupo(groupId),
+  ]);
+
+  // Cuenta en cuántos miembros distintos está pendiente cada título.
+  const conteoPorId = new Map<number, { candidato: CandidatoQueVemos; veces: number }>();
+  for (const pendientes of pendientesPorMiembro) {
+    for (const [id, candidato] of pendientes) {
+      if (recomendadosUltimas24hs.has(id)) continue;
+      const actual = conteoPorId.get(id);
+      if (actual) actual.veces++;
+      else conteoPorId.set(id, { candidato, veces: 1 });
+    }
+  }
+
+  const todosLosIds = new Set(conteoPorId.keys());
+  const idsExcluir = new Set([...todosLosIds, ...recomendadosUltimas24hs]);
+
+  async function elegirDeEsePool(candidatos: CandidatoQueVemos[]): Promise<ResultadoQueVemos | null> {
+    const porGenero = candidatos.filter((c) => cumpleGenero(c, generos));
+    if (porGenero.length > 0) {
+      const idsQuePasanPlataforma = await filtrarPorPlataforma(
+        porGenero.map((c) => c.tmdbId),
+        tipo,
+        plataformas,
+        watchRegion
+      );
+      const finales = porGenero.filter((c) => idsQuePasanPlataforma.has(c.tmdbId));
+      if (finales.length > 0) {
+        const elegido = elegirAlAzar(finales);
+        return { tmdbId: elegido.tmdbId, tipo, nombre: elegido.nombre, poster_path: elegido.poster_path, anio: elegido.anio };
+      }
+    }
+    return buscarParecido(candidatos, tipo, plataformas, watchRegion, idsExcluir);
+  }
+
+  // TIER 1: lo que esté pendiente para la MAYOR cantidad de miembros primero (2 o más, si hay), bajando de a un escalón hasta encontrar algo.
+  const maxVeces = Math.max(0, ...[...conteoPorId.values()].map((v) => v.veces));
+  for (let minimo = Math.max(maxVeces, 2); minimo >= 2; minimo--) {
+    const compartidos = [...conteoPorId.values()].filter((v) => v.veces >= minimo).map((v) => v.candidato);
+    if (compartidos.length === 0) continue;
+    const resultado = await elegirDeEsePool(compartidos);
+    if (resultado) return resultado;
+  }
+
+  // TIER 2: pendiente de CUALQUIER miembro (uno solo alcanza).
+  if (conteoPorId.size > 0) {
+    const union = [...conteoPorId.values()].map((v) => v.candidato);
+    const resultado = await elegirDeEsePool(union);
+    if (resultado) return resultado;
+  }
+
+  // TIER 3: nadie tiene nada pendiente (o no encontramos nada parecido) — tendencia con los filtros, o tendencia a secas. Siempre devuelve algo.
+  return buscarTendenciaConFiltros(tipo, generos, plataformas, watchRegion, idsExcluir);
+}
+
 export async function elegirQueVemos(
   chatId: string,
   userIdA: string,

@@ -4,7 +4,7 @@ import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";
-import { searchSeries, searchMovies, searchPerson, posterUrl } from "../lib/tmdb";
+import { searchSeries, searchMovies, searchPerson, posterUrl, getTmdbLanguage, getMovieDetails, getSeriesDetails } from "../lib/tmdb";
 import { parecido, palabrasClave } from "../lib/textMatch";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie } from "../lib/sync";
 import { buscarUsuarios, listarUsuariosRecomendados, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
@@ -54,60 +54,96 @@ function mapearPelicula(p: any): ResultadoTitulo {
 // varios idiomas a la vez y juntando los resultados, cubrimos más casos.
 const IDIOMAS_BUSQUEDA = ["es-419", "es-ES", "en-US"];
 
-function dedupeYOrdenar(items: ResultadoTitulo[]): ResultadoTitulo[] {
-  const vistos = new Map<string, ResultadoTitulo>();
-  for (const item of items) {
-    const clave = `${item.tipo}-${item.id}`;
-    if (!vistos.has(clave)) vistos.set(clave, item);
+interface ResultadoConIdioma {
+  item: ResultadoTitulo;
+  idioma: string;
+}
+
+async function buscarPorIdiomas(texto: string, idiomas: string[]): Promise<ResultadoConIdioma[]> {
+  const pedidos = idiomas.flatMap((idioma) => [
+    searchSeries(texto, idioma).then((r) => ({ idioma, esSerie: true, r })),
+    searchMovies(texto, idioma).then((r) => ({ idioma, esSerie: false, r })),
+  ]);
+  const resultados = await Promise.all(pedidos);
+  const items: ResultadoConIdioma[] = [];
+  for (const { idioma, esSerie, r } of resultados) {
+    for (const raw of r.results ?? []) items.push({ item: esSerie ? mapearSerie(raw) : mapearPelicula(raw), idioma });
   }
-  return [...vistos.values()].sort((a, b) => b.popularidad - a.popularidad);
+  return items;
+}
+
+// Un mismo título puede aparecer en varias búsquedas de idioma — nos
+// quedamos con UNA entrada por título, prefiriendo siempre la que vino del
+// idioma de títulos que el usuario tiene configurado (Ajustes > Títulos),
+// para que se vea "Rápido y Furioso" y no "A todo gas" si el usuario tiene
+// puesto español latino, aunque el que haya encontrado la coincidencia
+// haya sido el de España.
+function mejorPorId(entries: ResultadoConIdioma[], idiomaPreferido: string): ResultadoConIdioma[] {
+  const vistos = new Map<string, ResultadoConIdioma>();
+  for (const entry of entries) {
+    const clave = `${entry.item.tipo}-${entry.item.id}`;
+    const actual = vistos.get(clave);
+    if (!actual || (actual.idioma !== idiomaPreferido && entry.idioma === idiomaPreferido)) vistos.set(clave, entry);
+  }
+  return [...vistos.values()].sort((a, b) => b.item.popularidad - a.item.popularidad);
+}
+
+// Si terminamos quedándonos con un título que NO vino de la búsqueda en el
+// idioma preferido (ej: solo lo encontramos por el título de España), acá
+// se pide de nuevo su ficha puntual — que ya trae el título en el idioma
+// configurado por default — y se corrige antes de mostrarlo.
+async function corregirIdiomaMostrado(entries: ResultadoConIdioma[], idiomaPreferido: string): Promise<ResultadoTitulo[]> {
+  return Promise.all(
+    entries.map(async ({ item, idioma }) => {
+      if (idioma === idiomaPreferido) return item;
+      try {
+        const detalle = item.tipo === "series" ? await getSeriesDetails(item.id) : await getMovieDetails(item.id);
+        const tituloCorregido = item.tipo === "series" ? detalle.name : detalle.title;
+        return tituloCorregido ? { ...item, titulo: tituloCorregido } : item;
+      } catch {
+        return item; // si falla la corrección, mostramos el que ya teníamos antes que nada
+      }
+    })
+  );
 }
 
 /**
  * Busca títulos tolerando dos cosas que el buscador de TMDB no resuelve
  * solo: (1) que el título esté en otro idioma/región (busca en varios a la
- * vez), y (2) errores de tipeo — si la búsqueda "tal cual" no encuentra
- * nada o casi nada, prueba de nuevo con cada palabra importante por
- * separado (el motor de TMDB tolera algo de esto) y se queda solo con lo
- * que resulte razonablemente parecido a lo que escribiste. No es perfecto
- * (no hay forma de "adivinar" cualquier error de tipeo con certeza), pero
- * ayuda en la mayoría de los casos.
+ * vez, y corrige el título mostrado al idioma configurado por el usuario),
+ * y (2) errores de tipeo — si la búsqueda "tal cual" no encuentra nada o
+ * casi nada, prueba de nuevo con cada palabra importante por separado (el
+ * motor de TMDB tolera algo de esto) y se queda solo con lo que resulte
+ * razonablemente parecido a lo que escribiste. No es perfecto (no hay
+ * forma de "adivinar" cualquier error de tipeo con certeza), pero ayuda en
+ * la mayoría de los casos.
  */
 async function buscarTitulosTolerante(texto: string): Promise<ResultadoTitulo[]> {
-  const busquedas = IDIOMAS_BUSQUEDA.flatMap((idioma) => [searchSeries(texto, idioma), searchMovies(texto, idioma)]);
-  const resultados = await Promise.all(busquedas);
-  const directos: ResultadoTitulo[] = [];
-  resultados.forEach((r, i) => {
-    const esSerie = i % 2 === 0;
-    const items = (r.results ?? []).map(esSerie ? mapearSerie : mapearPelicula);
-    directos.push(...items);
-  });
-  const mezclaDirecta = dedupeYOrdenar(directos);
+  const idiomaPreferido = getTmdbLanguage();
+  const idiomas = [idiomaPreferido, ...IDIOMAS_BUSQUEDA.filter((i) => i !== idiomaPreferido)];
 
-  if (mezclaDirecta.length >= 3) return mezclaDirecta;
+  const directosConIdioma = await buscarPorIdiomas(texto, idiomas);
+  const mejoresDirectos = mejorPorId(directosConIdioma, idiomaPreferido);
+
+  if (mejoresDirectos.length >= 3) return corregirIdiomaMostrado(mejoresDirectos, idiomaPreferido);
 
   // Muy pocos (o ningún) resultado directo — probamos tolerando errores de
   // tipeo: buscamos cada palabra clave por separado, y nos quedamos con lo
   // que quede razonablemente parecido al texto completo que escribiste.
   const claves = palabrasClave(texto);
-  if (claves.length === 0) return mezclaDirecta;
+  if (claves.length === 0) return corregirIdiomaMostrado(mejoresDirectos, idiomaPreferido);
 
-  const busquedasFallback = claves.flatMap((palabra) => [searchSeries(palabra), searchMovies(palabra)]);
-  const resultadosFallback = await Promise.all(busquedasFallback);
-  const candidatos: ResultadoTitulo[] = [];
-  resultadosFallback.forEach((r, i) => {
-    const esSerie = i % 2 === 0;
-    const items = (r.results ?? []).map(esSerie ? mapearSerie : mapearPelicula);
-    candidatos.push(...items);
-  });
+  const fallbackConIdioma = (await Promise.all(claves.map((palabra) => buscarPorIdiomas(palabra, [idiomaPreferido])))).flat();
 
-  const conParecido = dedupeYOrdenar(candidatos)
-    .map((item) => ({ item, score: parecido(texto, item.titulo) }))
+  const conParecido = mejorPorId(fallbackConIdioma, idiomaPreferido)
+    .map((entry) => ({ entry, score: parecido(texto, entry.item.titulo) }))
     .filter(({ score }) => score >= 0.45) // bastante parecido, no cualquier cosa
     .sort((a, b) => b.score - a.score)
-    .map(({ item }) => item);
+    .map(({ entry }) => entry);
 
-  return dedupeYOrdenar([...mezclaDirecta, ...conParecido]);
+
+  const combinados = mejorPorId([...mejoresDirectos, ...conParecido], idiomaPreferido);
+  return corregirIdiomaMostrado(combinados, idiomaPreferido);
 }
 
 interface ResultadoPersona {

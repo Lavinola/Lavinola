@@ -170,6 +170,12 @@ export async function unirseAGrupo(groupId: string, userId: string) {
   await supabase.from("group_members").insert({ group_id: groupId, user_id: userId });
 }
 
+/** Solo los ids de los miembros de un grupo — para cosas como ¿Qué vemos?, que necesita mirar los pendientes de todos. */
+export async function listarMiembrosIds(groupId: string): Promise<string[]> {
+  const { data } = await supabase.from("group_members").select("user_id").eq("group_id", groupId);
+  return (data ?? []).map((m: any) => m.user_id as string);
+}
+
 export async function salirDeGrupo(groupId: string, userId: string) {
   await supabase.from("group_members").delete().eq("group_id", groupId).eq("user_id", userId);
 }

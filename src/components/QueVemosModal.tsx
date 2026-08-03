@@ -3,22 +3,36 @@ import { Modal, View, Pressable, Image, ActivityIndicator, StyleSheet } from "re
 import { Text } from "./Themed";
 import { GENEROS_PELICULAS, GENEROS_SERIES } from "../lib/tmdbGenres";
 import { getWatchProvidersDisponibles, GrupoPlataforma, posterUrl } from "../lib/tmdb";
-import { elegirQueVemos } from "../lib/queVemos";
+import { elegirQueVemos, elegirQueVemosGrupo } from "../lib/queVemos";
 import { enviarQueVemos } from "../lib/chats";
+import { recomendarEnGrupo } from "../lib/comments";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
-interface Props {
-  visible: boolean;
-  onCerrar: () => void;
-  chatId: string;
-  userId: string;
-  otroUserId: string;
-  watchRegion: string;
-  onEnviado: () => void;
-}
+type Props =
+  | {
+      modo: "chat";
+      visible: boolean;
+      onCerrar: () => void;
+      chatId: string;
+      userId: string;
+      otroUserId: string;
+      watchRegion: string;
+      onEnviado: () => void;
+    }
+  | {
+      modo: "grupo";
+      visible: boolean;
+      onCerrar: () => void;
+      groupId: string;
+      userId: string;
+      miembroIds: string[];
+      watchRegion: string;
+      onEnviado: () => void;
+    };
 
-export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroUserId, watchRegion, onEnviado }: Props) {
+export default function QueVemosModal(props: Props) {
+  const { visible, onCerrar, watchRegion, onEnviado } = props;
   const { t } = useT();
   const [paso, setPaso] = useState<"tipo" | "filtros">("tipo");
   const [tipo, setTipo] = useState<"movie" | "series" | null>(null);
@@ -78,12 +92,19 @@ export default function QueVemosModal({ visible, onCerrar, chatId, userId, otroU
     setSinResultado(false);
     try {
       const idsPlataformas = plataformasDisponibles.filter((p) => plataformasElegidas.has(p.clave)).flatMap((p) => p.provider_ids);
-      const resultado = await elegirQueVemos(chatId, userId, otroUserId, tipo, [...generosElegidos], idsPlataformas, watchRegion);
+      const resultado =
+        props.modo === "chat"
+          ? await elegirQueVemos(props.chatId, props.userId, props.otroUserId, tipo, [...generosElegidos], idsPlataformas, watchRegion)
+          : await elegirQueVemosGrupo(props.groupId, props.miembroIds, tipo, [...generosElegidos], idsPlataformas, watchRegion);
       if (!resultado) {
         setSinResultado(true);
         return;
       }
-      await enviarQueVemos(chatId, userId, resultado.tipo, resultado.tmdbId);
+      if (props.modo === "chat") {
+        await enviarQueVemos(props.chatId, props.userId, resultado.tipo, resultado.tmdbId);
+      } else {
+        await recomendarEnGrupo({ userId: props.userId, groupId: props.groupId, itemType: resultado.tipo, tmdbId: resultado.tmdbId, esQueVemos: true });
+      }
       onEnviado();
       onCerrar();
     } catch (e) {
