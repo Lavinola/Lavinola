@@ -133,11 +133,9 @@ export default function QueVemosModal(props: Props) {
             <View style={styles.ayudaCaja}>
               <Text style={styles.ayudaCajaTexto}>
                 {props.modo === "chat"
-                  ? t(
-                      "Elegís si buscás película o serie, filtrás por género y plataforma si querés, y la app les recomienda algo para ver juntos — prioriza títulos que los dos ya tengan pendientes."
-                    )
+                  ? t("Elegí si buscás película o serie, filtrá por género y plataforma, y Lavinola les recomienda qué ver juntos — prioriza títulos que los dos tengan en pendientes.")
                   : t(
-                      "Elegís si buscás película o serie, filtrás por género y plataforma si querés, y la app le recomienda algo al grupo para ver juntos — prioriza títulos que los miembros ya tengan pendientes."
+                      "Elegí si buscás película o serie, filtrá por género y plataforma, y Lavinola le recomienda al grupo qué ver juntos — prioriza títulos que los miembros tengan en pendientes."
                     )}
               </Text>
             </View>

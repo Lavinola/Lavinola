@@ -7,7 +7,8 @@ import UnderlineTabs from "../components/UnderlineTabs";
 import { searchSeries, searchMovies, searchPerson, posterUrl, getTmdbLanguage, getMovieDetails, getSeriesDetails } from "../lib/tmdb";
 import { parecido, palabrasClave } from "../lib/textMatch";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie } from "../lib/sync";
-import { buscarUsuarios, listarUsuariosRecomendados, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
+import { buscarUsuarios, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
+import { obtenerUsuariosRecomendados } from "../lib/recommendedUsersCache";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
 import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/pagination";
@@ -180,7 +181,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
 
   async function cargarRecomendaciones(uid: string, tabActual: Tab) {
     if (tabActual === "usuarios") {
-      setUsuarios(await listarUsuariosRecomendados(uid));
+      setUsuarios(await obtenerUsuariosRecomendados(uid));
     }
   }
 
@@ -195,8 +196,17 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     setAgregados(set);
   }
 
-  async function buscar(texto: string) {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Se llama en cada tecla — pero la búsqueda de verdad espera un
+  // poquito (debounce) antes de disparar. Sin esto, cada letra que
+  // escribías lanzaba de nuevo todos los pedidos a TMDB (hasta una
+  // docena, contando los idiomas y el respaldo por errores de tipeo) sin
+  // esperar a que terminen los anteriores — eso es lo que probablemente
+  // causaba los "Failed to fetch" ocasionales al buscar rápido.
+  function buscar(texto: string) {
     setQuery(texto);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (texto.trim().length < 2) {
       idPedidoRef.current++; // invalida cualquier búsqueda en vuelo
       setTitulos([]);
@@ -208,6 +218,10 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
       }
       return;
     }
+    debounceRef.current = setTimeout(() => ejecutarBusqueda(texto), 350);
+  }
+
+  async function ejecutarBusqueda(texto: string) {
     const miId = ++idPedidoRef.current;
     setLoading(true);
     setErrorBusqueda(null);
@@ -235,6 +249,20 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
         setPersonas(resultados);
       }
     } catch (e: any) {
+      // "Failed to fetch" suele ser un hipo pasajero de red (más
+      // probable ahora que se buscan varios idiomas a la vez) — antes de
+      // mostrar error, probamos una vez más solos.
+      if (e?.message === "Failed to fetch" && idPedidoRef.current === miId) {
+        try {
+          await new Promise((r) => setTimeout(r, 600));
+          if (idPedidoRef.current !== miId) return;
+          return await ejecutarBusqueda(texto);
+        } catch (e2: any) {
+          console.error("Error al buscar (tras reintentar):", e2);
+          if (idPedidoRef.current === miId) setErrorBusqueda(e2?.message ?? "Error desconocido buscando en TMDB.");
+          return;
+        }
+      }
       console.error("Error al buscar:", e);
       if (idPedidoRef.current === miId) setErrorBusqueda(e?.message ?? "Error desconocido buscando en TMDB.");
     } finally {
