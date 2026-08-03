@@ -73,6 +73,40 @@ async function buscarPorIdiomas(texto: string, idiomas: string[]): Promise<Resul
   return items;
 }
 
+// A veces TMDB no tiene traducción propia para "es-419" (español
+// latino) y, sin avisar, devuelve el mismo título que tiene cargado para
+// "es-ES" (España) — es lo que pasaba con "Rápido y Furioso", que
+// aparecía como "A todo gas" sin pasar por ninguna corrección (porque
+// ya "encontramos" el título directamente en el idioma pedido, no hay
+// nada que corregir desde el punto de vista del código). Acá comparamos,
+// título por título, lo que vino en es-419 contra lo que vino en es-ES
+// para el mismo id: si son idénticos (y hay un título en inglés
+// distinto de ambos), es señal de que es-419 no tiene traducción propia
+// y estamos mostrando la de España sin querer — en ese caso mostramos
+// el título original en inglés en su lugar, que es menos "incorrecto"
+// para un usuario latinoamericano que el de España.
+function evitarTituloDeEspanaSinQuerer(entries: ResultadoConIdioma[], idiomaPreferido: string): ResultadoConIdioma[] {
+  if (idiomaPreferido !== "es-419") return entries; // esto solo puede pasar pidiendo español latino
+  const porClave = new Map<string, Map<string, ResultadoConIdioma>>();
+  for (const entry of entries) {
+    const clave = `${entry.item.tipo}-${entry.item.id}`;
+    if (!porClave.has(clave)) porClave.set(clave, new Map());
+    porClave.get(clave)!.set(entry.idioma, entry);
+  }
+  return entries.map((entry) => {
+    if (entry.idioma !== "es-419") return entry;
+    const variantes = porClave.get(`${entry.item.tipo}-${entry.item.id}`);
+    const esES = variantes?.get("es-ES");
+    const enUS = variantes?.get("en-US");
+    const normalizar = (s: string) => s.trim().toLowerCase();
+    if (esES && enUS && normalizar(entry.item.titulo) === normalizar(esES.item.titulo) && normalizar(entry.item.titulo) !== normalizar(enUS.item.titulo)) {
+      console.log(`[filtroEspana] "${entry.item.titulo}" venía igual en es-419 y es-ES -> se usa el original "${enUS.item.titulo}"`);
+      return { ...entry, item: { ...entry.item, titulo: enUS.item.titulo } };
+    }
+    return entry;
+  });
+}
+
 // Un mismo título puede aparecer en varias búsquedas de idioma — nos
 // quedamos con UNA entrada por título, prefiriendo siempre la que vino del
 // idioma de títulos que el usuario tiene configurado (Ajustes > Títulos),
@@ -121,32 +155,41 @@ async function corregirIdiomaMostrado(entries: ResultadoConIdioma[], idiomaPrefe
  * forma de "adivinar" cualquier error de tipeo con certeza), pero ayuda en
  * la mayoría de los casos.
  */
-async function buscarTitulosTolerante(texto: string): Promise<ResultadoTitulo[]> {
+async function buscarTitulosTolerante(texto: string, sigueVigente: () => boolean = () => true): Promise<ResultadoTitulo[]> {
   const idiomaPreferido = getTmdbLanguage();
   console.log(`[buscarTitulos] idioma preferido detectado: ${idiomaPreferido}`);
   const idiomas = [idiomaPreferido, ...IDIOMAS_BUSQUEDA.filter((i) => i !== idiomaPreferido)];
 
-  const directosConIdioma = await buscarPorIdiomas(texto, idiomas);
+  const directosConIdioma = evitarTituloDeEspanaSinQuerer(await buscarPorIdiomas(texto, idiomas), idiomaPreferido);
   const mejoresDirectos = mejorPorId(directosConIdioma, idiomaPreferido);
 
-  if (mejoresDirectos.length >= 3) return corregirIdiomaMostrado(mejoresDirectos, idiomaPreferido);
+  // Si mientras esperábamos la respuesta el usuario ya siguió tipeando,
+  // esta búsqueda quedó vieja y su resultado se va a descartar igual del
+  // lado del que llama — no tiene sentido gastar más pedidos a TMDB
+  // corrigiendo idiomas de algo que nadie va a ver.
+  if (mejoresDirectos.length >= 3) {
+    if (!sigueVigente()) return mejoresDirectos.map((e) => e.item);
+    return corregirIdiomaMostrado(mejoresDirectos, idiomaPreferido);
+  }
 
   // Muy pocos (o ningún) resultado directo — probamos tolerando errores de
   // tipeo: buscamos cada palabra clave por separado, y nos quedamos con lo
   // que quede razonablemente parecido al texto completo que escribiste.
   const claves = palabrasClave(texto);
   if (claves.length === 0) return corregirIdiomaMostrado(mejoresDirectos, idiomaPreferido);
+  if (!sigueVigente()) return mejoresDirectos.map((e) => e.item);
 
   const fallbackConIdioma = (await Promise.all(claves.map((palabra) => buscarPorIdiomas(palabra, [idiomaPreferido])))).flat();
 
   const conParecido = mejorPorId(fallbackConIdioma, idiomaPreferido)
     .map((entry) => ({ entry, score: parecido(texto, entry.item.titulo) }))
-    .filter(({ score }) => score >= 0.45) // bastante parecido, no cualquier cosa
+    .filter(({ score }) => score >= 0.65) // bastante parecido, no cualquier cosa (antes 0.45 — dejaba pasar cosas sin relación real con búsquedas cortas, ej. "rapido" emparentando con títulos tipo "Rapist")
     .sort((a, b) => b.score - a.score)
     .map(({ entry }) => entry);
 
 
   const combinados = mejorPorId([...mejoresDirectos, ...conParecido], idiomaPreferido);
+  if (!sigueVigente()) return combinados.map((e) => e.item);
   return corregirIdiomaMostrado(combinados, idiomaPreferido);
 }
 
@@ -230,7 +273,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     setErrorBusqueda(null);
     try {
       if (tab === "titulos") {
-        const mezcla = await buscarTitulosTolerante(texto);
+        const mezcla = await buscarTitulosTolerante(texto, () => idPedidoRef.current === miId);
         if (idPedidoRef.current !== miId) return; // llegó tarde, ya hay una búsqueda más nueva en curso
         setTitulos(mezcla);
       } else if (tab === "usuarios") {
