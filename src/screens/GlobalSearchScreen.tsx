@@ -100,8 +100,10 @@ async function corregirIdiomaMostrado(entries: ResultadoConIdioma[], idiomaPrefe
       try {
         const detalle = item.tipo === "series" ? await getSeriesDetails(item.id) : await getMovieDetails(item.id);
         const tituloCorregido = item.tipo === "series" ? detalle.name : detalle.title;
+        console.log(`[corregirIdioma] "${item.titulo}" (encontrado en ${idioma}) -> "${tituloCorregido}" (pedido en ${idiomaPreferido})`);
         return tituloCorregido ? { ...item, titulo: tituloCorregido } : item;
-      } catch {
+      } catch (e) {
+        console.error(`[corregirIdioma] no se pudo corregir "${item.titulo}":`, e);
         return item; // si falla la corrección, mostramos el que ya teníamos antes que nada
       }
     })
@@ -121,6 +123,7 @@ async function corregirIdiomaMostrado(entries: ResultadoConIdioma[], idiomaPrefe
  */
 async function buscarTitulosTolerante(texto: string): Promise<ResultadoTitulo[]> {
   const idiomaPreferido = getTmdbLanguage();
+  console.log(`[buscarTitulos] idioma preferido detectado: ${idiomaPreferido}`);
   const idiomas = [idiomaPreferido, ...IDIOMAS_BUSQUEDA.filter((i) => i !== idiomaPreferido)];
 
   const directosConIdioma = await buscarPorIdiomas(texto, idiomas);
