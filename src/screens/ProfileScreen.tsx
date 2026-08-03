@@ -4,17 +4,23 @@ import { Text, AppButton } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
-import { fetchAllRows } from "../lib/pagination";
 import { posterUrl } from "../lib/tmdb";
-import { getPerfil, getStatsSociales, getCoverPosterPath, PerfilCompleto, StatsSociales } from "../lib/profile";
+import { PerfilCompleto, StatsSociales } from "../lib/profile";
 import { calcularEstadoRecap, calcularRecap, marcarRecapVisto, DatosRecap } from "../lib/recap";
 import RecapModal from "../components/RecapModal";
 import ConfirmModal from "../components/ConfirmModal";
-import { listarFavoritos, Favorito } from "../lib/favorites";
-import { listarListasDeUsuarioOrdenadasPorSeguidores, Lista } from "../lib/lists";
+import { Favorito } from "../lib/favorites";
+import { Lista } from "../lib/lists";
 import ListPreviewCard from "../components/ListPreviewCard";
 import AdminBadge from "../components/AdminBadge";
-import { progresoDeSeries, ProgresoSerie } from "../lib/seriesList";
+import { ProgresoSerie } from "../lib/seriesList";
+import {
+  DatosPerfilPropio,
+  cargarDatosPerfilPropio,
+  cacheSincronicaPerfilPropio,
+  obtenerPerfilPropio,
+  actualizarCachePerfilPropio,
+} from "../lib/profileDataCache";
 import FilaMiniTitulos from "../components/FilaMiniTitulos";
 import ActionSheetModal from "../components/ActionSheetModal";
 import { abrirRedSocial } from "../lib/social";
@@ -117,94 +123,43 @@ export default function ProfileScreen({ navigation }: any) {
     setRecapBannerVisible(true);
   }
 
+  function aplicarDatosPerfil(datos: DatosPerfilPropio) {
+    setPerfil(datos.perfil);
+    setCoverPath(datos.coverPath);
+    setSocial(datos.social);
+    setFavoritos(datos.favoritos);
+    setListas(datos.listas);
+    setMisSeries(datos.misSeries);
+    setProgreso(datos.progreso);
+    setMisPeliculas(datos.misPeliculas);
+    setStats(datos.stats);
+  }
+
   async function cargar() {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
     if (!userId) return;
 
-    // Antes esto era una cadena de ~9 consultas, cada una esperando a que
-    // termine la anterior — con una biblioteca grande (después de importar
-    // de TV Time, por ejemplo), eso se sentía como una carga eterna con todo
-    // en 0. Como estas consultas no dependen entre sí, las pedimos todas
-    // juntas y esperamos lo que tarde la más lenta, no la suma de todas.
-    const [p, soc, favs, listasOrdenadas, seriesRows, progresoSeries, movieRows, episodiosVistos, peliculasVistas] = await Promise.all([
-      getPerfil(userId),
-      getStatsSociales(userId),
-      listarFavoritos(userId),
-      listarListasDeUsuarioOrdenadasPorSeguidores(userId),
-      fetchAllRows((desde, hasta) =>
-        supabase
-          .from("user_series")
-          .select("series_tmdb_id, custom_poster_path, series_cache(name, poster_path)")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .range(desde, hasta)
-      ),
-      progresoDeSeries(userId),
-      fetchAllRows((desde, hasta) =>
-        supabase
-          .from("user_movies")
-          .select("movie_tmdb_id, custom_poster_path, movies_cache(title, poster_path)")
-          .eq("user_id", userId)
-          .order("added_at", { ascending: false })
-          .range(desde, hasta)
-      ),
-      fetchAllRows((desde, hasta) =>
-        supabase
-          .from("user_episodes_watched")
-          .select("times_watched, episodes_cache(runtime_minutes)")
-          .eq("user_id", userId)
-          .range(desde, hasta)
-      ),
-      fetchAllRows((desde, hasta) =>
-        supabase
-          .from("user_movies")
-          .select("times_watched, movies_cache(runtime_minutes)")
-          .eq("user_id", userId)
-          .eq("watched", true)
-          .range(desde, hasta)
-      ),
-    ]);
+    // Si ya se había precargado en segundo plano (al abrir la app, o en
+    // una visita anterior a esta pantalla), lo pintamos al toque en vez
+    // de esperar de nuevo a que bajen las ~9 consultas de siempre — y
+    // ese mismo trabajo se sigue haciendo abajo igual, para que se
+    // actualice solo con lo último apenas esté listo, sin bloquear nada.
+    const yaListo = cacheSincronicaPerfilPropio(userId);
+    if (yaListo) aplicarDatosPerfil(yaListo);
 
-    setPerfil(p);
+    const datos = yaListo ? await cargarDatosPerfilPropio(userId) : await obtenerPerfilPropio(userId);
+    aplicarDatosPerfil(datos);
+    actualizarCachePerfilPropio(userId, datos);
+
     obtenerPuntosInsignias(userId)
       .then((puntos) => setNivelInsigniaNumero(nivelAlcanzado(puntos)?.nivel ?? null))
       .catch((e) => console.error("Error al calcular el nivel de insignias:", e));
-    setIsAdmin(!!(p as any)?.is_admin);
-    if ((p as any)?.is_admin) {
+    setIsAdmin(!!(datos.perfil as any)?.is_admin);
+    if ((datos.perfil as any)?.is_admin) {
       const { count } = await supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending");
       setReportesPendientes(count ?? 0);
     }
-    if (p) setCoverPath(await getCoverPosterPath(p));
-
-    setListas(listasOrdenadas);
-    setSocial(soc);
-    setFavoritos(favs);
-
-    setMisSeries(
-      (seriesRows ?? []).map((r: any) => ({
-        tmdb_id: r.series_tmdb_id,
-        nombre: r.series_cache?.name ?? "—",
-        poster_path: r.custom_poster_path ?? r.series_cache?.poster_path ?? null,
-      }))
-    );
-    setProgreso(progresoSeries);
-
-    setMisPeliculas(
-      (movieRows ?? []).map((r: any) => ({
-        tmdb_id: r.movie_tmdb_id,
-        nombre: r.movies_cache?.title ?? "—",
-        poster_path: r.custom_poster_path ?? r.movies_cache?.poster_path ?? null,
-      }))
-    );
-
-    // Las revisitas suman: si volviste a ver algo, cuenta de nuevo en el total.
-    setStats({
-      minutosSeriesVistas: (episodiosVistos ?? []).reduce((acc: number, e: any) => acc + (e.episodes_cache?.runtime_minutes ?? 0) * (e.times_watched ?? 1), 0),
-      capitulosVistos: (episodiosVistos ?? []).reduce((acc: number, e: any) => acc + (e.times_watched ?? 1), 0),
-      minutosPeliculasVistas: (peliculasVistas ?? []).reduce((acc: number, p: any) => acc + (p.movies_cache?.runtime_minutes ?? 0) * (p.times_watched ?? 1), 0),
-      peliculasVistas: (peliculasVistas ?? []).reduce((acc: number, p: any) => acc + (p.times_watched ?? 1), 0),
-    });
   }
 
   const [menuVisible, setMenuVisible] = useState(false);

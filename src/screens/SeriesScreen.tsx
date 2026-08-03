@@ -10,7 +10,8 @@ import { marcarEpisodioVisto, episodiosAnterioresNoVistos, marcarVariosEpisodios
 import ConfirmModal from "../components/ConfirmModal";
 import AgregarButton from "../components/AgregarButton";
 import CalificarModal from "../components/CalificarModal";
-import { listarSeriesConEstado, historialReciente, SerieListado, EventoHistorial } from "../lib/seriesList";
+import { historialReciente, SerieListado, EventoHistorial } from "../lib/seriesList";
+import { cacheSincronicaListaPendiente, obtenerListaPendiente, actualizarCacheListaPendiente, cargarDatosListaPendiente } from "../lib/seriesListCache";
 import TopPills from "../components/TopPills";
 import CalendarScreen from "./CalendarScreen";
 import { useT } from "../i18n/i18n";
@@ -77,19 +78,36 @@ function ListaPendiente({ navigation }: any) {
 
   async function cargar(silencioso = false) {
     const miId = ++idCargaRef.current;
-    if (!silencioso) setLoading(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       if (!userId) return;
 
-      const [todas, hist] = await Promise.all([listarSeriesConEstado(userId), historialReciente(userId, 60)]);
-      if (miId !== idCargaRef.current) return; // llegó una recarga más nueva mientras esperábamos — descartamos esta
-      setSeries(todas);
-      setHistorial(hist);
-      if (!silencioso) {
+      // Si ya se había precargado en segundo plano (al abrir la app, o en
+      // una visita anterior a esta pantalla), lo pintamos al toque en vez
+      // de mostrar el spinner y esperar de nuevo — y de todas formas
+      // seguimos abajo pidiendo la versión más fresca, para que se
+      // actualice sola apenas esté lista, sin bloquear nada.
+      const yaListo = !silencioso ? cacheSincronicaListaPendiente(userId) : null;
+      if (yaListo) {
+        setSeries(yaListo.series);
+        setHistorial(yaListo.historial);
+        setLoading(false);
         yaScrolleoRef.current = false;
-        const hayHistorial = hist.length > 0;
+        indiceVerARef.current = yaListo.historial.length > 0 ? 1 : 0;
+        setTimeout(() => scrollAVerAContinuacion(), 60);
+      } else if (!silencioso) {
+        setLoading(true);
+      }
+
+      const datos = yaListo ? await cargarDatosListaPendiente(userId) : await obtenerListaPendiente(userId);
+      if (miId !== idCargaRef.current) return; // llegó una recarga más nueva mientras esperábamos — descartamos esta
+      setSeries(datos.series);
+      setHistorial(datos.historial);
+      actualizarCacheListaPendiente(userId, datos);
+      if (!yaListo && !silencioso) {
+        yaScrolleoRef.current = false;
+        const hayHistorial = datos.historial.length > 0;
         indiceVerARef.current = hayHistorial ? 1 : 0;
         setTimeout(() => scrollAVerAContinuacion(), 60);
       }

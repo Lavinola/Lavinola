@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, Image, FlatList, Pressable, StyleSheet, ScrollView, Modal, TextInput, Platform } from "react-native";
+import { View, Image, FlatList, Pressable, StyleSheet, ScrollView, Modal, TextInput, Platform, ActivityIndicator } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
@@ -41,6 +41,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
   const { t } = useT();
   const { userId: targetId } = route.params;
   const [viewerId, setViewerId] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(true);
   const [perfil, setPerfil] = useState<PerfilCompleto | null>(null);
   const [nivelInsigniaNumero, setNivelInsigniaNumero] = useState<number | null>(null);
   const [coverPath, setCoverPath] = useState<string | null>(null);
@@ -77,95 +78,136 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
   );
 
   async function cargar() {
+    const esPrimeraCarga = !perfil;
+    if (esPrimeraCarga) setCargando(true);
+
     const { data: userData } = await supabase.auth.getUser();
     const vid = userData.user?.id ?? null;
     setViewerId(vid);
-    if (!vid) return;
-
-    setFavSeries([]);
-    setFavPeliculas([]);
-    setGrupos([]);
-    setListas([]);
+    if (!vid) {
+      if (esPrimeraCarga) setCargando(false);
+      return;
+    }
 
     const resultado = await getPerfilPublico(vid, targetId);
-    if (!resultado) return;
-    setPerfil(resultado.perfil);
-    obtenerPuntosInsignias(targetId)
-      .then((puntos) => setNivelInsigniaNumero(nivelAlcanzado(puntos)?.nivel ?? null))
-      .catch((e) => console.error("Error al calcular el nivel de insignias:", e));
-    setEsModeradorTarget(!!(resultado.perfil as any).is_moderator);
-    setLoSigo(resultado.loSigo);
-    setPuedeVer(resultado.puedeVerActividad);
-    setCoverPath(await getCoverPosterPath(resultado.perfil));
-    setSocial(await getStatsSociales(targetId));
-    if (resultado.loSigo && vid && vid !== targetId) {
-      setCompatibilidad(await calcularCompatibilidad(vid, targetId));
-    } else {
-      setCompatibilidad(null);
+    if (!resultado) {
+      if (esPrimeraCarga) setCargando(false);
+      return;
     }
-
-    if (!resultado.loSigo && vid !== targetId) {
-      setSolicitudPendiente(await tengoSolicitudPendiente(vid, targetId));
-    }
-
-    const { data: viewerProfile } = await supabase.from("profiles").select("is_admin, is_moderator").eq("id", vid).single();
-    setSoyAdmin(!!viewerProfile?.is_admin);
-    setSoyModerador(!!viewerProfile?.is_moderator);
-    if (viewerProfile?.is_admin || viewerProfile?.is_moderator) setSuspension(await estaSuspendido(targetId));
-
-    if (!resultado.puedeVerActividad) return;
-
     const p = resultado.perfil;
 
-    if (p.show_favorite_series) {
-      setProgreso(await progresoDeSeries(targetId));
-    }
-    {
-      const [episodiosVistos, peliculasVistas] = await Promise.all([
-        fetchAllRows((desde, hasta) =>
-          supabase.from("user_episodes_watched").select("times_watched, episodes_cache(runtime_minutes)").eq("user_id", targetId).range(desde, hasta)
-        ),
-        fetchAllRows((desde, hasta) =>
-          supabase.from("user_movies").select("times_watched, movies_cache(runtime_minutes)").eq("user_id", targetId).eq("watched", true).range(desde, hasta)
-        ),
-      ]);
-      setStatsTiempo({
-        minutosSeries: (episodiosVistos ?? []).reduce((acc: number, e: any) => acc + (e.episodes_cache?.runtime_minutes ?? 0) * (e.times_watched ?? 1), 0),
-        capitulos: (episodiosVistos ?? []).reduce((acc: number, e: any) => acc + (e.times_watched ?? 1), 0),
-        minutosPeliculas: (peliculasVistas ?? []).reduce((acc: number, p: any) => acc + (p.movies_cache?.runtime_minutes ?? 0) * (p.times_watched ?? 1), 0),
-        peliculasVistas: (peliculasVistas ?? []).reduce((acc: number, p: any) => acc + (p.times_watched ?? 1), 0),
-      });
-    }
-    if (p.show_favorite_series || p.show_favorite_movies) {
-      const { data } = await supabase.from("user_favorites").select("item_type, tmdb_id").eq("user_id", targetId);
-      for (const f of data ?? []) {
-        const tabla = f.item_type === "series" ? "series_cache" : "movies_cache";
-        const tablaUsuario = f.item_type === "series" ? "user_series" : "user_movies";
-        const columnaId = f.item_type === "series" ? "series_tmdb_id" : "movie_tmdb_id";
-        const [{ data: cache }, { data: custom }] = await Promise.all([
-          supabase.from(tabla).select("*").eq("tmdb_id", f.tmdb_id).maybeSingle(),
-          supabase.from(tablaUsuario).select("custom_poster_path").eq("user_id", targetId).eq(columnaId, f.tmdb_id).maybeSingle(),
-        ]);
-        const item = {
-          tmdb_id: f.tmdb_id,
-          nombre: cache ? (f.item_type === "series" ? cache.name : cache.title) : "—",
-          poster_path: (custom as any)?.custom_poster_path ?? cache?.poster_path ?? null,
-        };
-        if (f.item_type === "series" && p.show_favorite_series) setFavSeries((prev) => [...prev, item]);
-        if (f.item_type === "movie" && p.show_favorite_movies) setFavPeliculas((prev) => [...prev, item]);
-      }
-    }
-    if (p.show_groups) {
-      const todosLosGrupos = await listarMisGrupos(targetId);
-      setGrupos(todosLosGrupos.filter((g) => g.visibility === "public"));
-    }
+    // Antes, de acá para abajo, cada dato se pedía uno atrás del otro y se
+    // pintaba apenas llegaba — por eso la pantalla se iba "completando de a
+    // poquito" mientras scrolleabas (bajabas un poco, esperaba, bajabas un
+    // poco más). Nada de esto depende de lo anterior, así que ahora se pide
+    // todo junto en paralelo, y recién al final —con todo listo— se pinta
+    // la pantalla entera de una sola vez.
+    const [
+      puntosInsignias,
+      coverPath,
+      social,
+      compatibilidad,
+      solicitudPendiente,
+      viewerProfile,
+      progreso,
+      statsTiempo,
+      favoritos,
+      gruposPublicos,
+      listasVisibles,
+    ] = await Promise.all([
+      obtenerPuntosInsignias(targetId).catch((e) => {
+        console.error("Error al calcular el nivel de insignias:", e);
+        return null;
+      }),
+      getCoverPosterPath(p),
+      getStatsSociales(targetId),
+      resultado.loSigo && vid !== targetId ? calcularCompatibilidad(vid, targetId) : Promise.resolve<number | null>(null),
+      !resultado.loSigo && vid !== targetId ? tengoSolicitudPendiente(vid, targetId) : Promise.resolve(false),
+      supabase
+        .from("profiles")
+        .select("is_admin, is_moderator")
+        .eq("id", vid)
+        .single()
+        .then((r) => r.data),
+      resultado.puedeVerActividad && p.show_favorite_series ? progresoDeSeries(targetId) : Promise.resolve<Record<number, ProgresoSerie>>({}),
+      resultado.puedeVerActividad
+        ? Promise.all([
+            fetchAllRows((desde, hasta) =>
+              supabase.from("user_episodes_watched").select("times_watched, episodes_cache(runtime_minutes)").eq("user_id", targetId).range(desde, hasta)
+            ),
+            fetchAllRows((desde, hasta) =>
+              supabase.from("user_movies").select("times_watched, movies_cache(runtime_minutes)").eq("user_id", targetId).eq("watched", true).range(desde, hasta)
+            ),
+          ]).then(([episodiosVistos, peliculasVistas]) => ({
+            minutosSeries: (episodiosVistos ?? []).reduce((acc: number, e: any) => acc + (e.episodes_cache?.runtime_minutes ?? 0) * (e.times_watched ?? 1), 0),
+            capitulos: (episodiosVistos ?? []).reduce((acc: number, e: any) => acc + (e.times_watched ?? 1), 0),
+            minutosPeliculas: (peliculasVistas ?? []).reduce((acc: number, m: any) => acc + (m.movies_cache?.runtime_minutes ?? 0) * (m.times_watched ?? 1), 0),
+            peliculasVistas: (peliculasVistas ?? []).reduce((acc: number, m: any) => acc + (m.times_watched ?? 1), 0),
+          }))
+        : Promise.resolve<{ minutosSeries: number; capitulos: number; minutosPeliculas: number; peliculasVistas: number } | null>(null),
+      resultado.puedeVerActividad && (p.show_favorite_series || p.show_favorite_movies)
+        ? supabase
+            .from("user_favorites")
+            .select("item_type, tmdb_id")
+            .eq("user_id", targetId)
+            .then(({ data }) =>
+              Promise.all(
+                (data ?? []).map(async (f: any) => {
+                  const tabla = f.item_type === "series" ? "series_cache" : "movies_cache";
+                  const tablaUsuario = f.item_type === "series" ? "user_series" : "user_movies";
+                  const columnaId = f.item_type === "series" ? "series_tmdb_id" : "movie_tmdb_id";
+                  const [{ data: cache }, { data: custom }] = await Promise.all([
+                    supabase.from(tabla).select("*").eq("tmdb_id", f.tmdb_id).maybeSingle(),
+                    supabase.from(tablaUsuario).select("custom_poster_path").eq("user_id", targetId).eq(columnaId, f.tmdb_id).maybeSingle(),
+                  ]);
+                  return {
+                    tipo: f.item_type as "series" | "movie",
+                    item: {
+                      tmdb_id: f.tmdb_id,
+                      nombre: cache ? (f.item_type === "series" ? cache.name : cache.title) : "—",
+                      poster_path: (custom as any)?.custom_poster_path ?? cache?.poster_path ?? null,
+                    } as ItemMiniTitulo,
+                  };
+                })
+              )
+            )
+        : Promise.resolve<{ tipo: "series" | "movie"; item: ItemMiniTitulo }[]>([]),
+      resultado.puedeVerActividad && p.show_groups
+        ? listarMisGrupos(targetId).then((todos) => todos.filter((g) => g.visibility === "public"))
+        : Promise.resolve<Grupo[]>([]),
+      resultado.puedeVerActividad ? listarListasDeUsuarioOrdenadasPorSeguidores(targetId) : Promise.resolve<Lista[]>([]),
+    ]);
 
-    const listasVisibles = await listarListasDeUsuarioOrdenadasPorSeguidores(targetId);
+    // Depende de listasVisibles (recién resuelto arriba), así que va después.
+    const listasSeguidasIds =
+      resultado.puedeVerActividad && vid !== targetId
+        ? new Set(((await Promise.all(listasVisibles.map(async (l) => ((await sigoLista(vid, l.id)) ? l.id : null)))).filter(Boolean) as string[]))
+        : new Set<string>();
+
+    const suspension = viewerProfile?.is_admin || viewerProfile?.is_moderator ? await estaSuspendido(targetId) : null;
+
+    // Recién ahora, con absolutamente todo listo, se pinta la pantalla
+    // completa de una — nada de secciones a medio cargar.
+    setPerfil(p);
+    setNivelInsigniaNumero(puntosInsignias ? nivelAlcanzado(puntosInsignias)?.nivel ?? null : null);
+    setEsModeradorTarget(!!(p as any).is_moderator);
+    setLoSigo(resultado.loSigo);
+    setPuedeVer(resultado.puedeVerActividad);
+    setCoverPath(coverPath);
+    setSocial(social);
+    setCompatibilidad(compatibilidad);
+    setSolicitudPendiente(solicitudPendiente);
+    setSoyAdmin(!!viewerProfile?.is_admin);
+    setSoyModerador(!!viewerProfile?.is_moderator);
+    setSuspension(suspension);
+    setProgreso(progreso);
+    setStatsTiempo(statsTiempo);
+    setFavSeries(p.show_favorite_series ? favoritos.filter((f) => f.tipo === "series").map((f) => f.item) : []);
+    setFavPeliculas(p.show_favorite_movies ? favoritos.filter((f) => f.tipo === "movie").map((f) => f.item) : []);
+    setGrupos(gruposPublicos);
     setListas(listasVisibles);
-    if (vid !== targetId) {
-      const seguidas = await Promise.all(listasVisibles.map(async (l) => ((await sigoLista(vid, l.id)) ? l.id : null)));
-      setListasSeguidas(new Set(seguidas.filter(Boolean) as string[]));
-    }
+    setListasSeguidas(listasSeguidasIds);
+    setCargando(false);
   }
 
   async function toggleFollow() {
@@ -287,7 +329,13 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
     );
   }
 
-  if (!perfil) return null;
+  if (cargando || !perfil) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   const tituloBoton = solicitudPendiente ? t("Solicitud enviada") : loSigo ? t("Dejar de seguir") : t("Seguir");
 

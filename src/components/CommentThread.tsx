@@ -107,6 +107,12 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
   return (
     <>
     <View style={styles.container}>
+      {targetType === "group" && groupId && (
+        <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
+          <Text style={styles.queVemosBtnTexto}>{t("¿Qué vemos?")}</Text>
+        </Pressable>
+      )}
+
       <View style={styles.ordenRow}>
         {(["nuevo", "viejo", "mas_respuestas"] as OrdenComentarios[]).map((o) => (
           <Pressable key={o} onPress={() => setOrden(o)} style={[styles.ordenChip, orden === o && styles.ordenChipActive]}>
@@ -137,20 +143,13 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
             multiline
             maxLength={2500}
           />
-          <View>
-            {targetType === "group" && groupId && (
-              <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
-                <Text style={styles.queVemosBtnTexto}>{t("¿Qué vemos?")}</Text>
-              </Pressable>
-            )}
-            <View style={{ flexDirection: "row" }}>
-              <Pressable style={styles.gifBtn} onPress={() => abrirGifPicker(setGifElegido)}>
-                <Text style={styles.gifBtnTexto}>GIF</Text>
-              </Pressable>
-              <Pressable style={styles.enviarBtn} onPress={enviar}>
-                <Text style={styles.enviarBtnText}>{t("Publicar")}</Text>
-              </Pressable>
-            </View>
+          <View style={{ flexDirection: "row" }}>
+            <Pressable style={styles.gifBtn} onPress={() => abrirGifPicker(setGifElegido)}>
+              <Text style={styles.gifBtnTexto}>GIF</Text>
+            </Pressable>
+            <Pressable style={styles.enviarBtn} onPress={enviar}>
+              <Text style={styles.enviarBtnText}>{t("Publicar")}</Text>
+            </Pressable>
           </View>
         </View>
       )}
@@ -540,21 +539,21 @@ const styles = StyleSheet.create({
   ordenChipActive: { backgroundColor: theme.colors.primary },
   ordenText: { fontSize: 12, color: theme.colors.textMuted },
   ordenTextActive: { fontSize: 12, color: "#000000", fontWeight: "700" },
-  inputRow: { flexDirection: "row", alignItems: "flex-end", marginTop: 6, marginBottom: 6 },
-  input: { flex: 1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, padding: 8, marginRight: 6, maxHeight: 80, color: theme.colors.text, backgroundColor: theme.colors.surface },
+  inputRow: { flexDirection: "row", alignItems: "stretch", marginTop: 6, marginBottom: 6 },
+  input: { flex: 1, height: 40, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 8, marginRight: 6, color: theme.colors.text, backgroundColor: theme.colors.surface },
   queVemosBtn: {
-    alignSelf: "stretch",
-    alignItems: "center",
+    alignSelf: "flex-start",
     borderWidth: 1,
     borderColor: theme.colors.primary,
-    borderRadius: theme.radius.pill,
-    paddingVertical: 6,
-    marginBottom: 6,
+    borderRadius: theme.radius.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: 10,
   },
   queVemosBtnTexto: { color: theme.colors.primaryLight, fontWeight: "700", fontSize: 12 },
-  gifBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 10, marginRight: 6 },
+  gifBtn: { justifyContent: "center", alignItems: "center", height: 40, borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 10, marginRight: 6 },
   gifBtnTexto: { color: theme.colors.primaryLight, fontSize: 12, fontWeight: "700" },
-  enviarBtn: { backgroundColor: theme.colors.primary, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 10 },
+  enviarBtn: { justifyContent: "center", alignItems: "center", height: 40, backgroundColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 10 },
   enviarBtnText: { color: "#000000", fontSize: 12, fontWeight: "700" },
   gifPreviewBox: { alignSelf: "flex-start", marginBottom: 6 },
   gifPreview: { width: 100, height: 100, borderRadius: 8, backgroundColor: theme.colors.surfaceAlt },

@@ -12,6 +12,8 @@ import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
 import NivelUpModal from "../components/NivelUpModal";
 import { registrarPushToken } from "../lib/notifications";
 import { precargarUsuariosRecomendados, limpiarCacheUsuariosRecomendados } from "../lib/recommendedUsersCache";
+import { precargarPerfilPropio, limpiarCachePerfilPropio } from "../lib/profileDataCache";
+import { precargarListaPendiente, limpiarCacheListaPendiente } from "../lib/seriesListCache";
 import { setTmdbLanguage } from "../lib/tmdb";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -464,6 +466,8 @@ export default function RootNavigation() {
         registrarPushToken(data.session.user.id);
         aplicarIdioma(data.session.user.id);
         precargarUsuariosRecomendados(data.session.user.id);
+        precargarPerfilPropio(data.session.user.id);
+        precargarListaPendiente(data.session.user.id);
         chequearSubidaDeNivel(data.session.user.id)
           .then((nivel) => nivel && setNivelSubido(nivel))
           .catch((e) => console.error("Error al chequear el nivel de insignias:", e));
@@ -476,8 +480,12 @@ export default function RootNavigation() {
         registrarPushToken(s.user.id);
         aplicarIdioma(s.user.id);
         precargarUsuariosRecomendados(s.user.id);
+        precargarPerfilPropio(s.user.id);
+        precargarListaPendiente(s.user.id);
       } else {
         limpiarCacheUsuariosRecomendados();
+        limpiarCachePerfilPropio();
+        limpiarCacheListaPendiente();
       }
     });
 
