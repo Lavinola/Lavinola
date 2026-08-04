@@ -28,6 +28,9 @@ export interface Encuesta {
   allowMultiple: boolean;
   createdAt: string;
   opciones: OpcionEncuesta[];
+  reacciones: Record<string, number>;
+  miReaccion: string | null;
+  cantidadComentarios: number;
 }
 
 export interface OpcionNueva {
@@ -92,11 +95,24 @@ export async function cargarEncuestasDeGrupo(groupId: string, userId: string | n
   if (!pollsData || pollsData.length === 0) return [];
 
   const pollIds = pollsData.map((p: any) => p.id);
-  const { data: opcionesData } = await supabase
-    .from("poll_options")
-    .select("id, poll_id, position, option_text, item_type, tmdb_id, season_number, episode_number")
-    .in("poll_id", pollIds)
-    .order("position", { ascending: true });
+  const [{ data: opcionesData }, { data: reaccionesData }, { data: comentariosData }] = await Promise.all([
+    supabase.from("poll_options").select("id, poll_id, position, option_text, item_type, tmdb_id, season_number, episode_number").in("poll_id", pollIds).order("position", { ascending: true }),
+    supabase.from("poll_reactions").select("poll_id, user_id, emoji").in("poll_id", pollIds),
+    supabase.from("comentarios").select("target_id").eq("target_type", "poll").in("target_id", pollIds),
+  ]);
+
+  const reaccionesPorPoll: Record<string, Record<string, number>> = {};
+  const miReaccionPorPoll: Record<string, string> = {};
+  (reaccionesData ?? []).forEach((r: any) => {
+    if (!reaccionesPorPoll[r.poll_id]) reaccionesPorPoll[r.poll_id] = {};
+    reaccionesPorPoll[r.poll_id][r.emoji] = (reaccionesPorPoll[r.poll_id][r.emoji] ?? 0) + 1;
+    if (userId && r.user_id === userId) miReaccionPorPoll[r.poll_id] = r.emoji;
+  });
+
+  const comentariosPorPoll: Record<string, number> = {};
+  (comentariosData ?? []).forEach((c: any) => {
+    comentariosPorPoll[c.target_id] = (comentariosPorPoll[c.target_id] ?? 0) + 1;
+  });
 
   const optionIds = (opcionesData ?? []).map((o: any) => o.id);
   const { data: votesData } = optionIds.length
@@ -140,6 +156,9 @@ export async function cargarEncuestasDeGrupo(groupId: string, userId: string | n
     allowMultiple: p.allow_multiple,
     createdAt: p.created_at,
     opciones: (opcionesPorPoll[p.id] ?? []).sort((a, b) => a.position - b.position),
+    reacciones: reaccionesPorPoll[p.id] ?? {},
+    miReaccion: miReaccionPorPoll[p.id] ?? null,
+    cantidadComentarios: comentariosPorPoll[p.id] ?? 0,
   }));
 }
 
@@ -183,4 +202,23 @@ export async function listarVotantesDeOpcion(optionId: string, offset: number, l
 export async function eliminarEncuesta(pollId: string) {
   const { error } = await supabase.from("polls").delete().eq("id", pollId);
   if (error) throw error;
+}
+
+export async function listarReaccionesDeEncuesta(pollId: string): Promise<import("./comments").ReaccionConAutor[]> {
+  const { data, error } = await supabase
+    .from("poll_reactions")
+    .select("user_id, emoji, created_at, profiles!poll_reactions_user_id_fkey(username, avatar_url)")
+    .eq("poll_id", pollId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({ user_id: r.user_id, username: r.profiles?.username ?? null, avatar_url: r.profiles?.avatar_url ?? null, emoji: r.emoji }));
+}
+
+export async function reaccionarEncuesta(userId: string, pollId: string, emoji: string) {
+  const { error } = await supabase.from("poll_reactions").upsert({ user_id: userId, poll_id: pollId, emoji }, { onConflict: "user_id,poll_id" });
+  if (error) throw error;
+}
+
+export async function quitarReaccionEncuesta(userId: string, pollId: string) {
+  await supabase.from("poll_reactions").delete().eq("user_id", userId).eq("poll_id", pollId);
 }

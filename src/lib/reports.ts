@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-export type TargetReportable = "comment" | "group" | "user" | "shared_title" | "post" | "list";
+export type TargetReportable = "comment" | "group" | "user" | "shared_title" | "post" | "list" | "poll";
 
 export async function reportar(params: {
   reporterId: string;

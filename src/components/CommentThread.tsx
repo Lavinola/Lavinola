@@ -34,7 +34,7 @@ import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
 interface Props {
-  targetType: "series" | "movie" | "episode" | "group" | "post";
+  targetType: "series" | "movie" | "episode" | "group" | "post" | "poll";
   targetId: string;
   groupId?: string;
   navigation?: any;
@@ -45,6 +45,14 @@ interface Props {
   mostrarTipo?: boolean; // solo true en Comentarios/Posts de la ficha de un título — en todos lados más, no hace falta aclarar que es un comentario
   contenidoExtra?: React.ReactNode; // se muestra ENTRE la barra de escribir y la lista de comentarios (ej: publicaciones del Lobby sobre este título)
   onAbrirEncuesta?: () => void; // si viene (solo grupos), se muestra el botón "Encuesta" al lado de "¿Qué vemos?"
+  elementosExtra?: ElementoExtra[]; // cosas que NO son comentarios (ej: encuestas) pero se mezclan y ordenan junto con ellos, como si fuesen un mensaje más
+}
+
+export interface ElementoExtra {
+  id: string;
+  createdAt: string;
+  pesoRespuestas: number; // para el criterio de orden "más respuestas"
+  render: () => React.ReactNode;
 }
 
 // Antes cada nivel de respuesta se indentaba un poco más que el anterior,
@@ -62,7 +70,7 @@ function extractoDeComentario(c: Comentario): string {
   return "";
 }
 
-export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra, onAbrirEncuesta }: Props) {
+export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra, onAbrirEncuesta, elementosExtra }: Props) {
   const { t } = useT();
   const [orden, setOrden] = useState<OrdenComentarios>("nuevo");
   const [raiz, setRaiz] = useState<Comentario[]>([]);
@@ -195,28 +203,50 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
 
       {contenidoExtra}
 
-      {[...raiz]
-        .filter((c) => !soloSiguiendo || !siguiendoIds || siguiendoIds.has(c.user_id))
-        .filter((c) => !soloAutorId || c.user_id === soloAutorId)
-        .sort((a, b) => (a.id === raizDelResaltado ? -1 : b.id === raizDelResaltado ? 1 : 0))
-        .map((c) => (
-          <NodoComentario
-            key={c.id}
-            comentario={c}
-            nivel={0}
-            userId={userId}
-            idiomaUsuario={idiomaUsuario}
-            onReply={cargar}
-            targetType={targetType}
-            targetId={targetId}
-            groupId={groupId}
-            navigation={navigation}
-            resaltado={c.id === highlightCommentId}
-            highlightCommentId={highlightCommentId}
-            idsAExpandir={idsAExpandir}
-            mostrarTipo={mostrarTipo}
-          />
-        ))}
+      {(() => {
+        type ItemCombinado =
+          | { esExtra: false; id: string; createdAt: string; peso: number; comentario: Comentario }
+          | { esExtra: true; id: string; createdAt: string; peso: number; render: () => React.ReactNode };
+
+        const items: ItemCombinado[] = [
+          ...raiz
+            .filter((c) => !soloSiguiendo || !siguiendoIds || siguiendoIds.has(c.user_id))
+            .filter((c) => !soloAutorId || c.user_id === soloAutorId)
+            .map((c) => ({ esExtra: false as const, id: c.id, createdAt: c.created_at, peso: c.reply_count, comentario: c })),
+          ...(elementosExtra ?? []).map((e) => ({ esExtra: true as const, id: e.id, createdAt: e.createdAt, peso: e.pesoRespuestas, render: e.render })),
+        ];
+
+        items.sort((a, b) => {
+          if (a.id === raizDelResaltado) return -1;
+          if (b.id === raizDelResaltado) return 1;
+          if (orden === "viejo") return a.createdAt.localeCompare(b.createdAt);
+          if (orden === "mas_respuestas") return b.peso - a.peso;
+          return b.createdAt.localeCompare(a.createdAt); // "nuevo", el criterio por defecto
+        });
+
+        return items.map((item) =>
+          item.esExtra ? (
+            <React.Fragment key={item.id}>{item.render()}</React.Fragment>
+          ) : (
+            <NodoComentario
+              key={item.id}
+              comentario={item.comentario}
+              nivel={0}
+              userId={userId}
+              idiomaUsuario={idiomaUsuario}
+              onReply={cargar}
+              targetType={targetType}
+              targetId={targetId}
+              groupId={groupId}
+              navigation={navigation}
+              resaltado={item.id === highlightCommentId}
+              highlightCommentId={highlightCommentId}
+              idsAExpandir={idsAExpandir}
+              mostrarTipo={mostrarTipo}
+            />
+          )
+        );
+      })()}
     </View>
     <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
     {targetType === "group" && groupId && userId && (

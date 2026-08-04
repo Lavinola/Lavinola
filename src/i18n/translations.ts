@@ -283,6 +283,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Buscar título...": { en: "Search title...", pt: "Buscar título...", it: "Cerca titolo..." },
   Capítulo: { en: "Episode", pt: "Episódio", it: "Episodio" },
   "No se pudo votar": { en: "Couldn't vote", pt: "Não foi possível votar", it: "Non è stato possibile votare" },
+  "No se pudo reaccionar": { en: "Couldn't react", pt: "Não foi possível reagir", it: "Non è stato possibile reagire" },
   "Eliminar encuesta": { en: "Delete poll", pt: "Excluir enquete", it: "Elimina sondaggio" },
   "¿Seguro que querés eliminar esta encuesta?": {
     en: "Are you sure you want to delete this poll?",

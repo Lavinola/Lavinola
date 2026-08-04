@@ -1367,10 +1367,26 @@ alter table posts alter column tmdb_id drop not null;
 -- comentar un post del Lobby rompía por la constraint vieja.
 -- ============================================================
 alter table comentarios drop constraint if exists comentarios_target_type_check;
-alter table comentarios add constraint comentarios_target_type_check check (target_type in ('series', 'movie', 'episode', 'group', 'post'));
+alter table comentarios add constraint comentarios_target_type_check check (target_type in ('series', 'movie', 'episode', 'group', 'post', 'poll'));
+
+-- Reacciones a una encuesta (igual que las de un post del Lobby) y sus
+-- respuestas/comentarios (reusando la tabla de comentarios de siempre,
+-- con target_type='poll' — mismo mecanismo que ya usan los posts).
+create table if not exists poll_reactions (
+  user_id uuid references profiles(id) on delete cascade,
+  poll_id uuid references polls(id) on delete cascade,
+  emoji text not null,
+  created_at timestamptz default now(),
+  primary key (user_id, poll_id)
+);
+alter table poll_reactions enable row level security;
+drop policy if exists "poll_reactions_select" on poll_reactions;
+create policy "poll_reactions_select" on poll_reactions for select using (true);
+drop policy if exists "poll_reactions_manage_own" on poll_reactions;
+create policy "poll_reactions_manage_own" on poll_reactions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 alter table reports drop constraint if exists reports_target_type_check;
-alter table reports add constraint reports_target_type_check check (target_type in ('comment', 'group', 'user', 'shared_title', 'post', 'list'));
+alter table reports add constraint reports_target_type_check check (target_type in ('comment', 'group', 'user', 'shared_title', 'post', 'list', 'poll'));
 
 -- Notificaciones de "hay comentarios nuevos" en un grupo (privado o público, con preferencia aparte cada uno).
 alter table profiles add column if not exists notify_group_messages_private boolean default true;
@@ -1391,6 +1407,13 @@ begin
     join profiles p on p.id = gm.user_id
     where gm.group_id = new.group_id and gm.user_id <> new.user_id
   loop
+    if exists (
+      select 1 from group_silenced
+      where group_silenced.group_id = new.group_id and group_silenced.user_id = miembro.user_id
+        and (group_silenced.silenced_forever or (group_silenced.silenced_until is not null and group_silenced.silenced_until > now()))
+    ) then
+      continue; -- tiene el grupo silenciado, no le avisamos
+    end if;
     if (es_privado and coalesce(miembro.notify_group_messages_private, true))
        or (not es_privado and coalesce(miembro.notify_group_messages_public, true)) then
       insert into notifications (user_id, type, actor_id, target_type, target_id)
@@ -1411,6 +1434,48 @@ $$ language plpgsql;
 drop trigger if exists trg_notify_group_message on comentarios;
 create trigger trg_notify_group_message after insert on comentarios
   for each row when (new.parent_comment_id is null) execute function notify_group_message();
+
+-- Una encuesta nueva en el grupo avisa a los miembros, igual que
+-- cualquier mensaje/comentario nuevo (mismo criterio de silenciado y de
+-- preferencias de notificación de grupos privados/públicos).
+create or replace function notify_poll() returns trigger as $$
+declare
+  es_privado boolean;
+  miembro record;
+begin
+  select (visibility = 'private') into es_privado from groups where id = new.group_id;
+
+  for miembro in
+    select gm.user_id, p.notify_group_messages_private, p.notify_group_messages_public
+    from group_members gm
+    join profiles p on p.id = gm.user_id
+    where gm.group_id = new.group_id and gm.user_id <> new.user_id
+  loop
+    if exists (
+      select 1 from group_silenced
+      where group_silenced.group_id = new.group_id and group_silenced.user_id = miembro.user_id
+        and (group_silenced.silenced_forever or (group_silenced.silenced_until is not null and group_silenced.silenced_until > now()))
+    ) then
+      continue;
+    end if;
+    if (es_privado and coalesce(miembro.notify_group_messages_private, true))
+       or (not es_privado and coalesce(miembro.notify_group_messages_public, true)) then
+      insert into notifications (user_id, type, actor_id, target_type, target_id)
+        values (miembro.user_id, 'group_message', new.user_id, 'group', new.group_id::text);
+    end if;
+  end loop;
+
+  return new;
+exception
+  when others then
+    raise warning 'notify_poll falló: %', sqlerrm;
+    return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_notify_poll on polls;
+create trigger trg_notify_poll after insert on polls
+  for each row execute function notify_poll();
 
 -- Recomendar una LISTA (no solo títulos/grupos) por chat o como comentario de grupo.
 alter table chat_messages add column if not exists shared_list_id uuid references lists(id) on delete set null;

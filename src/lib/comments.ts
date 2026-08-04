@@ -49,7 +49,7 @@ export async function contarComentarios(
 }
 
 export async function cargarComentariosRaiz(
-  targetType: "series" | "movie" | "episode" | "group" | "post",
+  targetType: "series" | "movie" | "episode" | "group" | "post" | "poll",
   targetId: string,
   orden: OrdenComentarios = "nuevo",
   userId?: string | null
@@ -192,7 +192,7 @@ export async function recomendarEnGrupo(params: {
 
 export async function postearComentario(params: {
   userId: string;
-  targetType: "series" | "movie" | "episode" | "group" | "post";
+  targetType: "series" | "movie" | "episode" | "group" | "post" | "poll";
   targetId: string;
   groupId?: string;
   content: string;

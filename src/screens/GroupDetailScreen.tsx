@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, ScrollView, FlatList, Image, Pressable, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
-import CommentThread from "../components/CommentThread";
+import CommentThread, { ElementoExtra } from "../components/CommentThread";
 import CrearEncuestaModal from "../components/CrearEncuestaModal";
 import EncuestaCard from "../components/EncuestaCard";
 import { Encuesta, cargarEncuestasDeGrupo } from "../lib/polls";
@@ -257,15 +257,14 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
             soloLectura={suspendido || miEstado.baneado || miEstado.silenciado || soyMiembro === false}
             highlightCommentId={highlightCommentId}
             onAbrirEncuesta={soyMiembro ? () => setCrearEncuestaVisible(true) : undefined}
-            contenidoExtra={
-              encuestas.length > 0 ? (
-                <View style={{ marginBottom: 4 }}>
-                  {encuestas.map((enc) => (
-                    <EncuestaCard key={enc.id} encuesta={enc} userId={userId} navigation={navigation} onCambio={cargarEncuestas} />
-                  ))}
-                </View>
-              ) : undefined
-            }
+            elementosExtra={encuestas.map(
+              (enc): ElementoExtra => ({
+                id: enc.id,
+                createdAt: enc.createdAt,
+                pesoRespuestas: enc.cantidadComentarios,
+                render: () => <EncuestaCard encuesta={enc} userId={userId} navigation={navigation} onCambio={cargarEncuestas} />,
+              })
+            )}
           />
         </View>
       </View>
