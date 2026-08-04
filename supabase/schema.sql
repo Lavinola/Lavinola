@@ -158,12 +158,19 @@ create table if not exists comentarios (
 create index if not exists idx_comentarios_target on comentarios(target_type, target_id);
 create index if not exists idx_comentarios_parent on comentarios(parent_comment_id);
 
--- Trigger: mantiene reply_count actualizado en el padre
+-- Trigger: mantiene reply_count actualizado — no solo en el padre directo,
+-- sino en TODA la cadena de ancestros (si respondés una respuesta, el
+-- comentario original también tiene que sumar +1, para que la burbujita
+-- cuente el total de la conversación, no solo las respuestas de primer nivel).
 create or replace function bump_reply_count() returns trigger as $$
+declare
+  ancestro_id uuid;
 begin
-  if new.parent_comment_id is not null then
-    update comentarios set reply_count = reply_count + 1 where id = new.parent_comment_id;
-  end if;
+  ancestro_id := new.parent_comment_id;
+  while ancestro_id is not null loop
+    update comentarios set reply_count = reply_count + 1 where id = ancestro_id;
+    select parent_comment_id into ancestro_id from comentarios where id = ancestro_id;
+  end loop;
   return new;
 end;
 $$ language plpgsql;
@@ -1466,6 +1473,8 @@ create policy "posts_select" on posts for select using (
 );
 drop policy if exists "posts_insert" on posts;
 create policy "posts_insert" on posts for insert with check (auth.uid() = user_id);
+drop policy if exists "posts_update" on posts;
+create policy "posts_update" on posts for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 drop policy if exists "posts_delete" on posts;
 create policy "posts_delete" on posts for delete using (auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and is_admin = true));
 

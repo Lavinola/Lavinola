@@ -46,7 +46,12 @@ interface Props {
   contenidoExtra?: React.ReactNode; // se muestra ENTRE la barra de escribir y la lista de comentarios (ej: publicaciones del Lobby sobre este título)
 }
 
-const MAX_NIVEL_VISUAL = 4; // a partir de acá, el hijo se muestra colapsado tras "ver respuestas"
+// Antes cada nivel de respuesta se indentaba un poco más que el anterior,
+// hasta que a partir de cierta profundidad el mensaje quedaba tan
+// corrido a la derecha que no se veía entero. Ahora TODAS las respuestas
+// (sin importar cuán anidadas estén) quedan a la misma indentación que
+// una respuesta de primer nivel — la que las agrupa es la rayita
+// vertical, no el corrimiento hacia la derecha.
 
 export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra }: Props) {
   const { t } = useT();
@@ -392,12 +397,10 @@ export function NodoComentario({
     }
   }
 
-  const indentacion = Math.min(nivel, MAX_NIVEL_VISUAL) * 14;
-
   if (eliminado) return null;
 
   return (
-    <View style={{ marginLeft: indentacion, marginTop: 8 }}>
+    <View style={nivel === 1 ? styles.hiloContainer : styles.sinHilo}>
       <View style={[styles.comentarioBox, resaltado && styles.comentarioBoxResaltado]}>
         <View style={styles.encabezadoRow}>
           <Pressable
@@ -593,6 +596,8 @@ const styles = StyleSheet.create({
   gifEnComentario: { width: 160, height: 160, borderRadius: 8, marginTop: 6, backgroundColor: theme.colors.surfaceAlt },
   comentarioBox: { backgroundColor: theme.colors.surface, borderRadius: 8, padding: 10 },
   comentarioBoxResaltado: { borderWidth: 2, borderColor: theme.colors.primary },
+  sinHilo: { marginTop: 8 },
+  hiloContainer: { marginTop: 8, marginLeft: 14, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: theme.colors.border },
   autor: { fontSize: 13, fontWeight: "700", marginRight: 6 },
   avatarComentario: { width: 22, height: 22, borderRadius: 11, marginRight: 6 },
   fechaComentario: { fontSize: 11, color: theme.colors.textMuted },
