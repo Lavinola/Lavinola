@@ -205,7 +205,7 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
   const episodioFilas = filas.filter((f) => f.item_type === "episode");
   const [{ data: reacciones }, { data: comentarios }, { data: calMovies }, { data: calSeries }, { data: calEpisodios }, { data: customMovies }, { data: customSeries }] = await Promise.all([
     postIds.length ? supabase.from("post_reactions").select("post_id, user_id, emoji").in("post_id", postIds) : Promise.resolve({ data: [] as any[] }),
-    postIds.length ? supabase.from("comentarios").select("target_id").eq("target_type", "post").in("target_id", postIds) : Promise.resolve({ data: [] as any[] }),
+    postIds.length ? supabase.from("comentarios").select("target_id").eq("target_type", "post").in("target_id", postIds).is("parent_comment_id", null) : Promise.resolve({ data: [] as any[] }),
     movieFilas.length
       ? supabase
           .from("user_movies")

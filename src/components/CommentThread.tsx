@@ -53,6 +53,14 @@ interface Props {
 // una respuesta de primer nivel — la que las agrupa es la rayita
 // vertical, no el corrimiento hacia la derecha.
 
+/** Un pedacito del texto citado, corto para que entre en un renglón — o "GIF" si el mensaje citado era solo un GIF sin texto. */
+function extractoDeComentario(c: Comentario): string {
+  const texto = c.content?.trim();
+  if (texto) return texto.length > 40 ? texto.slice(0, 40).trim() + "..." : texto;
+  if (c.gif_url) return "GIF";
+  return "";
+}
+
 export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra }: Props) {
   const { t } = useT();
   const [orden, setOrden] = useState<OrdenComentarios>("nuevo");
@@ -233,7 +241,7 @@ export function NodoComentario({
   highlightCommentId,
   idsAExpandir,
   mostrarTipo,
-  nombrePadre,
+  padrePreview,
 }: {
   comentario: Comentario;
   navigation?: any;
@@ -248,7 +256,7 @@ export function NodoComentario({
   highlightCommentId?: string;
   idsAExpandir?: Set<string>;
   mostrarTipo?: boolean;
-  nombrePadre?: string | null; // si viene, se muestra "↳ En respuesta a @nombrePadre" arriba (a partir de cierto nivel, cuando ya no se sigue sangrando)
+  padrePreview?: { nombre: string; extracto: string } | null; // si viene, se muestra "↳ En respuesta a @nombre "extracto..."" arriba (a partir de cierto nivel, cuando ya no se sigue sangrando)
 }) {
   const [respuestas, setRespuestas] = useState<Comentario[] | null>(null);
   const [expandido, setExpandido] = useState(false);
@@ -409,10 +417,11 @@ export function NodoComentario({
 
   return (
     <View style={{ marginTop: 8, marginLeft: indentacion }}>
-      {!!nombrePadre && (
+      {!!padrePreview && (
         <View style={styles.respondiendoARow}>
-          <Text style={styles.respondiendoATexto}>
-            ↳ {t("En respuesta a")} @{nombrePadre}
+          <Text style={styles.respondiendoATexto} numberOfLines={1}>
+            ↳ {t("En respuesta a")} @{padrePreview.nombre}
+            {padrePreview.extracto ? (padrePreview.extracto === "GIF" ? " GIF" : ` "${padrePreview.extracto}"`) : ""}
           </Text>
         </View>
       )}
@@ -483,7 +492,7 @@ export function NodoComentario({
           </Pressable>
           <Pressable onPress={abrirRespuestas} style={styles.resumenReaccion}>
             <Ionicons name="chatbubble-outline" size={16} color={theme.colors.textMuted} />
-            <Text style={styles.accionTexto}>{comentario.reply_count > 0 ? comentario.reply_count : ""}</Text>
+            <Text style={styles.accionTexto}>{respuestas ? respuestas.length || "" : comentario.reply_count > 0 ? comentario.reply_count : ""}</Text>
           </Pressable>
           <Pressable onPress={() => setMostrandoInput(!mostrandoInput)}>
             <Text style={styles.accionTexto}>{t("Responder")}</Text>
@@ -541,7 +550,7 @@ export function NodoComentario({
             resaltado={r.id === highlightCommentId}
             highlightCommentId={highlightCommentId}
             idsAExpandir={idsAExpandir}
-            nombrePadre={nivel + 1 > 2 ? comentario.autor_username : undefined}
+            padrePreview={nivel + 1 > 2 ? { nombre: comentario.autor_username ?? "", extracto: extractoDeComentario(comentario) } : undefined}
           />
       ))}
       <ActionSheetModal

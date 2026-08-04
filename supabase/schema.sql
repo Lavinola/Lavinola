@@ -158,19 +158,14 @@ create table if not exists comentarios (
 create index if not exists idx_comentarios_target on comentarios(target_type, target_id);
 create index if not exists idx_comentarios_parent on comentarios(parent_comment_id);
 
--- Trigger: mantiene reply_count actualizado — no solo en el padre directo,
--- sino en TODA la cadena de ancestros (si respondés una respuesta, el
--- comentario original también tiene que sumar +1, para que la burbujita
--- cuente el total de la conversación, no solo las respuestas de primer nivel).
+-- Trigger: mantiene reply_count actualizado en el padre DIRECTO (no
+-- suma en toda la cadena de ancestros — cada comentario muestra solo la
+-- cantidad de respuestas directas que tiene, no las de sus respuestas).
 create or replace function bump_reply_count() returns trigger as $$
-declare
-  ancestro_id uuid;
 begin
-  ancestro_id := new.parent_comment_id;
-  while ancestro_id is not null loop
-    update comentarios set reply_count = reply_count + 1 where id = ancestro_id;
-    select parent_comment_id into ancestro_id from comentarios where id = ancestro_id;
-  end loop;
+  if new.parent_comment_id is not null then
+    update comentarios set reply_count = reply_count + 1 where id = new.parent_comment_id;
+  end if;
   return new;
 end;
 $$ language plpgsql;
