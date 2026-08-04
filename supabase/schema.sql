@@ -681,6 +681,13 @@ create table if not exists notifications (
   created_at timestamptz default now()
 );
 
+-- El comentario PUNTUAL sobre el que pasó la notificación (a cuál le
+-- dieron like, o cuál recibió una respuesta) — separado de target_type/
+-- target_id, que indican DÓNDE está el hilo (grupo/serie/película), no
+-- CUÁL comentario. Sirve para poder resaltarlo en pantalla al entrar
+-- desde la notificación, en vez de solo llevar al hilo en general.
+alter table notifications add column if not exists comment_id uuid;
+
 create index if not exists idx_notifications_user on notifications(user_id, created_at desc);
 
 alter table notifications enable row level security;
@@ -696,8 +703,8 @@ declare
 begin
   select user_id into autor_id from comentarios where id = new.comment_id;
   if autor_id is not null and autor_id <> new.user_id then
-    insert into notifications (user_id, type, actor_id, target_type, target_id)
-      values (autor_id, 'like', new.user_id, 'comment', new.comment_id::text);
+    insert into notifications (user_id, type, actor_id, target_type, target_id, comment_id)
+      values (autor_id, 'like', new.user_id, 'comment', new.comment_id::text, new.comment_id);
   end if;
   return new;
 end;
@@ -994,8 +1001,8 @@ begin
     if autor_id is not null and autor_id <> new.user_id then
       select notify_replies into quiere_notif from profiles where id = autor_id;
       if coalesce(quiere_notif, true) then
-        insert into notifications (user_id, type, actor_id, target_type, target_id)
-          values (autor_id, 'reply', new.user_id, new.target_type, new.target_id);
+        insert into notifications (user_id, type, actor_id, target_type, target_id, comment_id)
+          values (autor_id, 'reply', new.user_id, new.target_type, new.target_id, new.parent_comment_id);
       end if;
     end if;
   end if;
@@ -1439,9 +1446,21 @@ create table if not exists posts (
 );
 alter table posts enable row level security;
 
+-- Un comentario escrito desde la ficha de una película/serie/capítulo
+-- (no desde el botón de compartir/publicar del Lobby) es siempre público
+-- para cualquiera que entre a esa ficha, sin importar si quien lo escribió
+-- tiene el perfil privado — es la misma regla que ya tenían los
+-- comentarios de toda la vida. Independiente de esto, "mostrar_en_lobby"
+-- controla si ADEMÁS aparece navegando el feed general del Lobby (eso sí
+-- respeta la privacidad de quien lo escribió, salvo que haya elegido
+-- publicarlo ahí a propósito).
+alter table posts add column if not exists es_comentario_de_titulo boolean not null default false;
+alter table posts add column if not exists mostrar_en_lobby boolean not null default true;
+
 drop policy if exists "posts_select" on posts;
 create policy "posts_select" on posts for select using (
   auth.uid() = user_id
+  or es_comentario_de_titulo = true
   or exists (select 1 from profiles where profiles.id = posts.user_id and profiles.is_private = false)
   or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = posts.user_id)
 );
@@ -2138,8 +2157,8 @@ begin
   if autor_id is not null and autor_id <> new.user_id then
     select notify_likes into quiere_notif from profiles where id = autor_id;
     if coalesce(quiere_notif, true) then
-      insert into notifications (user_id, type, actor_id, target_type, target_id, message)
-        values (autor_id, 'like', new.user_id, 'comment', new.comment_id::text, new.emoji);
+      insert into notifications (user_id, type, actor_id, target_type, target_id, message, comment_id)
+        values (autor_id, 'like', new.user_id, 'comment', new.comment_id::text, new.emoji, new.comment_id);
     end if;
   end if;
   return new;

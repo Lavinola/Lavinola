@@ -31,6 +31,8 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   Cerrar: { en: "Close", pt: "Fechar", it: "Chiudi" },
   Buscar: { en: "Search", pt: "Buscar", it: "Cerca" },
   Enviar: { en: "Send", pt: "Enviar", it: "Invia" },
+  "Responder (texto y/o GIF)...": { en: "Reply (text and/or GIF)...", pt: "Responder (texto e/ou GIF)...", it: "Rispondi (testo e/o GIF)..." },
+  "Todavía no hay comentarios.": { en: "No comments yet.", pt: "Ainda não há comentários.", it: "Ancora nessun commento." },
   "Cargando...": { en: "Loading...", pt: "Carregando...", it: "Caricamento..." },
   Reintentar: { en: "Retry", pt: "Tentar de novo", it: "Riprova" },
   "Ver todo": { en: "See all", pt: "Ver tudo", it: "Vedi tutto" },
@@ -795,6 +797,15 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Ninguna es correcta, omitir": { en: "None is correct, skip", pt: "Nenhuma está certa, pular", it: "Nessuna è corretta, salta" },
   "Crear una lista nueva": { en: "Create a new list", pt: "Criar uma lista nova", it: "Crea una nuova lista" },
   No: { en: "No", pt: "Não", it: "No" },
+  Sí: { en: "Yes", pt: "Sim", it: "Sì" },
+  "¿Querés también publicarlo en el Lobby?": { en: "Do you also want to post it to the Lobby?", pt: "Também quer publicar isso no Lobby?", it: "Vuoi pubblicarlo anche nel Lobby?" },
+  "Esta publicación en el Lobby será pública — la podrán ver todos los usuarios.": {
+    en: "This post in the Lobby will be public — every user will be able to see it.",
+    pt: "Esta publicação no Lobby será pública — todos os usuários poderão vê-la.",
+    it: "Questo post nel Lobby sarà pubblico — tutti gli utenti potranno vederlo.",
+  },
+  "No se pudo publicar en el Lobby": { en: "Couldn't post to the Lobby", pt: "Não foi possível publicar no Lobby", it: "Non è stato possibile pubblicare nel Lobby" },
+  "Comentar...": { en: "Comment...", pt: "Comentar...", it: "Commenta..." },
 
   // ---------- Títulos de pantallas (navegación) ----------
   Agregar: { en: "Add", pt: "Adicionar", it: "Aggiungi" },

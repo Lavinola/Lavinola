@@ -17,7 +17,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import { dejarDeSeguir } from "../lib/follows";
 import { listarMisGrupos, Grupo } from "../lib/groups";
 import { obtenerOCrearChat } from "../lib/chats";
-import { calcularCompatibilidad } from "../lib/favorites";
+import { calcularCompatibilidad, listarFavoritos } from "../lib/favorites";
 import { listarListasDeUsuarioOrdenadasPorSeguidores, seguirLista, dejarDeSeguirLista, sigoLista, Lista } from "../lib/lists";
 import ListPreviewCard from "../components/ListPreviewCard";
 import { suspenderUsuario, revocarSuspension, estaSuspendido, eliminarUsuarioComoAdmin, convertirEnModerador, quitarModerador, DuracionSuspension } from "../lib/adminModeration";
@@ -146,31 +146,12 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
           }))
         : Promise.resolve<{ minutosSeries: number; capitulos: number; minutosPeliculas: number; peliculasVistas: number } | null>(null),
       resultado.puedeVerActividad && (p.show_favorite_series || p.show_favorite_movies)
-        ? supabase
-            .from("user_favorites")
-            .select("item_type, tmdb_id")
-            .eq("user_id", targetId)
-            .then(({ data }) =>
-              Promise.all(
-                (data ?? []).map(async (f: any) => {
-                  const tabla = f.item_type === "series" ? "series_cache" : "movies_cache";
-                  const tablaUsuario = f.item_type === "series" ? "user_series" : "user_movies";
-                  const columnaId = f.item_type === "series" ? "series_tmdb_id" : "movie_tmdb_id";
-                  const [{ data: cache }, { data: custom }] = await Promise.all([
-                    supabase.from(tabla).select("*").eq("tmdb_id", f.tmdb_id).maybeSingle(),
-                    supabase.from(tablaUsuario).select("custom_poster_path").eq("user_id", targetId).eq(columnaId, f.tmdb_id).maybeSingle(),
-                  ]);
-                  return {
-                    tipo: f.item_type as "series" | "movie",
-                    item: {
-                      tmdb_id: f.tmdb_id,
-                      nombre: cache ? (f.item_type === "series" ? cache.name : cache.title) : "—",
-                      poster_path: (custom as any)?.custom_poster_path ?? cache?.poster_path ?? null,
-                    } as ItemMiniTitulo,
-                  };
-                })
-              )
-            )
+        ? listarFavoritos(targetId).then((favs) =>
+            favs.map((f) => ({
+              tipo: f.item_type,
+              item: { tmdb_id: f.tmdb_id, nombre: f.nombre, poster_path: f.poster_path } as ItemMiniTitulo,
+            }))
+          )
         : Promise.resolve<{ tipo: "series" | "movie"; item: ItemMiniTitulo }[]>([]),
       resultado.puedeVerActividad && p.show_groups
         ? listarMisGrupos(targetId).then((todos) => todos.filter((g) => g.visibility === "public"))

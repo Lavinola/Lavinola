@@ -12,6 +12,7 @@ import {
   eliminarComentario,
   listarReaccionesDeComentario,
   ReaccionConAutor,
+  obtenerCadenaAncestros,
 } from "../lib/comments";
 import ReaccionesListModal from "./ReaccionesListModal";
 import ReportModal from "./ReportModal";
@@ -33,7 +34,7 @@ import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
 interface Props {
-  targetType: "series" | "movie" | "episode" | "group";
+  targetType: "series" | "movie" | "episode" | "group" | "post";
   targetId: string;
   groupId?: string;
   navigation?: any;
@@ -42,11 +43,12 @@ interface Props {
   soloSiguiendo?: boolean; // si viene true, solo muestra comentarios de gente que seguís
   soloAutorId?: string; // si viene, solo muestra comentarios de ESE usuario (para la pestaña "Yo")
   mostrarTipo?: boolean; // solo true en Comentarios/Posts de la ficha de un título — en todos lados más, no hace falta aclarar que es un comentario
+  contenidoExtra?: React.ReactNode; // se muestra ENTRE la barra de escribir y la lista de comentarios (ej: publicaciones del Lobby sobre este título)
 }
 
 const MAX_NIVEL_VISUAL = 4; // a partir de acá, el hijo se muestra colapsado tras "ver respuestas"
 
-export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo }: Props) {
+export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra }: Props) {
   const { t } = useT();
   const [orden, setOrden] = useState<OrdenComentarios>("nuevo");
   const [raiz, setRaiz] = useState<Comentario[]>([]);
@@ -59,6 +61,22 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
   const [miPais, setMiPais] = useState<string | null>(null);
   const [miembroIds, setMiembroIds] = useState<string[]>([]);
   const [queVemosVisible, setQueVemosVisible] = useState(false);
+  // Si el comentario a resaltar es una respuesta anidada (no un comentario
+  // raíz), hace falta saber por qué hilos colapsados hay que "abrir camino"
+  // para llegar hasta él, y cuál es su comentario raíz (para poder
+  // mostrarlo primero en la lista, como ya se hacía cuando era raíz).
+  const [idsAExpandir, setIdsAExpandir] = useState<Set<string>>(new Set());
+  const [raizDelResaltado, setRaizDelResaltado] = useState<string | null>(highlightCommentId ?? null);
+
+  useEffect(() => {
+    if (!highlightCommentId) return;
+    obtenerCadenaAncestros(highlightCommentId)
+      .then((ancestros) => {
+        setIdsAExpandir(new Set(ancestros));
+        setRaizDelResaltado(ancestros.length > 0 ? ancestros[ancestros.length - 1] : highlightCommentId);
+      })
+      .catch((e) => console.error("No se pudo resolver la cadena de respuestas del comentario a resaltar:", e));
+  }, [highlightCommentId]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -154,10 +172,12 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
         </View>
       )}
 
+      {contenidoExtra}
+
       {[...raiz]
         .filter((c) => !soloSiguiendo || !siguiendoIds || siguiendoIds.has(c.user_id))
         .filter((c) => !soloAutorId || c.user_id === soloAutorId)
-        .sort((a, b) => (a.id === highlightCommentId ? -1 : b.id === highlightCommentId ? 1 : 0))
+        .sort((a, b) => (a.id === raizDelResaltado ? -1 : b.id === raizDelResaltado ? 1 : 0))
         .map((c) => (
           <NodoComentario
             key={c.id}
@@ -172,6 +192,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
             navigation={navigation}
             resaltado={c.id === highlightCommentId}
             highlightCommentId={highlightCommentId}
+            idsAExpandir={idsAExpandir}
             mostrarTipo={mostrarTipo}
           />
         ))}
@@ -193,7 +214,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
   );
 }
 
-function NodoComentario({
+export function NodoComentario({
   comentario,
   nivel,
   userId,
@@ -205,6 +226,7 @@ function NodoComentario({
   navigation,
   resaltado,
   highlightCommentId,
+  idsAExpandir,
   mostrarTipo,
 }: {
   comentario: Comentario;
@@ -218,6 +240,7 @@ function NodoComentario({
   groupId?: string;
   resaltado?: boolean;
   highlightCommentId?: string;
+  idsAExpandir?: Set<string>;
   mostrarTipo?: boolean;
 }) {
   const [respuestas, setRespuestas] = useState<Comentario[] | null>(null);
@@ -238,6 +261,13 @@ function NodoComentario({
     cargarRespuestas(comentario.id, userId).then(setRespuestas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comentario.id]);
+
+  // Si este comentario es un "escalón" en el camino hacia el comentario
+  // resaltado (venís de una notificación de respuesta anidada), se abre
+  // solo — si no, quedaría escondido detrás de un "ver respuestas".
+  useEffect(() => {
+    if (idsAExpandir?.has(comentario.id)) setExpandido(true);
+  }, [idsAExpandir, comentario.id]);
   const [confirmEliminarVisible, setConfirmEliminarVisible] = useState(false);
   const [eliminado, setEliminado] = useState(false);
   const [reaccionesPickerVisible, setReaccionesPickerVisible] = useState(false);
@@ -492,6 +522,7 @@ function NodoComentario({
             navigation={navigation}
             resaltado={r.id === highlightCommentId}
             highlightCommentId={highlightCommentId}
+            idsAExpandir={idsAExpandir}
           />
       ))}
       <ActionSheetModal

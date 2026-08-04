@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, ScrollView, Image, Pressable, ActivityIndicator, Animated, LayoutChangeEvent, StyleSheet } from "react-native";
+import { View, ScrollView, Image, Pressable, ActivityIndicator, Animated, LayoutChangeEvent, StyleSheet, TextInput } from "react-native";
 import { Text } from "../components/Themed";
+import { Alert } from "../lib/alert";
 import CommentThread from "../components/CommentThread";
+import ConfirmModal from "../components/ConfirmModal";
 import { Ionicons } from "@expo/vector-icons";
 import PostCard from "../components/PostCard";
 import UnderlineTabs from "../components/UnderlineTabs";
-import { listarPostsDeTitulo, Post } from "../lib/posts";
-import { contarComentarios } from "../lib/comments";
+import { listarPostsDeTitulo, crearComentarioDeTitulo, marcarComentarioVisibleEnLobby, Post } from "../lib/posts";
+import { OrdenComentarios } from "../lib/comments";
+import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
+import NivelUpModal from "../components/NivelUpModal";
 import { posterUrl, getMovieReviews, getSeriesReviews } from "../lib/tmdb";
 import { traducirTexto, idiomaCorto } from "../lib/translate";
 import { supabase } from "../lib/supabase";
@@ -27,7 +31,14 @@ export default function CommentsScreen({ route, navigation }: any) {
   const [subTab, setSubTab] = useState<"todos" | "siguiendo" | "yo">("todos");
   const [siguiendoIds, setSiguiendoIds] = useState<Set<string>>(new Set());
   const [miUserId, setMiUserId] = useState<string | null>(null);
-  const [conteoComentarios, setConteoComentarios] = useState({ todos: 0, siguiendo: 0, yo: 0 });
+  const [esPerfilPrivado, setEsPerfilPrivado] = useState(false);
+  const [ordenTitulo, setOrdenTitulo] = useState<OrdenComentarios>("nuevo");
+  const [nuevoTexto, setNuevoTexto] = useState("");
+  const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
+  const [preguntarLobbyVisible, setPreguntarLobbyVisible] = useState(false);
+  const [postIdParaLobby, setPostIdParaLobby] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const yaScrolleoAlComentarioRef = useRef(false);
   const [fuente, setFuente] = useState<"lavinola" | "tmdb">("lavinola");
   const [anchoToggle, setAnchoToggle] = useState(0);
   const animFuente = useRef(new Animated.Value(0)).current;
@@ -56,20 +67,6 @@ export default function CommentsScreen({ route, navigation }: any) {
     if (fuente !== "tmdb" || !esTitulo || reseñasTmdb.length > 0) return;
     cargarReseñasTmdb();
   }, [fuente]);
-
-  useEffect(() => {
-    if (!esTitulo) return;
-    cargarConteoComentarios();
-  }, [siguiendoIds, miUserId]);
-
-  async function cargarConteoComentarios() {
-    const [todos, siguiendo, yo] = await Promise.all([
-      contarComentarios(targetType, targetId),
-      contarComentarios(targetType, targetId, { soloEntreIds: Array.from(siguiendoIds) }),
-      miUserId ? contarComentarios(targetType, targetId, { soloAutorId: miUserId }) : Promise.resolve(0),
-    ]);
-    setConteoComentarios({ todos, siguiendo, yo });
-  }
 
   async function cargarReseñasTmdb() {
     setCargandoReseñas(true);
@@ -103,8 +100,53 @@ export default function CommentsScreen({ route, navigation }: any) {
     setMiUserId(uid);
     const { data: sigo } = await supabase.from("follows").select("followee_id").eq("follower_id", uid);
     setSiguiendoIds(new Set((sigo ?? []).map((f: any) => f.followee_id)));
-    const { data: perfil } = await supabase.from("profiles").select("content_language").eq("id", uid).maybeSingle();
+    const { data: perfil } = await supabase.from("profiles").select("content_language, is_private").eq("id", uid).maybeSingle();
     setMiIdioma(idiomaCorto(perfil?.content_language));
+    setEsPerfilPrivado(!!perfil?.is_private);
+  }
+
+  function ordenarPosts(lista: Post[], orden: OrdenComentarios): Post[] {
+    const copia = [...lista];
+    if (orden === "viejo") copia.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    else if (orden === "mas_respuestas") copia.sort((a, b) => (b.cantidad_comentarios ?? 0) - (a.cantidad_comentarios ?? 0));
+    else copia.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    return copia;
+  }
+
+  async function enviarComentarioTitulo() {
+    const texto = nuevoTexto.trim();
+    if (!texto || !miUserId) return;
+    try {
+      let postId: string;
+      if (targetType === "episode") {
+        const [seriesTmdbId, season, episode] = targetId.split(":").map(Number);
+        postId = await crearComentarioDeTitulo({ userId: miUserId, itemType: "episode", tmdbId: seriesTmdbId, seasonNumber: season, episodeNumber: episode, content: texto, mostrarEnLobby: false });
+      } else {
+        postId = await crearComentarioDeTitulo({ userId: miUserId, itemType: targetType, tmdbId: Number(targetId), content: texto, mostrarEnLobby: false });
+      }
+      setNuevoTexto("");
+      chequearSubidaDeNivel(miUserId)
+        .then((nivel) => nivel && setNivelSubido(nivel))
+        .catch((e) => console.error("Error al chequear el nivel de insignias:", e));
+      await cargarPosts();
+      setPostIdParaLobby(postId);
+      setPreguntarLobbyVisible(true);
+    } catch (e: any) {
+      console.error("Error al comentar:", e);
+      Alert.alert(t("No se pudo publicar"), e.message ?? "Revisá tu conexión y probá de nuevo.");
+    }
+  }
+
+  async function confirmarPublicarEnLobby() {
+    if (!postIdParaLobby) return;
+    try {
+      await marcarComentarioVisibleEnLobby(postIdParaLobby);
+    } catch (e: any) {
+      console.error("Error al publicar en el Lobby:", e);
+      Alert.alert(t("No se pudo publicar en el Lobby"), e.message ?? "Tu comentario igual quedó guardado.");
+    } finally {
+      setPostIdParaLobby(null);
+    }
   }
 
   async function cargarContexto() {
@@ -177,7 +219,7 @@ export default function CommentsScreen({ route, navigation }: any) {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingHorizontal: 10 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingHorizontal: 10 }}>
       {contexto && (
         <Pressable style={styles.contextoCard} onPress={abrirTitulo}>
           {contexto.poster_path ? (
@@ -283,45 +325,74 @@ export default function CommentsScreen({ route, navigation }: any) {
             ))
           )}
         </View>
-      ) : (
+      ) : esTitulo ? (
         <>
-          {esTitulo && (
-            <View style={styles.tabsWrap}>
-              <UnderlineTabs
-                opciones={[
-                  { key: "todos", label: `${t("Todos")} (${posts.length + conteoComentarios.todos})` },
-                  {
-                    key: "siguiendo",
-                    label: `${t("Siguiendo")} (${posts.filter((p) => siguiendoIds.has(p.user_id)).length + conteoComentarios.siguiendo})`,
-                  },
-                  { key: "yo", label: `${t("Yo")} (${posts.filter((p) => p.user_id === miUserId).length + conteoComentarios.yo})` },
-                ]}
-                valor={subTab}
-                onCambiar={setSubTab}
-              />
-            </View>
-          )}
+          <View style={styles.tabsWrap}>
+            <UnderlineTabs
+              opciones={[
+                { key: "todos", label: `${t("Todos")} (${posts.length})` },
+                { key: "siguiendo", label: `${t("Siguiendo")} (${posts.filter((p) => siguiendoIds.has(p.user_id)).length})` },
+                { key: "yo", label: `${t("Yo")} (${posts.filter((p) => p.user_id === miUserId).length})` },
+              ]}
+              valor={subTab}
+              onCambiar={setSubTab}
+            />
+          </View>
 
-          {posts.length > 0 && (
-            <View style={{ marginTop: 10 }}>
-              {posts
-                .filter((p) => subTab === "todos" || (subTab === "siguiendo" && siguiendoIds.has(p.user_id)) || (subTab === "yo" && p.user_id === miUserId))
-                .map((p) => (
-                  <PostCard key={p.id} post={p} navigation={navigation} onCambio={cargarPosts} mostrarTipo />
-                ))}
-            </View>
-          )}
-          <CommentThread
-            targetType={targetType}
-            targetId={targetId}
-            groupId={groupId}
-            navigation={navigation}
-            highlightCommentId={highlightCommentId}
-            soloSiguiendo={esTitulo && subTab === "siguiendo"}
-            soloAutorId={esTitulo && subTab === "yo" ? miUserId ?? undefined : undefined}
-            mostrarTipo={esTitulo}
+          <View style={styles.ordenRow}>
+            {(["nuevo", "viejo", "mas_respuestas"] as OrdenComentarios[]).map((o) => (
+              <Pressable key={o} onPress={() => setOrdenTitulo(o)} style={[styles.ordenChip, ordenTitulo === o && styles.ordenChipActive]}>
+                <Text style={ordenTitulo === o ? styles.ordenTextActive : styles.ordenText}>
+                  {o === "nuevo" ? t("Más nuevo") : o === "viejo" ? t("Más antiguo") : t("Más respuestas")}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.inputRow}>
+            <TextInput
+              placeholderTextColor={theme.colors.textFaint}
+              style={styles.input}
+              placeholder={t("Comentar...")}
+              value={nuevoTexto}
+              onChangeText={setNuevoTexto}
+              multiline
+              maxLength={2000}
+            />
+            <Pressable style={styles.enviarBtn} onPress={enviarComentarioTitulo}>
+              <Text style={styles.enviarBtnTexto}>{t("Publicar")}</Text>
+            </Pressable>
+          </View>
+
+          {ordenarPosts(posts, ordenTitulo)
+            .filter((p) => subTab === "todos" || (subTab === "siguiendo" && siguiendoIds.has(p.user_id)) || (subTab === "yo" && p.user_id === miUserId))
+            .map((p) => (
+              <PostCard key={p.id} post={p} navigation={navigation} onCambio={cargarPosts} />
+            ))}
+
+          <ConfirmModal
+            visible={preguntarLobbyVisible}
+            onCerrar={() => setPreguntarLobbyVisible(false)}
+            titulo={t("¿Querés también publicarlo en el Lobby?")}
+            mensaje={esPerfilPrivado ? t("Esta publicación en el Lobby será pública — la podrán ver todos los usuarios.") : undefined}
+            botones={[
+              { label: t("No"), onPress: () => setPostIdParaLobby(null) },
+              { label: t("Sí"), destacado: true, onPress: confirmarPublicarEnLobby },
+            ]}
           />
+          <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
         </>
+      ) : (
+        <View
+          onLayout={(e: LayoutChangeEvent) => {
+            if (!highlightCommentId || yaScrolleoAlComentarioRef.current) return;
+            yaScrolleoAlComentarioRef.current = true;
+            const y = e.nativeEvent.layout.y;
+            setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(y - 12, 0), animated: true }), 300);
+          }}
+        >
+          <CommentThread targetType={targetType} targetId={targetId} groupId={groupId} navigation={navigation} highlightCommentId={highlightCommentId} />
+        </View>
       )}
     </ScrollView>
   );
@@ -340,6 +411,27 @@ const styles = StyleSheet.create({
   contextoTitulo: { fontSize: 15, fontWeight: "700" },
   contextoSub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   tabsWrap: { marginTop: 12, marginHorizontal: -10 },
+  ordenRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  ordenChip: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surface },
+  ordenChipActive: { backgroundColor: theme.colors.primary },
+  ordenText: { fontSize: 12, color: theme.colors.textMuted, fontWeight: "700" },
+  ordenTextActive: { fontSize: 12, color: "#000000", fontWeight: "700" },
+  inputRow: { flexDirection: "row", alignItems: "stretch", marginTop: 10, marginBottom: 14 },
+  input: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    marginRight: 6,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface,
+  },
+  enviarBtn: { justifyContent: "center", alignItems: "center", height: 40, backgroundColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 14 },
+  enviarBtnTexto: { color: "#000000", fontSize: 12, fontWeight: "700" },
   fuenteRow: { flexDirection: "row", marginTop: 14, marginHorizontal: -10, position: "relative" },
   fuenteBtn: {
     flex: 1,

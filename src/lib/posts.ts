@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { moderarTexto } from "./moderation";
 
 export interface ListaPreviewItem {
   item_type: "series" | "movie";
@@ -21,6 +22,8 @@ export interface Post {
   content: string;
   has_spoiler: boolean;
   created_at: string;
+  es_comentario_de_titulo?: boolean; // true si nació como comentario desde la ficha de un título (no desde "compartir")
+  mostrar_en_lobby?: boolean;
   // datos resueltos aparte (no vienen del select de posts)
   titulo_nombre?: string | null;
   episodio_nombre?: string | null;
@@ -53,6 +56,55 @@ export async function crearPost(params: {
     has_spoiler: params.hasSpoiler,
   });
   if (error) throw error;
+}
+
+/** Cuando el autor confirma "sí, publicalo también en el Lobby" para un comentario de título ya creado. */
+export async function marcarComentarioVisibleEnLobby(postId: string) {
+  const { error } = await supabase.from("posts").update({ mostrar_en_lobby: true }).eq("id", postId);
+  if (error) throw error;
+}
+/**
+ * El comentario "principal" que se escribe desde la ficha de una
+ * película/serie/capítulo — a diferencia de crearPost (que es el botón de
+ * "compartir/publicar" de siempre), esto SIEMPRE queda visible para
+ * cualquiera que entre a esa ficha (como antes funcionaban los
+ * comentarios), y solo aparece navegando el feed general del Lobby si
+ * `mostrarEnLobby` es true.
+ */
+export async function crearComentarioDeTitulo(params: {
+  userId: string;
+  itemType: "series" | "movie" | "episode";
+  tmdbId: number;
+  seasonNumber?: number | null;
+  episodeNumber?: number | null;
+  content: string;
+  mostrarEnLobby: boolean;
+}): Promise<string> {
+  const texto = params.content.trim();
+  if (!texto) throw new Error("Escribí algo para comentar.");
+
+  const resultado = await moderarTexto(texto);
+  if (!resultado.permitido) {
+    throw new Error(resultado.motivo ?? "Este comentario no cumple las normas de la comunidad.");
+  }
+
+  const { data, error } = await supabase
+    .from("posts")
+    .insert({
+      user_id: params.userId,
+      item_type: params.itemType,
+      tmdb_id: params.tmdbId,
+      season_number: params.seasonNumber ?? null,
+      episode_number: params.episodeNumber ?? null,
+      content: texto,
+      has_spoiler: false,
+      es_comentario_de_titulo: true,
+      mostrar_en_lobby: params.mostrarEnLobby,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id;
 }
 
 /** Publicar una LISTA propia en el Lobby (no un título puntual). */
@@ -262,6 +314,8 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
       content: f.content,
       has_spoiler: f.has_spoiler,
       created_at: f.created_at,
+      es_comentario_de_titulo: f.es_comentario_de_titulo ?? false,
+      mostrar_en_lobby: f.mostrar_en_lobby ?? true,
       titulo_nombre,
       episodio_nombre,
       poster_path,
@@ -284,10 +338,10 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
 }
 
 const SELECT_POST =
-  "id, user_id, item_type, tmdb_id, season_number, episode_number, list_id, group_id, image_url, content, has_spoiler, created_at, profiles!posts_user_id_fkey(username, avatar_url)";
+  "id, user_id, item_type, tmdb_id, season_number, episode_number, list_id, group_id, image_url, content, has_spoiler, created_at, es_comentario_de_titulo, mostrar_en_lobby, profiles!posts_user_id_fkey(username, avatar_url)";
 
 export async function listarMisPosts(userId: string): Promise<Post[]> {
-  const { data, error } = await supabase.from("posts").select(SELECT_POST).eq("user_id", userId).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("posts").select(SELECT_POST).eq("user_id", userId).eq("mostrar_en_lobby", true).order("created_at", { ascending: false });
   if (error) throw error;
   return resolverDatosDeTitulos(data ?? [], userId);
 }
@@ -298,7 +352,7 @@ export async function listarPostsSiguiendo(userId: string, before?: string | nul
   const ids = (sigo ?? []).map((f: any) => f.followee_id);
   if (ids.length === 0) return [];
   const { autoresAExcluir, postsAExcluir } = await obtenerDescartes(userId);
-  let query = supabase.from("posts").select(SELECT_POST).in("user_id", ids).order("created_at", { ascending: false }).limit(20);
+  let query = supabase.from("posts").select(SELECT_POST).in("user_id", ids).eq("mostrar_en_lobby", true).order("created_at", { ascending: false }).limit(20);
   if (before) query = query.lt("created_at", before);
   if (autoresAExcluir.length) query = query.not("user_id", "in", `(${autoresAExcluir.join(",")})`);
   if (postsAExcluir.length) query = query.not("id", "in", `(${postsAExcluir.join(",")})`);
@@ -332,7 +386,7 @@ export async function marcarPostNoInteresa(userId: string, postId: string, autho
  * siguiente tanda). Más adelante se puede afinar con un algoritmo real.
  */
 export async function listarPostsParaTi(viewerId?: string | null, before?: string | null): Promise<Post[]> {
-  let query = supabase.from("posts").select(SELECT_POST).order("created_at", { ascending: false }).limit(20);
+  let query = supabase.from("posts").select(SELECT_POST).eq("mostrar_en_lobby", true).order("created_at", { ascending: false }).limit(20);
   if (before) query = query.lt("created_at", before);
   if (viewerId) {
     const { autoresAExcluir, postsAExcluir } = await obtenerDescartes(viewerId);

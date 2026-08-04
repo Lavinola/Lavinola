@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, ScrollView, FlatList, Image, Pressable, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
 import CommentThread from "../components/CommentThread";
@@ -28,7 +28,9 @@ interface Miembro {
 
 export default function GroupDetailScreen({ route, navigation }: Props) {
   const { t } = useT();
-  const { groupId, groupName } = route.params;
+  const { groupId, groupName, highlightCommentId } = route.params;
+  const scrollRef = useRef<ScrollView>(null);
+  const yaScrolleoRef = useRef(false);
   const [miembros, setMiembros] = useState<Miembro[]>([]);
   const [grupo, setGrupo] = useState<{
     banner_url: string | null;
@@ -161,7 +163,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
 
   return (
     <>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 16 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 16 }}>
       <View>
         {grupo?.banner_url ? (
           <Image source={{ uri: grupo.banner_url }} style={styles.banner} />
@@ -224,13 +226,23 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         {suspendido && <Text style={styles.suspendidoAviso}>{t("Los comentarios de este grupo están suspendidos temporalmente.")}</Text>}
         {miEstado.baneado && <Text style={styles.suspendidoAviso}>Fuiste eliminado de este grupo. Podés verlo, pero no comentar ni volver a unirte.</Text>}
         {!miEstado.baneado && miEstado.silenciado && <Text style={styles.suspendidoAviso}>Un admin te silenció en este grupo.</Text>}
-        <CommentThread
-          targetType="group"
-          targetId={groupId}
-          groupId={groupId}
-          navigation={navigation}
-          soloLectura={suspendido || miEstado.baneado || miEstado.silenciado || soyMiembro === false}
-        />
+        <View
+          onLayout={(e) => {
+            if (!highlightCommentId || yaScrolleoRef.current) return;
+            yaScrolleoRef.current = true;
+            const y = e.nativeEvent.layout.y;
+            setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(y - 12, 0), animated: true }), 300);
+          }}
+        >
+          <CommentThread
+            targetType="group"
+            targetId={groupId}
+            groupId={groupId}
+            navigation={navigation}
+            soloLectura={suspendido || miEstado.baneado || miEstado.silenciado || soyMiembro === false}
+            highlightCommentId={highlightCommentId}
+          />
+        </View>
       </View>
     </ScrollView>
 

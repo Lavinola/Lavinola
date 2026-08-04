@@ -8,6 +8,7 @@ export interface Notificacion {
   actor_avatar_url: string | null;
   target_type: string | null;
   target_id: string | null;
+  comment_id: string | null;
   read: boolean;
   message?: string | null;
   created_at: string;
@@ -19,7 +20,7 @@ export interface Notificacion {
 export async function listarNotificaciones(userId: string): Promise<Notificacion[]> {
   const { data, error } = await supabase
     .from("notifications")
-    .select("id, type, actor_id, target_type, target_id, read, message, created_at, profiles!notifications_actor_id_fkey(username, avatar_url)")
+    .select("id, type, actor_id, target_type, target_id, comment_id, read, message, created_at, profiles!notifications_actor_id_fkey(username, avatar_url)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -33,6 +34,7 @@ export async function listarNotificaciones(userId: string): Promise<Notificacion
     actor_avatar_url: n.profiles?.avatar_url ?? null,
     target_type: n.target_type,
     target_id: n.target_id,
+    comment_id: n.comment_id ?? null,
     read: n.read,
     message: n.message ?? null,
     created_at: n.created_at,

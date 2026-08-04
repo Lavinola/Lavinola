@@ -48,7 +48,7 @@ export async function contarComentarios(
 }
 
 export async function cargarComentariosRaiz(
-  targetType: "series" | "movie" | "episode" | "group",
+  targetType: "series" | "movie" | "episode" | "group" | "post",
   targetId: string,
   orden: OrdenComentarios = "nuevo",
   userId?: string | null
@@ -71,6 +71,28 @@ export async function cargarComentariosRaiz(
 }
 
 /** Trae las respuestas directas de un comentario (para el "ver 12 respuestas más"). */
+/**
+ * Sube por parent_comment_id hasta la raíz — para poder auto-expandir
+ * todos los hilos colapsados que hacen falta para llegar a un comentario
+ * puntual (ej. al entrar desde una notificación de "te respondieron").
+ * Devuelve los IDs de todos los ANCESTROS (sin incluir el comentario
+ * mismo), del más cercano al más lejano.
+ */
+export async function obtenerCadenaAncestros(commentId: string): Promise<string[]> {
+  const ancestros: string[] = [];
+  let actual: string | null = commentId;
+  // Tope de seguridad — no debería haber hilos de miles de niveles, pero
+  // por las dudas no queremos un loop infinito si algo raro pasara con los datos.
+  for (let i = 0; i < 50; i++) {
+    const resultado: any = await supabase.from("comentarios").select("parent_comment_id").eq("id", actual).maybeSingle();
+    const padre: string | null = resultado?.data?.parent_comment_id ?? null;
+    if (!padre) break;
+    ancestros.push(padre);
+    actual = padre;
+  }
+  return ancestros;
+}
+
 export async function cargarRespuestas(parentCommentId: string, userId?: string | null): Promise<Comentario[]> {
   const { data, error } = await supabase
     .from("comentarios")
@@ -166,7 +188,7 @@ export async function recomendarEnGrupo(params: {
 
 export async function postearComentario(params: {
   userId: string;
-  targetType: "series" | "movie" | "episode" | "group";
+  targetType: "series" | "movie" | "episode" | "group" | "post";
   targetId: string;
   groupId?: string;
   content: string;

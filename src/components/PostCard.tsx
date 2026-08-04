@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Image, Pressable, StyleSheet } from "react-native";
+import { View, Image, Pressable, StyleSheet, TextInput, ActivityIndicator } from "react-native";
 import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
@@ -7,6 +7,8 @@ import ActionSheetModal from "./ActionSheetModal";
 import ConfirmModal from "./ConfirmModal";
 import ReportModal from "./ReportModal";
 import { Post, reaccionarPost, quitarReaccionPost, eliminarPost, marcarPostNoInteresa, listarReaccionesDePost, ReaccionConAutor } from "../lib/posts";
+import { Comentario, cargarComentariosRaiz, postearComentario } from "../lib/comments";
+import { NodoComentario } from "./CommentThread";
 import ReaccionesListModal from "./ReaccionesListModal";
 import StarRating from "./StarRating";
 import { posterUrl } from "../lib/tmdb";
@@ -44,9 +46,28 @@ export default function PostCard({
   const [traduciendo, setTraduciendo] = useState(false);
   const [reaccionesModalVisible, setReaccionesModalVisible] = useState(false);
   const [reacciones, setReacciones] = useState<ReaccionConAutor[]>([]);
+  const [mostrarLista, setMostrarLista] = useState(false);
+  const [mostrarInput, setMostrarInput] = useState(false);
+  const [respuestas, setRespuestas] = useState<Comentario[] | null>(null);
+  const [cargandoRespuestas, setCargandoRespuestas] = useState(false);
+  const [nuevaRespuesta, setNuevaRespuesta] = useState("");
+  const [gifElegido, setGifElegido] = useState<string | null>(null);
+  const [idiomaUsuario, setIdiomaUsuario] = useState("en");
+  const [cantidadComentarios, setCantidadComentarios] = useState(post.cantidad_comentarios ?? 0);
 
   React.useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    setCantidadComentarios(post.cantidad_comentarios ?? 0);
+  }, [post.cantidad_comentarios]);
+
+  React.useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      const uid = data.user?.id ?? null;
+      setUserId(uid);
+      if (uid) {
+        const { data: perfil } = await supabase.from("profiles").select("content_language").eq("id", uid).maybeSingle();
+        setIdiomaUsuario(idiomaCorto(perfil?.content_language));
+      }
+    });
   }, []);
 
   function abrirTitulo() {
@@ -66,8 +87,45 @@ export default function PostCard({
     }
   }
 
-  function abrirComentarios() {
-    navigation.navigate("Comentarios", { targetType: "post", targetId: post.id });
+  async function cargarRespuestas() {
+    setCargandoRespuestas(true);
+    try {
+      setRespuestas(await cargarComentariosRaiz("post", post.id, "nuevo", userId));
+    } catch (e) {
+      console.error("Error al cargar respuestas del post:", e);
+    } finally {
+      setCargandoRespuestas(false);
+    }
+  }
+
+  function toggleLista() {
+    const nuevoValor = !mostrarLista;
+    setMostrarLista(nuevoValor);
+    if (nuevoValor && respuestas === null) cargarRespuestas();
+  }
+
+  function toggleInput() {
+    setMostrarInput((v) => !v);
+  }
+
+  function abrirGifPicker() {
+    if (!navigation) return;
+    navigation.navigate("ElegirGif", { onElegir: setGifElegido });
+  }
+
+  async function enviarRespuesta() {
+    if ((!nuevaRespuesta.trim() && !gifElegido) || !userId) return;
+    try {
+      await postearComentario({ userId, targetType: "post", targetId: post.id, content: nuevaRespuesta.trim(), gifUrl: gifElegido });
+      setNuevaRespuesta("");
+      setGifElegido(null);
+      setCantidadComentarios((c) => c + 1);
+      setMostrarLista(true);
+      await cargarRespuestas();
+    } catch (e: any) {
+      console.error("Error al postear respuesta:", e);
+      Alert.alert(t("No se pudo publicar"), e.message ?? "Revisá tu conexión y probá de nuevo.");
+    }
   }
 
   async function elegirReaccion(key: string) {
@@ -272,9 +330,12 @@ export default function PostCard({
           <IconoReaccion reaccionKey={post.mi_reaccion ?? ""} size={16} />
           <Text style={styles.accionTexto}>{totalReacciones > 0 ? totalReacciones : ""}</Text>
         </Pressable>
-        <Pressable onPress={abrirComentarios} style={styles.accionBtn}>
+        <Pressable onPress={toggleLista} style={styles.accionBtn}>
           <Ionicons name="chatbubble-outline" size={15} color={theme.colors.textMuted} />
-          <Text style={styles.accionTexto}>{post.cantidad_comentarios ? post.cantidad_comentarios : t("Comentar")}</Text>
+          <Text style={styles.accionTexto}>{cantidadComentarios > 0 ? cantidadComentarios : ""}</Text>
+        </Pressable>
+        <Pressable onPress={toggleInput} style={styles.accionBtn}>
+          <Text style={styles.accionTexto}>{t("Comentar")}</Text>
         </Pressable>
         {!!post.content?.trim() && (
           <Pressable onPress={traducir} disabled={traduciendo} style={styles.traducirBtn}>
@@ -282,6 +343,60 @@ export default function PostCard({
           </Pressable>
         )}
       </View>
+
+      {mostrarInput && (
+        <View style={styles.inputRow}>
+          <TextInput
+            placeholderTextColor={theme.colors.textFaint}
+            style={styles.input}
+            placeholder={t("Responder (texto y/o GIF)...")}
+            value={nuevaRespuesta}
+            onChangeText={setNuevaRespuesta}
+            multiline
+            maxLength={2500}
+          />
+          <View style={{ flexDirection: "row" }}>
+            <Pressable style={styles.gifBtn} onPress={abrirGifPicker}>
+              <Text style={styles.gifBtnTexto}>GIF</Text>
+            </Pressable>
+            <Pressable style={styles.enviarBtn} onPress={enviarRespuesta}>
+              <Text style={styles.enviarBtnTexto}>{t("Enviar")}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+      {gifElegido && (
+        <View style={styles.gifPreviewBox}>
+          <Image source={{ uri: gifElegido }} style={styles.gifPreview} />
+          <Pressable onPress={() => setGifElegido(null)} style={styles.gifQuitar}>
+            <Text style={styles.gifQuitarTexto}>✕</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {mostrarLista && (
+        <View style={styles.respuestasBox}>
+          {cargandoRespuestas ? (
+            <ActivityIndicator color={theme.colors.primary} style={{ marginVertical: 10 }} />
+          ) : !respuestas || respuestas.length === 0 ? (
+            <Text style={styles.sinRespuestas}>{t("Todavía no hay comentarios.")}</Text>
+          ) : (
+            respuestas.map((r) => (
+              <NodoComentario
+                key={r.id}
+                comentario={r}
+                nivel={0}
+                userId={userId}
+                idiomaUsuario={idiomaUsuario}
+                onReply={cargarRespuestas}
+                targetType="post"
+                targetId={post.id}
+                navigation={navigation}
+              />
+            ))
+          )}
+        </View>
+      )}
 
       <ActionSheetModal
         visible={menuVisible}
@@ -363,4 +478,28 @@ const styles = StyleSheet.create({
   listaPosterImg: { width: "100%", height: "100%" },
   listaMasBtn: { width: 48, height: 72, borderRadius: 6, backgroundColor: theme.colors.surface, alignItems: "center", justifyContent: "center" },
   listaMasTexto: { color: theme.colors.primaryLight, fontSize: 18, fontWeight: "700" },
+  inputRow: { flexDirection: "row", alignItems: "stretch", marginTop: 10 },
+  input: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    marginRight: 6,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surfaceAlt,
+  },
+  gifBtn: { justifyContent: "center", alignItems: "center", height: 40, borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 10, marginRight: 6 },
+  gifBtnTexto: { color: theme.colors.primaryLight, fontSize: 12, fontWeight: "700" },
+  enviarBtn: { justifyContent: "center", alignItems: "center", height: 40, backgroundColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 10 },
+  enviarBtnTexto: { color: "#000000", fontSize: 12, fontWeight: "700" },
+  gifPreviewBox: { alignSelf: "flex-start", marginTop: 8 },
+  gifPreview: { width: 100, height: 100, borderRadius: 8, backgroundColor: theme.colors.surfaceAlt },
+  gifQuitar: { position: "absolute", top: -6, right: -6, backgroundColor: theme.colors.background, borderRadius: 10, width: 20, height: 20, alignItems: "center", justifyContent: "center" },
+  gifQuitarTexto: { fontSize: 11, color: theme.colors.text },
+  respuestasBox: { marginTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border, paddingTop: 10 },
+  sinRespuestas: { fontSize: 12, color: theme.colors.textMuted, textAlign: "center", paddingVertical: 8 },
 });

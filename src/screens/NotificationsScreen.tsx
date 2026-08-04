@@ -11,15 +11,15 @@ import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 import { formatearFechaHora } from "../lib/dates";
 
-/** A dónde navegar según el target_type/target_id de un comentario (sirve para "like" y "reply") — directo al hilo de comentarios, no a la ficha. */
-async function navegarAComentario(targetType: string | null, targetId: string | null, navigation: any) {
+/** A dónde navegar según el target_type/target_id de un comentario (sirve para "like" y "reply") — directo al hilo de comentarios, no a la ficha. Si se pasa highlightCommentId, ese comentario puntual se resalta y se muestra primero. */
+async function navegarAComentario(targetType: string | null, targetId: string | null, navigation: any, highlightCommentId?: string | null) {
   if (!targetType || !targetId) return;
 
-  if (targetType === "series" || targetType === "movie" || targetType === "episode") {
-    navigation.navigate("Comentarios", { targetType, targetId });
+  if (targetType === "series" || targetType === "movie" || targetType === "episode" || targetType === "post") {
+    navigation.navigate("Comentarios", { targetType, targetId, highlightCommentId: highlightCommentId ?? undefined });
   } else if (targetType === "group") {
     const { data } = await supabase.from("groups").select("name").eq("id", targetId).maybeSingle();
-    navigation.navigate("DetalleGrupo", { groupId: targetId, groupName: data?.name ?? "Grupo" });
+    navigation.navigate("DetalleGrupo", { groupId: targetId, groupName: data?.name ?? "Grupo", highlightCommentId: highlightCommentId ?? undefined });
   }
 }
 
@@ -74,13 +74,13 @@ export default function NotificationsScreen({ navigation }: any) {
     }
 
     if (n.type === "reply") {
-      await navegarAComentario(n.target_type, n.target_id, navigation);
+      await navegarAComentario(n.target_type, n.target_id, navigation, n.comment_id);
       return;
     }
 
     if (n.type === "like" && n.target_type === "comment" && n.target_id) {
       const { data } = await supabase.from("comentarios").select("target_type, target_id").eq("id", n.target_id).maybeSingle();
-      if (data) await navegarAComentario(data.target_type, data.target_id, navigation);
+      if (data) await navegarAComentario(data.target_type, data.target_id, navigation, n.comment_id ?? n.target_id);
       return;
     }
 
