@@ -90,7 +90,9 @@ export default function PostCard({
   async function cargarRespuestas() {
     setCargandoRespuestas(true);
     try {
-      setRespuestas(await cargarComentariosRaiz("post", post.id, "nuevo", userId));
+      const datos = await cargarComentariosRaiz("post", post.id, "nuevo", userId);
+      setRespuestas(datos);
+      setCantidadComentarios(datos.length); // la burbujita cuenta respuestas directas — esto la mantiene sincronizada con lo que realmente hay
     } catch (e) {
       console.error("Error al cargar respuestas del post:", e);
     } finally {

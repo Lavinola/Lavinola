@@ -408,6 +408,21 @@ export function NodoComentario({
     }
   }
 
+  /**
+   * Al borrar (o responder), avisa hacia arriba con onReply — pero eso
+   * solo refresca el nivel más externo (la lista raíz, o el post). Si el
+   * cambio pasó en un nivel intermedio, ese nivel nunca se enteraba y
+   * seguía mostrando datos viejos hasta cerrar/abrir. Por eso, en vez de
+   * pasarles a mis hijos el mismo onReply que yo recibí, les paso una
+   * versión que primero refresca MIS propias respuestas (donde vive el
+   * que se borró) y recién después avisa hacia arriba — así, sin importar
+   * cuán anidado esté el cambio, se actualiza en cada nivel del camino.
+   */
+  async function onReplyPropagado() {
+    if (respuestas !== null) setRespuestas(await cargarRespuestas(comentario.id, userId));
+    await onReply();
+  }
+
   // Se sangra normalmente hasta el 2do nivel — de ahí en más, en vez de
   // seguir corriendo el mensaje hacia la derecha (hasta que no entra en
   // pantalla), queda en la misma columna que el 2do nivel, y se aclara
@@ -543,7 +558,7 @@ export function NodoComentario({
             nivel={nivel + 1}
             userId={userId}
             idiomaUsuario={idiomaUsuario}
-            onReply={onReply}
+            onReply={onReplyPropagado}
             targetType={targetType}
             targetId={targetId}
             groupId={groupId}
