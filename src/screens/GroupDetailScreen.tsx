@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, ScrollView, FlatList, Image, Pressable, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
 import CommentThread from "../components/CommentThread";
+import CrearEncuestaModal from "../components/CrearEncuestaModal";
+import EncuestaCard from "../components/EncuestaCard";
+import { Encuesta, cargarEncuestasDeGrupo } from "../lib/polls";
 import ActionSheetModal from "../components/ActionSheetModal";
 import ConfirmModal from "../components/ConfirmModal";
 import ReportModal from "../components/ReportModal";
@@ -51,10 +54,13 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
   const [uniendome, setUniendome] = useState(false);
   const [menuTapaBannerVisible, setMenuTapaBannerVisible] = useState(false);
   const [publishModalVisible, setPublishModalVisible] = useState(false);
+  const [encuestas, setEncuestas] = useState<Encuesta[]>([]);
+  const [crearEncuestaVisible, setCrearEncuestaVisible] = useState(false);
 
   useEffect(() => {
     cargarMiembros();
     cargarGrupo();
+    cargarEncuestas();
     supabase.auth.getUser().then(async ({ data }) => {
       if (data.user) {
         setUserId(data.user.id);
@@ -73,6 +79,15 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
       }
     });
   }, []);
+
+  async function cargarEncuestas() {
+    try {
+      const { data } = await supabase.auth.getUser();
+      setEncuestas(await cargarEncuestasDeGrupo(groupId, data.user?.id ?? null));
+    } catch (e) {
+      console.error("Error al cargar las encuestas del grupo:", e);
+    }
+  }
 
   async function unirme() {
     if (!userId) return;
@@ -241,10 +256,30 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
             navigation={navigation}
             soloLectura={suspendido || miEstado.baneado || miEstado.silenciado || soyMiembro === false}
             highlightCommentId={highlightCommentId}
+            onAbrirEncuesta={soyMiembro ? () => setCrearEncuestaVisible(true) : undefined}
+            contenidoExtra={
+              encuestas.length > 0 ? (
+                <View style={{ marginBottom: 4 }}>
+                  {encuestas.map((enc) => (
+                    <EncuestaCard key={enc.id} encuesta={enc} userId={userId} navigation={navigation} onCambio={cargarEncuestas} />
+                  ))}
+                </View>
+              ) : undefined
+            }
           />
         </View>
       </View>
     </ScrollView>
+
+    {userId && (
+      <CrearEncuestaModal
+        visible={crearEncuestaVisible}
+        onCerrar={() => setCrearEncuestaVisible(false)}
+        userId={userId}
+        groupId={groupId}
+        onCreada={cargarEncuestas}
+      />
+    )}
 
     <ActionSheetModal
       visible={menuVisible}

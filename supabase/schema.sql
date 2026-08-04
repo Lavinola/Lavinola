@@ -2284,3 +2284,84 @@ $$ language sql stable;
 -- como comentario especial en vez de mensaje de chat.
 -- ============================================================
 alter table comentarios add column if not exists es_que_vemos boolean not null default false;
+
+-- Solo se usa por ahora al recomendar un título a un grupo (recomendarEnGrupo)
+-- — igual que en los posts del Lobby, si se marca, el texto queda tapado
+-- detrás de un botón de "Ver spoiler" hasta que alguien lo toca.
+alter table comentarios add column if not exists has_spoiler boolean not null default false;
+
+-- ============================================================
+-- Encuestas dentro de un grupo — pregunta (texto y/o título vinculado)
+-- + de 2 a 8 opciones (cada una también texto y/o título), con la
+-- posibilidad de permitir una sola respuesta por usuario o varias.
+-- ============================================================
+create table if not exists polls (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references groups(id) on delete cascade,
+  user_id uuid not null references profiles(id) on delete cascade,
+  question_text text,
+  question_item_type text check (question_item_type in ('series', 'movie', 'episode')),
+  question_tmdb_id integer,
+  question_season_number integer,
+  question_episode_number integer,
+  allow_multiple boolean not null default true,
+  created_at timestamptz not null default now(),
+  constraint poll_question_no_vacia check (coalesce(trim(question_text), '') <> '' or question_tmdb_id is not null)
+);
+
+create table if not exists poll_options (
+  id uuid primary key default gen_random_uuid(),
+  poll_id uuid not null references polls(id) on delete cascade,
+  position integer not null,
+  option_text text,
+  item_type text check (item_type in ('series', 'movie', 'episode')),
+  tmdb_id integer,
+  season_number integer,
+  episode_number integer,
+  constraint poll_option_no_vacia check (coalesce(trim(option_text), '') <> '' or tmdb_id is not null)
+);
+
+create table if not exists poll_votes (
+  poll_id uuid not null references polls(id) on delete cascade,
+  option_id uuid not null references poll_options(id) on delete cascade,
+  user_id uuid not null references profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (option_id, user_id)
+);
+
+create index if not exists idx_poll_options_poll on poll_options(poll_id);
+create index if not exists idx_poll_votes_poll on poll_votes(poll_id);
+create index if not exists idx_poll_votes_option on poll_votes(option_id);
+create index if not exists idx_poll_votes_user on poll_votes(poll_id, user_id);
+
+alter table polls enable row level security;
+alter table poll_options enable row level security;
+alter table poll_votes enable row level security;
+
+drop policy if exists "polls_select" on polls;
+create policy "polls_select" on polls for select using (true);
+drop policy if exists "polls_insert" on polls;
+create policy "polls_insert" on polls for insert with check (
+  auth.uid() = user_id and exists (select 1 from group_members where group_members.group_id = polls.group_id and group_members.user_id = auth.uid())
+);
+drop policy if exists "polls_delete" on polls;
+create policy "polls_delete" on polls for delete using (auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and is_admin = true));
+
+drop policy if exists "poll_options_select" on poll_options;
+create policy "poll_options_select" on poll_options for select using (true);
+drop policy if exists "poll_options_insert" on poll_options;
+create policy "poll_options_insert" on poll_options for insert with check (
+  exists (select 1 from polls where polls.id = poll_options.poll_id and polls.user_id = auth.uid())
+);
+
+drop policy if exists "poll_votes_select" on poll_votes;
+create policy "poll_votes_select" on poll_votes for select using (true);
+drop policy if exists "poll_votes_insert" on poll_votes;
+create policy "poll_votes_insert" on poll_votes for insert with check (
+  auth.uid() = user_id and exists (
+    select 1 from polls join group_members on group_members.group_id = polls.group_id
+    where polls.id = poll_votes.poll_id and group_members.user_id = auth.uid()
+  )
+);
+drop policy if exists "poll_votes_delete" on poll_votes;
+create policy "poll_votes_delete" on poll_votes for delete using (auth.uid() = user_id);

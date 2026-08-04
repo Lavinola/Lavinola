@@ -104,7 +104,7 @@ export default function PublishActionModal({
           {modo === "menu" ? (
             <>
               <Pressable style={styles.opcionRect} onPress={irARecomendar}>
-                <Text style={styles.opcionRectTexto}>{t("Recomendar")}</Text>
+                <Text style={styles.opcionRectTexto}>{t("Recomendar (Chat/Grupo)")}</Text>
               </Pressable>
               {(publicarParams || publicarListaParams || publicarGrupoParams) && (
                 <Pressable style={styles.opcionRect} onPress={() => setModo("publicar")}>

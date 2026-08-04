@@ -42,6 +42,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [expandidoId, setExpandidoId] = useState<string | null>(null);
   const [nota, setNota] = useState("");
+  const [esSpoiler, setEsSpoiler] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [enviadoA, setEnviadoA] = useState<Set<string>>(new Set());
   const [busquedaUsuarios, setBusquedaUsuarios] = useState("");
@@ -119,6 +120,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
         userId: uid,
         groupId: g.id,
         nota,
+        hasSpoiler: esSpoiler,
         itemType: kind === "title" ? itemType : undefined,
         tmdbId: kind === "title" ? tmdbId : undefined,
         seasonNumber: kind === "title" ? seasonNumber : undefined,
@@ -129,6 +131,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
       setEnviadoA((prev) => new Set(prev).add(g.id));
       setExpandidoId(null);
       setNota("");
+      setEsSpoiler(false);
     } catch (e: any) {
       console.error("Error al recomendar en grupo:", e);
       Alert.alert("No se pudo enviar", e.message ?? "Ocurrió un error inesperado. Probá de nuevo.");
@@ -239,17 +242,23 @@ export default function RecommendScreen({ route, navigation }: Props) {
                 </Pressable>
               </View>
               {expandidoId === item.id && (
-                <View style={styles.compositorRow}>
-                  <TextInput
-                    style={styles.compositorInput}
-                    placeholder={t("Mensaje opcional...")}
-                    placeholderTextColor={theme.colors.textFaint}
-                    value={nota}
-                    onChangeText={setNota}
-                    maxLength={200}
-                  />
-                  <Pressable style={styles.enviarBtn} onPress={() => enviarAGrupo(item)} disabled={enviando}>
-                    <Ionicons name="paper-plane" size={18} color="#000000" />
+                <View>
+                  <View style={styles.compositorRow}>
+                    <TextInput
+                      style={styles.compositorInput}
+                      placeholder={t("Mensaje opcional...")}
+                      placeholderTextColor={theme.colors.textFaint}
+                      value={nota}
+                      onChangeText={setNota}
+                      maxLength={200}
+                    />
+                    <Pressable style={styles.enviarBtn} onPress={() => enviarAGrupo(item)} disabled={enviando}>
+                      <Ionicons name="paper-plane" size={18} color="#000000" />
+                    </Pressable>
+                  </View>
+                  <Pressable style={styles.spoilerRow} onPress={() => setEsSpoiler(!esSpoiler)}>
+                    <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
+                    <Text style={styles.spoilerLabel}>{t("¿Tiene spoiler?")}</Text>
                   </Pressable>
                 </View>
               )}
@@ -279,6 +288,11 @@ const styles = StyleSheet.create({
   recomendarBtn: { backgroundColor: theme.colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 10 },
   recomendarBtnTexto: { color: "#000000", fontSize: 12, fontWeight: "700" },
   compositorRow: { flexDirection: "row", alignItems: "center", paddingBottom: 10, gap: 8 },
+  spoilerRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 10 },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1.5, borderColor: theme.colors.border, alignItems: "center", justifyContent: "center" },
+  checkboxActivo: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  checkboxTilde: { color: "#000000", fontSize: 13, fontWeight: "800" },
+  spoilerLabel: { fontSize: 13, color: theme.colors.textMuted },
   compositorInput: { flex: 1, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 8 },
   enviarBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
 });

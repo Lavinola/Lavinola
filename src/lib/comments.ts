@@ -23,6 +23,7 @@ export interface Comentario {
   shared_season_number: number | null;
   shared_episode_number: number | null;
   es_que_vemos: boolean;
+  has_spoiler: boolean;
 }
 
 const NIVEL_COLAPSO = 4; // a partir de este nivel de anidamiento, la UI colapsa en "ver N respuestas más"
@@ -55,7 +56,7 @@ export async function cargarComentariosRaiz(
 ): Promise<Comentario[]> {
   let query = supabase
     .from("comentarios")
-    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, profiles!comentarios_user_id_fkey(username, avatar_url)")
+    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, has_spoiler, profiles!comentarios_user_id_fkey(username, avatar_url)")
     .eq("target_type", targetType)
     .eq("target_id", targetId)
     .is("parent_comment_id", null);
@@ -96,7 +97,7 @@ export async function obtenerCadenaAncestros(commentId: string): Promise<string[
 export async function cargarRespuestas(parentCommentId: string, userId?: string | null): Promise<Comentario[]> {
   const { data, error } = await supabase
     .from("comentarios")
-    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, profiles!comentarios_user_id_fkey(username, avatar_url)")
+    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, has_spoiler, profiles!comentarios_user_id_fkey(username, avatar_url)")
     .eq("parent_comment_id", parentCommentId)
     .order("created_at", { ascending: true });
 
@@ -141,6 +142,7 @@ async function conLikes(filas: any[], userId?: string | null): Promise<Comentari
       shared_season_number: f.shared_season_number ?? null,
       shared_episode_number: f.shared_episode_number ?? null,
       es_que_vemos: f.es_que_vemos ?? false,
+      has_spoiler: f.has_spoiler ?? false,
     };
   });
 }
@@ -154,6 +156,7 @@ export async function recomendarEnGrupo(params: {
   userId: string;
   groupId: string;
   nota?: string | null;
+  hasSpoiler?: boolean;
   itemType?: "series" | "movie" | "episode";
   tmdbId?: number;
   seasonNumber?: number;
@@ -175,6 +178,7 @@ export async function recomendarEnGrupo(params: {
     target_id: params.groupId,
     group_id: params.groupId,
     content: params.nota?.trim() || "",
+    has_spoiler: params.hasSpoiler ?? false,
     shared_item_type: params.itemType === "episode" ? "series" : params.itemType ?? null,
     shared_tmdb_id: params.tmdbId ?? null,
     shared_season_number: params.itemType === "episode" ? params.seasonNumber ?? null : null,

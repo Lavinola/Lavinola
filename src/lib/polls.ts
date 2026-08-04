@@ -1,0 +1,186 @@
+import { supabase } from "./supabase";
+
+export type TipoItemEncuesta = "series" | "movie" | "episode";
+
+export interface OpcionEncuesta {
+  id: string;
+  position: number;
+  optionText: string | null;
+  itemType: TipoItemEncuesta | null;
+  tmdbId: number | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  votos: number;
+  yoVote: boolean;
+}
+
+export interface Encuesta {
+  id: string;
+  groupId: string;
+  userId: string;
+  autorUsername: string | null;
+  autorAvatarUrl: string | null;
+  questionText: string | null;
+  questionItemType: TipoItemEncuesta | null;
+  questionTmdbId: number | null;
+  questionSeasonNumber: number | null;
+  questionEpisodeNumber: number | null;
+  allowMultiple: boolean;
+  createdAt: string;
+  opciones: OpcionEncuesta[];
+}
+
+export interface OpcionNueva {
+  text: string;
+  itemType?: TipoItemEncuesta;
+  tmdbId?: number;
+  seasonNumber?: number;
+  episodeNumber?: number;
+}
+
+export async function crearEncuesta(params: {
+  userId: string;
+  groupId: string;
+  questionText: string;
+  questionItemType?: TipoItemEncuesta;
+  questionTmdbId?: number;
+  questionSeasonNumber?: number;
+  questionEpisodeNumber?: number;
+  allowMultiple: boolean;
+  opciones: OpcionNueva[];
+}): Promise<string> {
+  const { data: poll, error } = await supabase
+    .from("polls")
+    .insert({
+      user_id: params.userId,
+      group_id: params.groupId,
+      question_text: params.questionText.trim() || null,
+      question_item_type: params.questionItemType ?? null,
+      question_tmdb_id: params.questionTmdbId ?? null,
+      question_season_number: params.questionSeasonNumber ?? null,
+      question_episode_number: params.questionEpisodeNumber ?? null,
+      allow_multiple: params.allowMultiple,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  const filas = params.opciones.map((o, i) => ({
+    poll_id: poll.id,
+    position: i,
+    option_text: o.text.trim() || null,
+    item_type: o.itemType ?? null,
+    tmdb_id: o.tmdbId ?? null,
+    season_number: o.seasonNumber ?? null,
+    episode_number: o.episodeNumber ?? null,
+  }));
+  const { error: errorOpciones } = await supabase.from("poll_options").insert(filas);
+  if (errorOpciones) throw errorOpciones;
+
+  return poll.id;
+}
+
+export async function cargarEncuestasDeGrupo(groupId: string, userId: string | null): Promise<Encuesta[]> {
+  const { data: pollsData, error } = await supabase
+    .from("polls")
+    .select(
+      "id, group_id, user_id, question_text, question_item_type, question_tmdb_id, question_season_number, question_episode_number, allow_multiple, created_at, profiles!polls_user_id_fkey(username, avatar_url)"
+    )
+    .eq("group_id", groupId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  if (!pollsData || pollsData.length === 0) return [];
+
+  const pollIds = pollsData.map((p: any) => p.id);
+  const { data: opcionesData } = await supabase
+    .from("poll_options")
+    .select("id, poll_id, position, option_text, item_type, tmdb_id, season_number, episode_number")
+    .in("poll_id", pollIds)
+    .order("position", { ascending: true });
+
+  const optionIds = (opcionesData ?? []).map((o: any) => o.id);
+  const { data: votesData } = optionIds.length
+    ? await supabase.from("poll_votes").select("option_id, user_id").in("option_id", optionIds)
+    : { data: [] as any[] };
+
+  const votosPorOpcion: Record<string, number> = {};
+  const yoVotePorOpcion: Record<string, boolean> = {};
+  (votesData ?? []).forEach((v: any) => {
+    votosPorOpcion[v.option_id] = (votosPorOpcion[v.option_id] ?? 0) + 1;
+    if (userId && v.user_id === userId) yoVotePorOpcion[v.option_id] = true;
+  });
+
+  const opcionesPorPoll: Record<string, OpcionEncuesta[]> = {};
+  (opcionesData ?? []).forEach((o: any) => {
+    if (!opcionesPorPoll[o.poll_id]) opcionesPorPoll[o.poll_id] = [];
+    opcionesPorPoll[o.poll_id].push({
+      id: o.id,
+      position: o.position,
+      optionText: o.option_text,
+      itemType: o.item_type,
+      tmdbId: o.tmdb_id,
+      seasonNumber: o.season_number,
+      episodeNumber: o.episode_number,
+      votos: votosPorOpcion[o.id] ?? 0,
+      yoVote: !!yoVotePorOpcion[o.id],
+    });
+  });
+
+  return pollsData.map((p: any) => ({
+    id: p.id,
+    groupId: p.group_id,
+    userId: p.user_id,
+    autorUsername: p.profiles?.username ?? null,
+    autorAvatarUrl: p.profiles?.avatar_url ?? null,
+    questionText: p.question_text,
+    questionItemType: p.question_item_type,
+    questionTmdbId: p.question_tmdb_id,
+    questionSeasonNumber: p.question_season_number,
+    questionEpisodeNumber: p.question_episode_number,
+    allowMultiple: p.allow_multiple,
+    createdAt: p.created_at,
+    opciones: (opcionesPorPoll[p.id] ?? []).sort((a, b) => a.position - b.position),
+  }));
+}
+
+/**
+ * Votar una opción. Si ya la habías votado, se saca tu voto (tocar de
+ * nuevo destilda). Si la encuesta NO permite varias respuestas, antes de
+ * agregar el voto nuevo se sacan tus votos anteriores en esta encuesta.
+ */
+export async function votarOpcion(pollId: string, optionId: string, userId: string, allowMultiple: boolean, yaVotadoAqui: boolean) {
+  if (yaVotadoAqui) {
+    const { error } = await supabase.from("poll_votes").delete().eq("option_id", optionId).eq("user_id", userId);
+    if (error) throw error;
+    return;
+  }
+  if (!allowMultiple) {
+    const { data: opciones } = await supabase.from("poll_options").select("id").eq("poll_id", pollId);
+    const ids = (opciones ?? []).map((o: any) => o.id);
+    if (ids.length) await supabase.from("poll_votes").delete().in("option_id", ids).eq("user_id", userId);
+  }
+  const { error } = await supabase.from("poll_votes").insert({ poll_id: pollId, option_id: optionId, user_id: userId });
+  if (error) throw error;
+}
+
+export interface VotanteDeOpcion {
+  user_id: string;
+  username: string | null;
+  avatar_url: string | null;
+}
+
+export async function listarVotantesDeOpcion(optionId: string, offset: number, limit: number): Promise<VotanteDeOpcion[]> {
+  const { data, error } = await supabase
+    .from("poll_votes")
+    .select("user_id, created_at, profiles!poll_votes_user_id_fkey(username, avatar_url)")
+    .eq("option_id", optionId)
+    .order("created_at", { ascending: true })
+    .range(offset, offset + limit - 1);
+  if (error) throw error;
+  return (data ?? []).map((v: any) => ({ user_id: v.user_id, username: v.profiles?.username ?? null, avatar_url: v.profiles?.avatar_url ?? null }));
+}
+
+export async function eliminarEncuesta(pollId: string) {
+  const { error } = await supabase.from("polls").delete().eq("id", pollId);
+  if (error) throw error;
+}

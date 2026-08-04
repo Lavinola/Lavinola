@@ -44,6 +44,7 @@ interface Props {
   soloAutorId?: string; // si viene, solo muestra comentarios de ESE usuario (para la pestaña "Yo")
   mostrarTipo?: boolean; // solo true en Comentarios/Posts de la ficha de un título — en todos lados más, no hace falta aclarar que es un comentario
   contenidoExtra?: React.ReactNode; // se muestra ENTRE la barra de escribir y la lista de comentarios (ej: publicaciones del Lobby sobre este título)
+  onAbrirEncuesta?: () => void; // si viene (solo grupos), se muestra el botón "Encuesta" al lado de "¿Qué vemos?"
 }
 
 // Antes cada nivel de respuesta se indentaba un poco más que el anterior,
@@ -61,7 +62,7 @@ function extractoDeComentario(c: Comentario): string {
   return "";
 }
 
-export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra }: Props) {
+export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra, onAbrirEncuesta }: Props) {
   const { t } = useT();
   const [orden, setOrden] = useState<OrdenComentarios>("nuevo");
   const [raiz, setRaiz] = useState<Comentario[]>([]);
@@ -139,9 +140,16 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
     <>
     <View style={styles.container}>
       {targetType === "group" && groupId && (
-        <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
-          <Text style={styles.queVemosBtnTexto}>{t("¿Qué vemos?")}</Text>
-        </Pressable>
+        <View style={styles.botonesGrupoRow}>
+          <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
+            <Text style={styles.queVemosBtnTexto}>{t("¿Qué vemos?")}</Text>
+          </Pressable>
+          {onAbrirEncuesta && (
+            <Pressable style={styles.queVemosBtn} onPress={onAbrirEncuesta}>
+              <Text style={styles.queVemosBtnTexto}>{t("Encuesta")}</Text>
+            </Pressable>
+          )}
+        </View>
       )}
 
       <View style={styles.ordenRow}>
@@ -285,6 +293,7 @@ export function NodoComentario({
   }, [idsAExpandir, comentario.id]);
   const [confirmEliminarVisible, setConfirmEliminarVisible] = useState(false);
   const [eliminado, setEliminado] = useState(false);
+  const [spoilerVisible, setSpoilerVisible] = useState(false);
   const [reaccionesPickerVisible, setReaccionesPickerVisible] = useState(false);
   const [texto, setTexto] = useState("");
   const [gifElegido, setGifElegido] = useState<string | null>(null);
@@ -481,7 +490,16 @@ export function NodoComentario({
             esQueVemos={comentario.es_que_vemos}
           />
         )}
-        {comentario.content ? <ExpandableText texto={traduccion ?? comentario.content} style={styles.contenido} /> : null}
+        {comentario.content ? (
+          comentario.has_spoiler && !spoilerVisible ? (
+            <Pressable style={styles.spoilerBox} onPress={() => setSpoilerVisible(true)}>
+              <Text style={styles.spoilerTexto}>{t("Contiene spoiler")}</Text>
+              <Text style={styles.spoilerVerTexto}>{t("Ver")}</Text>
+            </Pressable>
+          ) : (
+            <ExpandableText texto={traduccion ?? comentario.content} style={styles.contenido} />
+          )
+        ) : null}
         {comentario.gif_url && <Image source={{ uri: comentario.gif_url }} style={styles.gifEnComentario} />}
 
         {reaccionesPickerVisible && (
@@ -616,6 +634,7 @@ const styles = StyleSheet.create({
   ordenTextActive: { fontSize: 12, color: "#000000", fontWeight: "700" },
   inputRow: { flexDirection: "row", alignItems: "stretch", marginTop: 6, marginBottom: 6 },
   input: { flex: 1, minHeight: 40, maxHeight: 120, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 8, marginRight: 6, color: theme.colors.text, backgroundColor: theme.colors.surface },
+  botonesGrupoRow: { flexDirection: "row", justifyContent: "center", gap: 10, marginBottom: 10 },
   queVemosBtn: {
     alignSelf: "flex-start",
     borderWidth: 1,
@@ -623,7 +642,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    marginBottom: 10,
   },
   queVemosBtnTexto: { color: theme.colors.primaryLight, fontWeight: "700", fontSize: 12 },
   gifBtn: { justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingHorizontal: 10, marginRight: 6 },
@@ -637,6 +655,9 @@ const styles = StyleSheet.create({
   gifEnComentario: { width: 160, height: 160, borderRadius: 8, marginTop: 6, backgroundColor: theme.colors.surfaceAlt },
   comentarioBox: { backgroundColor: theme.colors.surfaceAlt, borderRadius: 8, padding: 10 },
   comentarioBoxResaltado: { borderWidth: 2, borderColor: theme.colors.primary },
+  spoilerBox: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 14, alignItems: "center" },
+  spoilerTexto: { fontSize: 13, color: theme.colors.textMuted, fontWeight: "700", marginBottom: 6 },
+  spoilerVerTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   respondiendoARow: { marginBottom: 3 },
   respondiendoATexto: { fontSize: 11, color: theme.colors.textFaint, fontStyle: "italic" },
   autor: { fontSize: 13, fontWeight: "700", marginRight: 6 },
