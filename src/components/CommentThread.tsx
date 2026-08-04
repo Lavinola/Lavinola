@@ -233,6 +233,7 @@ export function NodoComentario({
   highlightCommentId,
   idsAExpandir,
   mostrarTipo,
+  nombrePadre,
 }: {
   comentario: Comentario;
   navigation?: any;
@@ -247,6 +248,7 @@ export function NodoComentario({
   highlightCommentId?: string;
   idsAExpandir?: Set<string>;
   mostrarTipo?: boolean;
+  nombrePadre?: string | null; // si viene, se muestra "↳ En respuesta a @nombrePadre" arriba (a partir de cierto nivel, cuando ya no se sigue sangrando)
 }) {
   const [respuestas, setRespuestas] = useState<Comentario[] | null>(null);
   const [expandido, setExpandido] = useState(false);
@@ -397,10 +399,23 @@ export function NodoComentario({
     }
   }
 
+  // Se sangra normalmente hasta el 2do nivel — de ahí en más, en vez de
+  // seguir corriendo el mensaje hacia la derecha (hasta que no entra en
+  // pantalla), queda en la misma columna que el 2do nivel, y se aclara
+  // arriba a quién le está respondiendo.
+  const indentacion = nivel > 0 && nivel <= 2 ? 14 : 0;
+
   if (eliminado) return null;
 
   return (
-    <View style={nivel === 1 ? styles.hiloContainer : styles.sinHilo}>
+    <View style={{ marginTop: 8, marginLeft: indentacion }}>
+      {!!nombrePadre && (
+        <View style={styles.respondiendoARow}>
+          <Text style={styles.respondiendoATexto}>
+            ↳ {t("En respuesta a")} @{nombrePadre}
+          </Text>
+        </View>
+      )}
       <View style={[styles.comentarioBox, resaltado && styles.comentarioBoxResaltado]}>
         <View style={styles.encabezadoRow}>
           <Pressable
@@ -468,7 +483,7 @@ export function NodoComentario({
           </Pressable>
           <Pressable onPress={abrirRespuestas} style={styles.resumenReaccion}>
             <Ionicons name="chatbubble-outline" size={16} color={theme.colors.textMuted} />
-            <Text style={styles.accionTexto}>{respuestas ? respuestas.length || "" : comentario.reply_count > 0 ? comentario.reply_count : ""}</Text>
+            <Text style={styles.accionTexto}>{comentario.reply_count > 0 ? comentario.reply_count : ""}</Text>
           </Pressable>
           <Pressable onPress={() => setMostrandoInput(!mostrandoInput)}>
             <Text style={styles.accionTexto}>{t("Responder")}</Text>
@@ -526,6 +541,7 @@ export function NodoComentario({
             resaltado={r.id === highlightCommentId}
             highlightCommentId={highlightCommentId}
             idsAExpandir={idsAExpandir}
+            nombrePadre={nivel + 1 > 2 ? comentario.autor_username : undefined}
           />
       ))}
       <ActionSheetModal
@@ -596,8 +612,8 @@ const styles = StyleSheet.create({
   gifEnComentario: { width: 160, height: 160, borderRadius: 8, marginTop: 6, backgroundColor: theme.colors.surfaceAlt },
   comentarioBox: { backgroundColor: theme.colors.surface, borderRadius: 8, padding: 10 },
   comentarioBoxResaltado: { borderWidth: 2, borderColor: theme.colors.primary },
-  sinHilo: { marginTop: 8 },
-  hiloContainer: { marginTop: 8, marginLeft: 14, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: theme.colors.border },
+  respondiendoARow: { marginBottom: 3 },
+  respondiendoATexto: { fontSize: 11, color: theme.colors.textFaint, fontStyle: "italic" },
   autor: { fontSize: 13, fontWeight: "700", marginRight: 6 },
   avatarComentario: { width: 22, height: 22, borderRadius: 11, marginRight: 6 },
   fechaComentario: { fontSize: 11, color: theme.colors.textMuted },

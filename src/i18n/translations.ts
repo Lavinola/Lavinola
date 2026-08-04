@@ -806,6 +806,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   },
   "No se pudo publicar en el Lobby": { en: "Couldn't post to the Lobby", pt: "Não foi possível publicar no Lobby", it: "Non è stato possibile pubblicare nel Lobby" },
   "Comentar...": { en: "Comment...", pt: "Comentar...", it: "Commenta..." },
+  "En respuesta a": { en: "In reply to", pt: "Em resposta a", it: "In risposta a" },
 
   // ---------- Títulos de pantallas (navegación) ----------
   Agregar: { en: "Add", pt: "Adicionar", it: "Aggiungi" },
