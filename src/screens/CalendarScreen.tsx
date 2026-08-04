@@ -3,7 +3,6 @@ import { View, Image, Pressable, SectionList, StyleSheet } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
-import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 import { Text } from "../components/Themed";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -127,18 +126,6 @@ export default function CalendarScreen({ navigation }: any) {
     setLoading(false);
     yaScrolleoRef.current = false;
     setTimeout(() => scrollAHoy(), 60);
-
-    // Los nombres del caché compartido pueden estar en otro idioma — esto
-    // se pide aparte y se actualiza solo, sin bloquear la pantalla.
-    localizarNombres(ids.map((id) => ({ tipo: "series" as const, tmdbId: id }))).then((mapa) => {
-      if (mapa.size === 0) return;
-      setSecciones((prev) =>
-        prev.map((s) => ({
-          ...s,
-          data: s.data.map((item) => (mapa.has(claveLocalizacion("series", item.series_tmdb_id)) ? { ...item, series_name: mapa.get(claveLocalizacion("series", item.series_tmdb_id))! } : item)),
-        }))
-      );
-    });
   }
 
   return (

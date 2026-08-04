@@ -7,7 +7,6 @@ import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
 import { listarSeriesConEstado, progresoDeSeries, SerieListado, ProgresoSerie } from "../lib/seriesList";
 import { listarFavoritos, guardarOrdenFavoritos, Favorito } from "../lib/favorites";
-import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 import DraggableReorderList from "../components/DraggableReorderList";
 import SeriesProgressBar from "../components/SeriesProgressBar";
 import RatingStars from "../components/RatingStars";
@@ -87,10 +86,6 @@ export default function AllSeriesScreen({ route, navigation }: any) {
     const [todas, prog] = await Promise.all([listarSeriesConEstado(uid), progresoDeSeries(uid)]);
     setSeries(todas);
     setProgreso(prog);
-    localizarNombres(todas.map((s) => ({ tipo: "series" as const, tmdbId: s.tmdb_id }))).then((mapa) => {
-      if (mapa.size === 0) return;
-      setSeries((prev) => prev.map((s) => (mapa.has(claveLocalizacion("series", s.tmdb_id)) ? { ...s, name: mapa.get(claveLocalizacion("series", s.tmdb_id))! } : s)));
-    });
 
     if (soloFavoritas) {
       const favs = await listarFavoritos(uid);

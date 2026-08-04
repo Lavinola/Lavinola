@@ -21,7 +21,6 @@ import {
   obtenerPerfilPropio,
   actualizarCachePerfilPropio,
 } from "../lib/profileDataCache";
-import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 import FilaMiniTitulos from "../components/FilaMiniTitulos";
 import ActionSheetModal from "../components/ActionSheetModal";
 import { abrirRedSocial } from "../lib/social";
@@ -152,18 +151,6 @@ export default function ProfileScreen({ navigation }: any) {
     const datos = yaListo ? await cargarDatosPerfilPropio(userId) : await obtenerPerfilPropio(userId);
     aplicarDatosPerfil(datos);
     actualizarCachePerfilPropio(userId, datos);
-
-    // "Tus series"/"Tus películas" puede ser una grilla grande — esto se
-    // pide aparte y en segundo plano, así no atrasa la carga del resto de
-    // la pantalla (favoritos ya viene localizado desde listarFavoritos).
-    localizarNombres(datos.misSeries.map((s) => ({ tipo: "series" as const, tmdbId: s.tmdb_id }))).then((mapa) => {
-      if (mapa.size === 0) return;
-      setMisSeries((prev) => prev.map((s) => (mapa.has(claveLocalizacion("series", s.tmdb_id)) ? { ...s, nombre: mapa.get(claveLocalizacion("series", s.tmdb_id))! } : s)));
-    });
-    localizarNombres(datos.misPeliculas.map((p) => ({ tipo: "movie" as const, tmdbId: p.tmdb_id }))).then((mapa) => {
-      if (mapa.size === 0) return;
-      setMisPeliculas((prev) => prev.map((p) => (mapa.has(claveLocalizacion("movie", p.tmdb_id)) ? { ...p, nombre: mapa.get(claveLocalizacion("movie", p.tmdb_id))! } : p)));
-    });
 
     obtenerPuntosInsignias(userId)
       .then((puntos) => setNivelInsigniaNumero(nivelAlcanzado(puntos)?.nivel ?? null))

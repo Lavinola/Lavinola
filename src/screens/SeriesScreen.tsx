@@ -12,7 +12,6 @@ import AgregarButton from "../components/AgregarButton";
 import CalificarModal from "../components/CalificarModal";
 import { historialReciente, SerieListado, EventoHistorial } from "../lib/seriesList";
 import { cacheSincronicaListaPendiente, obtenerListaPendiente, actualizarCacheListaPendiente, cargarDatosListaPendiente } from "../lib/seriesListCache";
-import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 import TopPills from "../components/TopPills";
 import CalendarScreen from "./CalendarScreen";
 import { useT } from "../i18n/i18n";
@@ -112,20 +111,6 @@ function ListaPendiente({ navigation }: any) {
         indiceVerARef.current = hayHistorial ? 1 : 0;
         setTimeout(() => scrollAVerAContinuacion(), 60);
       }
-
-      // Los nombres en el caché compartido pueden estar en otro idioma —
-      // esto se pide aparte y aparece solo, sin bloquear el resto de la
-      // pantalla, que ya se pintó con lo que había.
-      localizarNombres(datos.series.map((s) => ({ tipo: "series" as const, tmdbId: s.tmdb_id }))).then((mapa) => {
-        if (mapa.size === 0 || miId !== idCargaRef.current) return;
-        setSeries((prev) => prev.map((s) => (mapa.has(claveLocalizacion("series", s.tmdb_id)) ? { ...s, name: mapa.get(claveLocalizacion("series", s.tmdb_id))! } : s)));
-      });
-      localizarNombres(datos.historial.map((h) => ({ tipo: "series" as const, tmdbId: h.series_tmdb_id }))).then((mapa) => {
-        if (mapa.size === 0 || miId !== idCargaRef.current) return;
-        setHistorial((prev) =>
-          prev.map((h) => (mapa.has(claveLocalizacion("series", h.series_tmdb_id)) ? { ...h, series_name: mapa.get(claveLocalizacion("series", h.series_tmdb_id))! } : h))
-        );
-      });
     } catch (e: any) {
       console.error("Error al cargar tus series:", e);
       Alert.alert(t("No se pudieron cargar tus series"), e.message ?? "Probá de nuevo.");

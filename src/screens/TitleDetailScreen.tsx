@@ -32,7 +32,6 @@ import {
   getMovieCertification,
   normalizarClasificacion,
 } from "../lib/tmdb";
-import { obtenerDetalleLocalizado } from "../lib/titleLocalization";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMisSeries, eliminarPeliculaDeMisPeliculas } from "../lib/sync";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { supabase } from "../lib/supabase";
@@ -116,25 +115,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       }
       const { data: cache, error } = await supabase.from(tabla).select("*").eq("tmdb_id", tmdbId).single();
       if (error) throw error;
-
-      // El nombre y la sinopsis que hay en el caché (series_cache/
-      // movies_cache) son del idioma de quien lo haya sincronizado por
-      // última vez, no necesariamente el tuyo — acá se piden aparte, solo
-      // para mostrar, en TU idioma configurado, sin tocar lo guardado.
-      let tituloParaMostrar = cache;
-      try {
-        const { nombre, sinopsis } = await obtenerDetalleLocalizado(tipo, tmdbId);
-        if (nombre || sinopsis) {
-          tituloParaMostrar = {
-            ...cache,
-            ...(tipo === "series" ? (nombre ? { name: nombre } : {}) : nombre ? { title: nombre } : {}),
-            ...(sinopsis ? { overview: sinopsis } : {}),
-          };
-        }
-      } catch (e) {
-        console.error("No se pudo pedir el detalle en tu idioma, se muestra el que había en caché:", e);
-      }
-      setTitulo(tituloParaMostrar);
+      setTitulo(cache);
 
       if (uid) {
         setFavorito(await esFavorito(uid, tipo, tmdbId));

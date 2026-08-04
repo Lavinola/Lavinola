@@ -13,7 +13,6 @@ import OrdenPeliculasModal from "../components/OrdenPeliculasModal";
 import FiltroPendientesModal from "../components/FiltroPendientesModal";
 import { promedioPuntuacionPeliculas } from "../lib/stats";
 import { cacheSincronicaPeliculas, obtenerPeliculas, actualizarCachePeliculas, cargarDatosPeliculas } from "../lib/moviesListCache";
-import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 
 function diasHasta(fecha: string | null): number {
   if (!fecha) return 0;
@@ -93,13 +92,6 @@ export default function MoviesScreen({ navigation }: any) {
       setMovies(datos.movies);
       setPuntuaciones(datos.puntuaciones);
       actualizarCachePeliculas(userId, datos);
-
-      // Los nombres del caché compartido pueden estar en otro idioma —
-      // esto se pide aparte y se actualiza solo, sin bloquear la pantalla.
-      localizarNombres(datos.movies.map((m) => ({ tipo: "movie" as const, tmdbId: m.tmdb_id }))).then((mapa) => {
-        if (mapa.size === 0) return;
-        setMovies((prev) => prev.map((m) => (mapa.has(claveLocalizacion("movie", m.tmdb_id)) ? { ...m, title: mapa.get(claveLocalizacion("movie", m.tmdb_id))! } : m)));
-      });
     } catch (e: any) {
       console.error("Error al cargar tus películas:", e);
       Alert.alert(t("No se pudieron cargar tus películas"), e.message ?? "Probá de nuevo.");

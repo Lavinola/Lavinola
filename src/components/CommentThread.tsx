@@ -29,7 +29,6 @@ import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
 import NivelUpModal from "./NivelUpModal";
 import QueVemosModal from "./QueVemosModal";
 import { listarMiembrosIds } from "../lib/groups";
-import { localizarNombre } from "../lib/titleLocalization";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -654,12 +653,6 @@ function RecomendacionPreview({
           }
           setNombre(sufijoEpisodio ? `${nombreCache} — ${sufijoEpisodio}` : nombreCache);
           setPosterPath(custom?.custom_poster_path ?? data.poster_path);
-
-          // El nombre del caché compartido puede estar en otro idioma — se
-          // pide aparte y se actualiza solo, sin bloquear el resto de la tarjetita.
-          localizarNombre(itemType, tmdbId).then((localizado) => {
-            if (localizado) setNombre(sufijoEpisodio ? `${localizado} — ${sufijoEpisodio}` : localizado);
-          });
         } else {
           setEliminado(true);
         }

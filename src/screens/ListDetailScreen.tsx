@@ -6,7 +6,6 @@ import PublishActionModal from "../components/PublishActionModal";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
-import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -107,10 +106,6 @@ export default function ListDetailScreen({ route, navigation }: any) {
       }
     });
     setItems(ordenarItems(resultado, orden));
-    localizarNombres(resultado.map((i) => ({ tipo: i.item_type, tmdbId: i.tmdb_id }))).then((mapa) => {
-      if (mapa.size === 0) return;
-      setItems((prev) => ordenarItems(prev.map((i) => (mapa.has(claveLocalizacion(i.item_type, i.tmdb_id)) ? { ...i, nombre: mapa.get(claveLocalizacion(i.item_type, i.tmdb_id))! } : i)), orden));
-    });
     if (!silencioso) setLoading(false);
   }
 

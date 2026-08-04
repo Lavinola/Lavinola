@@ -6,7 +6,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
 import { listarFavoritos, toggleFavorito } from "../lib/favorites";
-import { localizarNombres, claveLocalizacion } from "../lib/titleLocalization";
 import { fetchAllRows } from "../lib/pagination";
 import { computeSeriesStatus } from "../types";
 import OrdenTitulosModal, { CriterioOrdenTitulos } from "../components/OrdenTitulosModal";
@@ -108,10 +107,6 @@ export default function ManageFavoritesScreen({ route }: any) {
           ultimaVez: r.last_watched_at ?? null,
         }));
       setItems(ordenarItems(lista, orden, ascendente));
-      localizarNombres(lista.map((i) => ({ tipo: "series" as const, tmdbId: i.tmdb_id }))).then((mapa) => {
-        if (mapa.size === 0) return;
-        setItems((prev) => ordenarItems(prev.map((i) => (mapa.has(claveLocalizacion("series", i.tmdb_id)) ? { ...i, nombre: mapa.get(claveLocalizacion("series", i.tmdb_id))! } : i)), orden, ascendente));
-      });
     } else {
       const [favs, movieRows] = await Promise.all([
         listarFavoritos(uid),
@@ -134,10 +129,6 @@ export default function ManageFavoritesScreen({ route }: any) {
         ultimaVez: r.watched_at ?? null,
       }));
       setItems(ordenarItems(lista, orden, ascendente));
-      localizarNombres(lista.map((i) => ({ tipo: "movie" as const, tmdbId: i.tmdb_id }))).then((mapa) => {
-        if (mapa.size === 0) return;
-        setItems((prev) => ordenarItems(prev.map((i) => (mapa.has(claveLocalizacion("movie", i.tmdb_id)) ? { ...i, nombre: mapa.get(claveLocalizacion("movie", i.tmdb_id))! } : i)), orden, ascendente));
-      });
     }
     setLoading(false);
   }

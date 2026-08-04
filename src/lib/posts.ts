@@ -1,5 +1,4 @@
 import { supabase } from "./supabase";
-import { localizarNombres, claveLocalizacion } from "./titleLocalization";
 
 export interface ListaPreviewItem {
   item_type: "series" | "movie";
@@ -220,7 +219,7 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
     comentariosPorPost[c.target_id] = (comentariosPorPost[c.target_id] ?? 0) + 1;
   });
 
-  const resultado: Post[] = filas.map((f) => {
+  return filas.map((f) => {
     let titulo_nombre: string | null = null;
     let episodio_nombre: string | null = null;
     let poster_path: string | null = null;
@@ -281,19 +280,6 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
           ? calEpisodioPorClave[`${f.user_id}:${f.tmdb_id}:${f.season_number}:${f.episode_number}`] ?? null
           : null,
     };
-  });
-
-  // El nombre en el caché compartido puede estar en otro idioma — se
-  // localiza antes de devolver, para que se vea bien en el feed del Lobby.
-  const itemsALocalizar = resultado
-    .filter((p) => (p.item_type === "series" || p.item_type === "movie" || p.item_type === "episode") && p.tmdb_id != null)
-    .map((p) => ({ tipo: (p.item_type === "episode" ? "series" : p.item_type) as "series" | "movie", tmdbId: p.tmdb_id as number }));
-  const mapaLocalizado = await localizarNombres(itemsALocalizar);
-  if (mapaLocalizado.size === 0) return resultado;
-  return resultado.map((p) => {
-    if ((p.item_type !== "series" && p.item_type !== "movie" && p.item_type !== "episode") || p.tmdb_id == null) return p;
-    const clave = claveLocalizacion(p.item_type === "episode" ? "series" : p.item_type, p.tmdb_id);
-    return mapaLocalizado.has(clave) ? { ...p, titulo_nombre: mapaLocalizado.get(clave)! } : p;
   });
 }
 
