@@ -627,7 +627,7 @@ export function NodoComentario({
 
 const styles = StyleSheet.create({
   container: { marginTop: 16 },
-  ordenRow: { flexDirection: "row", marginBottom: 12 },
+  ordenRow: { flexDirection: "row", justifyContent: "center", marginBottom: 12 },
   ordenChip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, marginRight: 6 },
   ordenChipActive: { backgroundColor: theme.colors.primary },
   ordenText: { fontSize: 12, color: theme.colors.textMuted },

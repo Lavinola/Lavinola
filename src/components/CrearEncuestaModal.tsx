@@ -191,6 +191,9 @@ function TituloAdjunto({
         )}
         <Text style={styles.tituloAdjuntoTexto} numberOfLines={2}>
           {titulo.nombre}
+          {titulo.itemType === "episode" && titulo.seasonNumber && titulo.episodeNumber
+            ? ` — T${titulo.seasonNumber} - E${titulo.episodeNumber}${titulo.episodeName ? `: ${titulo.episodeName}` : ""}`
+            : ""}
         </Text>
         <Pressable onPress={onQuitar} hitSlop={8}>
           <Ionicons name="close-circle" size={20} color={theme.colors.textMuted} />

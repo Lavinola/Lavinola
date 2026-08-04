@@ -4,7 +4,7 @@ import { Text } from "./Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { Encuesta, OpcionEncuesta, votarOpcion, eliminarEncuesta } from "../lib/polls";
 import { supabase } from "../lib/supabase";
-import { posterUrl } from "../lib/tmdb";
+import { posterUrl, getMovieDetails, getSeriesDetails, getSeasonEpisodes, getTmdbLanguage } from "../lib/tmdb";
 import { Alert } from "../lib/alert";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -13,30 +13,68 @@ import VotantesEncuestaModal from "./VotantesEncuestaModal";
 interface DatosTitulo {
   nombre: string;
   posterPath: string | null;
+  episodeName?: string | null;
 }
 
-function useTitulo(itemType: "series" | "movie" | "episode" | null, tmdbId: number | null): DatosTitulo | null {
+function useTitulo(itemType: "series" | "movie" | "episode" | null, tmdbId: number | null, seasonNumber?: number | null, episodeNumber?: number | null): DatosTitulo | null {
   const [datos, setDatos] = useState<DatosTitulo | null>(null);
   useEffect(() => {
     if (!itemType || !tmdbId) {
       setDatos(null);
       return;
     }
-    const tabla = itemType === "movie" ? "movies_cache" : "series_cache";
-    supabase
-      .from(tabla)
-      .select("*")
-      .eq("tmdb_id", tmdbId)
-      .maybeSingle()
-      .then(({ data }: any) => {
-        if (data) setDatos({ nombre: itemType === "movie" ? data.title : data.name, posterPath: data.poster_path ?? null });
-      });
-  }, [itemType, tmdbId]);
+    let cancelado = false;
+    (async () => {
+      // El título puede no estar todavía en el caché de la app (se eligió
+      // buscando en TMDB directo al armar la encuesta) — primero probamos
+      // el caché rápido, y si no está, se lo pedimos a TMDB directamente.
+      const tabla = itemType === "movie" ? "movies_cache" : "series_cache";
+      const { data: cache } = await supabase.from(tabla).select("*").eq("tmdb_id", tmdbId).maybeSingle();
+      let nombre: string | null = cache ? (itemType === "movie" ? cache.title : cache.name) : null;
+      let posterPath: string | null = cache?.poster_path ?? null;
+
+      if (!nombre) {
+        try {
+          const detalle = itemType === "movie" ? await getMovieDetails(tmdbId, getTmdbLanguage()) : await getSeriesDetails(tmdbId, getTmdbLanguage());
+          nombre = itemType === "movie" ? detalle?.title : detalle?.name;
+          posterPath = detalle?.poster_path ?? null;
+        } catch (e) {
+          console.error("Error al pedirle el título a TMDB para la encuesta:", e);
+        }
+      }
+
+      let episodeName: string | null = null;
+      if (itemType === "episode" && seasonNumber && episodeNumber) {
+        try {
+          const { data: epCache } = await supabase
+            .from("episodes_cache")
+            .select("name")
+            .eq("series_tmdb_id", tmdbId)
+            .eq("season_number", seasonNumber)
+            .eq("episode_number", episodeNumber)
+            .maybeSingle();
+          if (epCache?.name) {
+            episodeName = epCache.name;
+          } else {
+            const temporada = await getSeasonEpisodes(tmdbId, seasonNumber);
+            episodeName = (temporada?.episodes ?? []).find((e: any) => e.episode_number === episodeNumber)?.name ?? null;
+          }
+        } catch (e) {
+          console.error("Error al pedirle el nombre del capítulo a TMDB para la encuesta:", e);
+        }
+      }
+
+      if (!cancelado && nombre) setDatos({ nombre, posterPath, episodeName });
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [itemType, tmdbId, seasonNumber, episodeNumber]);
   return datos;
 }
 
 function TituloInline({ itemType, tmdbId, seasonNumber, episodeNumber }: { itemType: "series" | "movie" | "episode" | null; tmdbId: number | null; seasonNumber?: number | null; episodeNumber?: number | null }) {
-  const datos = useTitulo(itemType, tmdbId);
+  const datos = useTitulo(itemType, tmdbId, seasonNumber, episodeNumber);
   if (!datos) return null;
   return (
     <View style={styles.tituloInlineRow}>
@@ -47,7 +85,7 @@ function TituloInline({ itemType, tmdbId, seasonNumber, episodeNumber }: { itemT
       )}
       <Text style={styles.tituloInlineTexto} numberOfLines={2}>
         {datos.nombre}
-        {itemType === "episode" && seasonNumber && episodeNumber ? ` — T${seasonNumber} · E${episodeNumber}` : ""}
+        {itemType === "episode" && seasonNumber && episodeNumber ? ` — T${seasonNumber} - E${episodeNumber}${datos.episodeName ? `: ${datos.episodeName}` : ""}` : ""}
       </Text>
     </View>
   );

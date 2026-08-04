@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, Modal, TextInput, FlatList, Image, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Text } from "./Themed";
 import { Ionicons } from "@expo/vector-icons";
-import { searchMovies, searchSeries, posterUrl, getTmdbLanguage } from "../lib/tmdb";
+import { searchMovies, searchSeries, getSeriesDetails, getSeasonEpisodes, posterUrl, getTmdbLanguage } from "../lib/tmdb";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -13,6 +13,7 @@ export interface SeleccionTitulo {
   posterPath: string | null;
   seasonNumber?: number;
   episodeNumber?: number;
+  episodeName?: string | null;
 }
 
 interface Props {
@@ -31,16 +32,20 @@ export default function TituloPickerModal({ visible, onCerrar, onSeleccionar }: 
 
   // Si eligió una serie, preguntamos si es sobre la serie entera o un capítulo puntual.
   const [serieParaCapitulo, setSerieParaCapitulo] = useState<{ tmdbId: number; nombre: string; posterPath: string | null } | null>(null);
-  const [temporada, setTemporada] = useState("");
-  const [capitulo, setCapitulo] = useState("");
+  const [temporadas, setTemporadas] = useState<{ season_number: number; episode_count: number }[]>([]);
+  const [cargandoTemporadas, setCargandoTemporadas] = useState(false);
+  const [temporadaElegida, setTemporadaElegida] = useState<number | null>(null);
+  const [episodios, setEpisodios] = useState<{ episode_number: number; name: string | null }[]>([]);
+  const [cargandoEpisodios, setCargandoEpisodios] = useState(false);
 
   useEffect(() => {
     if (!visible) {
       setQuery("");
       setResultados([]);
       setSerieParaCapitulo(null);
-      setTemporada("");
-      setCapitulo("");
+      setTemporadas([]);
+      setTemporadaElegida(null);
+      setEpisodios([]);
     }
   }, [visible]);
 
@@ -76,28 +81,57 @@ export default function TituloPickerModal({ visible, onCerrar, onSeleccionar }: 
       onCerrar();
     } else {
       setSerieParaCapitulo({ tmdbId: item.id, nombre: item.name, posterPath: item.poster_path ?? null });
+      cargarTemporadas(item.id);
     }
+  }
+
+  async function cargarTemporadas(tmdbId: number) {
+    setCargandoTemporadas(true);
+    try {
+      const detalle = await getSeriesDetails(tmdbId, getTmdbLanguage());
+      const lista = (detalle?.seasons ?? [])
+        .filter((s: any) => s.season_number > 0 && s.episode_count > 0) // sin "Especiales"
+        .map((s: any) => ({ season_number: s.season_number, episode_count: s.episode_count }));
+      setTemporadas(lista);
+    } catch (e) {
+      console.error("Error al cargar temporadas:", e);
+    } finally {
+      setCargandoTemporadas(false);
+    }
+  }
+
+  async function elegirTemporada(temporada: number) {
+    setTemporadaElegida(temporada);
+    setEpisodios([]);
+    if (!serieParaCapitulo) return;
+    setCargandoEpisodios(true);
+    try {
+      const detalle = await getSeasonEpisodes(serieParaCapitulo.tmdbId, temporada);
+      setEpisodios((detalle?.episodes ?? []).map((e: any) => ({ episode_number: e.episode_number, name: e.name ?? null })));
+    } catch (e) {
+      console.error("Error al cargar capítulos:", e);
+    } finally {
+      setCargandoEpisodios(false);
+    }
+  }
+
+  function elegirCapitulo(ep: { episode_number: number; name: string | null }) {
+    if (!serieParaCapitulo || temporadaElegida == null) return;
+    onSeleccionar({
+      itemType: "episode",
+      tmdbId: serieParaCapitulo.tmdbId,
+      nombre: serieParaCapitulo.nombre,
+      posterPath: serieParaCapitulo.posterPath,
+      seasonNumber: temporadaElegida,
+      episodeNumber: ep.episode_number,
+      episodeName: ep.name,
+    });
+    onCerrar();
   }
 
   function confirmarSerieCompleta() {
     if (!serieParaCapitulo) return;
     onSeleccionar({ itemType: "series", tmdbId: serieParaCapitulo.tmdbId, nombre: serieParaCapitulo.nombre, posterPath: serieParaCapitulo.posterPath });
-    onCerrar();
-  }
-
-  function confirmarCapitulo() {
-    if (!serieParaCapitulo) return;
-    const t = parseInt(temporada, 10);
-    const c = parseInt(capitulo, 10);
-    if (!t || !c) return;
-    onSeleccionar({
-      itemType: "episode",
-      tmdbId: serieParaCapitulo.tmdbId,
-      nombre: `${serieParaCapitulo.nombre} — T${t} · E${c}`,
-      posterPath: serieParaCapitulo.posterPath,
-      seasonNumber: t,
-      episodeNumber: c,
-    });
     onCerrar();
   }
 
@@ -117,31 +151,48 @@ export default function TituloPickerModal({ visible, onCerrar, onSeleccionar }: 
                 <Text style={styles.opcionBtnTexto}>{t("Usar toda la serie")}</Text>
               </Pressable>
               <Text style={styles.oTexto}>{t("o elegí un capítulo puntual")}:</Text>
-              <View style={styles.filaNumeros}>
-                <TextInput
-                  style={styles.inputNumero}
-                  placeholder={t("Temporada")}
-                  placeholderTextColor={theme.colors.textFaint}
-                  value={temporada}
-                  onChangeText={setTemporada}
-                  keyboardType="number-pad"
-                />
-                <TextInput
-                  style={styles.inputNumero}
-                  placeholder={t("Capítulo")}
-                  placeholderTextColor={theme.colors.textFaint}
-                  value={capitulo}
-                  onChangeText={setCapitulo}
-                  keyboardType="number-pad"
-                />
-              </View>
-              <Pressable
-                style={[styles.opcionBtn, (!temporada || !capitulo) && styles.opcionBtnDeshabilitado]}
-                disabled={!temporada || !capitulo}
-                onPress={confirmarCapitulo}
-              >
-                <Text style={styles.opcionBtnTexto}>{t("Usar este capítulo")}</Text>
-              </Pressable>
+              {cargandoTemporadas ? (
+                <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 10 }} />
+              ) : (
+                <>
+                  <FlatList
+                    horizontal
+                    data={temporadas}
+                    keyExtractor={(s) => String(s.season_number)}
+                    showsHorizontalScrollIndicator={false}
+                    style={{ marginBottom: 10 }}
+                    renderItem={({ item: s }) => (
+                      <Pressable
+                        onPress={() => elegirTemporada(s.season_number)}
+                        style={[styles.temporadaPill, temporadaElegida === s.season_number && styles.temporadaPillActiva]}
+                      >
+                        <Text style={[styles.temporadaPillTexto, temporadaElegida === s.season_number && styles.temporadaPillTextoActiva]}>
+                          T{s.season_number}
+                        </Text>
+                      </Pressable>
+                    )}
+                  />
+                  {cargandoEpisodios ? (
+                    <ActivityIndicator color={theme.colors.primary} />
+                  ) : (
+                    temporadaElegida != null && (
+                      <FlatList
+                        data={episodios}
+                        keyExtractor={(e) => String(e.episode_number)}
+                        style={{ maxHeight: 220 }}
+                        renderItem={({ item: ep }) => (
+                          <Pressable style={styles.episodioFila} onPress={() => elegirCapitulo(ep)}>
+                            <Text style={styles.episodioTexto} numberOfLines={1}>
+                              E{ep.episode_number}
+                              {ep.name ? `: ${ep.name}` : ""}
+                            </Text>
+                          </Pressable>
+                        )}
+                      />
+                    )
+                  )}
+                </>
+              )}
               <Pressable style={styles.volverBtn} onPress={() => setSerieParaCapitulo(null)}>
                 <Text style={styles.volverBtnTexto}>{t("Volver a buscar")}</Text>
               </Pressable>
@@ -219,16 +270,12 @@ const styles = StyleSheet.create({
   opcionBtnDeshabilitado: { opacity: 0.4 },
   opcionBtnTexto: { color: "#000000", fontWeight: "700", fontSize: 13 },
   oTexto: { fontSize: 12, color: theme.colors.textMuted, textAlign: "center", marginBottom: 10 },
-  filaNumeros: { flexDirection: "row", gap: 8, marginBottom: 10 },
-  inputNumero: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 10,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surfaceAlt,
-  },
-  volverBtn: { alignItems: "center", paddingVertical: 6 },
+  temporadaPill: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.border, marginRight: 8 },
+  temporadaPillActiva: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  temporadaPillTexto: { fontSize: 13, color: theme.colors.textMuted, fontWeight: "700" },
+  temporadaPillTextoActiva: { color: "#000000" },
+  episodioFila: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: theme.radius.sm, backgroundColor: theme.colors.surfaceAlt, marginBottom: 6 },
+  episodioTexto: { fontSize: 13 },
+  volverBtn: { alignItems: "center", paddingVertical: 6, marginTop: 6 },
   volverBtnTexto: { fontSize: 12, color: theme.colors.textMuted },
 });
