@@ -384,6 +384,7 @@ export function NodoComentario({
     try {
       await eliminarComentario(comentario.id);
       setEliminado(true);
+      await onReply(); // avisa al padre para que actualice su lista — si no, al volver a montar este comentario (ej: cerrar y abrir la burbujita) reaparecía
     } catch (e: any) {
       Alert.alert("No se pudo eliminar", e.message);
     }
@@ -492,7 +493,7 @@ export function NodoComentario({
           </Pressable>
           <Pressable onPress={abrirRespuestas} style={styles.resumenReaccion}>
             <Ionicons name="chatbubble-outline" size={16} color={theme.colors.textMuted} />
-            <Text style={styles.accionTexto}>{respuestas ? respuestas.length || "" : comentario.reply_count > 0 ? comentario.reply_count : ""}</Text>
+            <Text style={styles.accionTexto}>{respuestas ? respuestas.length : comentario.reply_count}</Text>
           </Pressable>
           <Pressable onPress={() => setMostrandoInput(!mostrandoInput)}>
             <Text style={styles.accionTexto}>{t("Responder")}</Text>
@@ -619,7 +620,7 @@ const styles = StyleSheet.create({
   gifQuitar: { position: "absolute", top: -6, right: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: theme.colors.danger, alignItems: "center", justifyContent: "center" },
   gifQuitarTexto: { color: theme.colors.text, fontSize: 11, fontWeight: "700" },
   gifEnComentario: { width: 160, height: 160, borderRadius: 8, marginTop: 6, backgroundColor: theme.colors.surfaceAlt },
-  comentarioBox: { backgroundColor: theme.colors.surface, borderRadius: 8, padding: 10 },
+  comentarioBox: { backgroundColor: theme.colors.surfaceAlt, borderRadius: 8, padding: 10 },
   comentarioBoxResaltado: { borderWidth: 2, borderColor: theme.colors.primary },
   respondiendoARow: { marginBottom: 3 },
   respondiendoATexto: { fontSize: 11, color: theme.colors.textFaint, fontStyle: "italic" },

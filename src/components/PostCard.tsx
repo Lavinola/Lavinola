@@ -332,7 +332,7 @@ export default function PostCard({
         </Pressable>
         <Pressable onPress={toggleLista} style={styles.accionBtn}>
           <Ionicons name="chatbubble-outline" size={15} color={theme.colors.textMuted} />
-          <Text style={styles.accionTexto}>{cantidadComentarios > 0 ? cantidadComentarios : ""}</Text>
+          <Text style={styles.accionTexto}>{cantidadComentarios}</Text>
         </Pressable>
         <Pressable onPress={toggleInput} style={styles.accionBtn}>
           <Text style={styles.accionTexto}>{t("Comentar")}</Text>
