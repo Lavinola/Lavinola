@@ -263,6 +263,13 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Recomendar (Chat/Grupo)": { en: "Recommend (Chat/Group)", pt: "Recomendar (Chat/Grupo)", it: "Consiglia (Chat/Gruppo)" },
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
+  "¿Sobre qué querés publicar?": { en: "What do you want to post about?", pt: "Sobre o que você quer publicar?", it: "Su cosa vuoi pubblicare?" },
+  "Compartí una encuesta con todos en el Lobby.": {
+    en: "Share a poll with everyone in the Lobby.",
+    pt: "Compartilhe uma enquete com todo mundo no Lobby.",
+    it: "Condividi un sondaggio con tutti nel Lobby.",
+  },
+  "Crear encuesta": { en: "Create poll", pt: "Criar enquete", it: "Crea sondaggio" },
   "Haz una pregunta": { en: "Ask a question", pt: "Faça uma pergunta", it: "Fai una domanda" },
   "+ Agregar título a la pregunta": { en: "+ Add a title to the question", pt: "+ Adicionar título à pergunta", it: "+ Aggiungi un titolo alla domanda" },
   "+ Agregar título": { en: "+ Add title", pt: "+ Adicionar título", it: "+ Aggiungi titolo" },

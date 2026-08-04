@@ -16,7 +16,7 @@ export interface OpcionEncuesta {
 
 export interface Encuesta {
   id: string;
-  groupId: string;
+  groupId: string | null;
   userId: string;
   autorUsername: string | null;
   autorAvatarUrl: string | null;
@@ -43,7 +43,7 @@ export interface OpcionNueva {
 
 export async function crearEncuesta(params: {
   userId: string;
-  groupId: string;
+  groupId?: string;
   questionText: string;
   questionItemType?: TipoItemEncuesta;
   questionTmdbId?: number;
@@ -56,7 +56,7 @@ export async function crearEncuesta(params: {
     .from("polls")
     .insert({
       user_id: params.userId,
-      group_id: params.groupId,
+      group_id: params.groupId ?? null,
       question_text: params.questionText.trim() || null,
       question_item_type: params.questionItemType ?? null,
       question_tmdb_id: params.questionTmdbId ?? null,
@@ -92,6 +92,41 @@ export async function cargarEncuestasDeGrupo(groupId: string, userId: string | n
     .eq("group_id", groupId)
     .order("created_at", { ascending: false });
   if (error) throw error;
+  return ensamblarEncuestas(pollsData ?? [], userId);
+}
+
+const SELECT_POLL =
+  "id, group_id, user_id, question_text, question_item_type, question_tmdb_id, question_season_number, question_episode_number, allow_multiple, created_at, profiles!polls_user_id_fkey(username, avatar_url)";
+
+/** Tus propias encuestas publicadas directo al Lobby (no las de dentro de un grupo). */
+export async function listarMisEncuestasDeLobby(userId: string): Promise<Encuesta[]> {
+  const { data, error } = await supabase.from("polls").select(SELECT_POLL).is("group_id", null).eq("user_id", userId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return ensamblarEncuestas(data ?? [], userId);
+}
+
+/** Encuestas del Lobby de gente que seguís (no las tuyas). */
+export async function listarEncuestasDeLobbySiguiendo(userId: string, before?: string | null): Promise<Encuesta[]> {
+  const { data: sigo } = await supabase.from("follows").select("followee_id").eq("follower_id", userId);
+  const ids = (sigo ?? []).map((f: any) => f.followee_id);
+  if (ids.length === 0) return [];
+  let query = supabase.from("polls").select(SELECT_POLL).is("group_id", null).in("user_id", ids).order("created_at", { ascending: false }).limit(20);
+  if (before) query = query.lt("created_at", before);
+  const { data, error } = await query;
+  if (error) throw error;
+  return ensamblarEncuestas(data ?? [], userId);
+}
+
+/** Encuestas del Lobby para el feed "Para ti" (todas las que la RLS deja ver: públicas o de gente que seguís). */
+export async function listarEncuestasDeLobbyParaTi(userId: string | null, before?: string | null): Promise<Encuesta[]> {
+  let query = supabase.from("polls").select(SELECT_POLL).is("group_id", null).order("created_at", { ascending: false }).limit(20);
+  if (before) query = query.lt("created_at", before);
+  const { data, error } = await query;
+  if (error) throw error;
+  return ensamblarEncuestas(data ?? [], userId);
+}
+
+async function ensamblarEncuestas(pollsData: any[], userId: string | null): Promise<Encuesta[]> {
   if (!pollsData || pollsData.length === 0) return [];
 
   const pollIds = pollsData.map((p: any) => p.id);

@@ -4,6 +4,7 @@ import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import TopPills from "../components/TopPills";
 import PublishActionModal from "../components/PublishActionModal";
+import CrearEncuestaModal from "../components/CrearEncuestaModal";
 import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/pagination";
 import { posterUrl } from "../lib/tmdb";
@@ -28,7 +29,7 @@ interface Seleccion {
 
 export default function SeleccionarTituloPostScreen({ navigation }: any) {
   const { t } = useT();
-  const [tipo, setTipo] = useState<"movie" | "series">("movie");
+  const [tipo, setTipo] = useState<"movie" | "series" | "poll">("movie");
   const [busqueda, setBusqueda] = useState("");
   const [items, setItems] = useState<ItemPropio[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -43,6 +44,7 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
   const [cargandoEpisodios, setCargandoEpisodios] = useState(false);
 
   const [publishModalVisible, setPublishModalVisible] = useState(false);
+  const [crearEncuestaVisible, setCrearEncuestaVisible] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -51,7 +53,7 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
   }, []);
 
   useEffect(() => {
-    if (userId) cargar();
+    if (userId && tipo !== "poll") cargar();
   }, [tipo, userId]);
 
   async function cargar() {
@@ -258,53 +260,74 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <TopPills
+        variante="rect"
         opciones={[
           { key: "movie", label: t("Películas") },
           { key: "series", label: t("Series") },
+          { key: "poll", label: t("Encuesta") },
         ]}
         valor={tipo}
         onCambiar={(v) => {
-          setTipo(v as "movie" | "series");
+          setTipo(v as "movie" | "series" | "poll");
           setBusqueda("");
         }}
       />
-      <View style={styles.buscadorWrap}>
-        <Ionicons name="search" size={16} color={theme.colors.textFaint} />
-        <TextInput
-          style={styles.buscador}
-          placeholder={tipo === "movie" ? t("Buscar en tus películas...") : t("Buscar en tus series...")}
-          placeholderTextColor={theme.colors.textFaint}
-          value={busqueda}
-          onChangeText={setBusqueda}
-        />
-      </View>
-      {cargando ? (
-        <ActivityIndicator style={{ marginTop: 32 }} />
-      ) : (
-        <FlatList
-          keyboardShouldPersistTaps="handled"
-          data={filtrados}
-          keyExtractor={(i) => String(i.tmdb_id)}
-          contentContainerStyle={{ padding: 12 }}
-          ListEmptyComponent={
-            <Text style={styles.vacio}>
-              {tipo === "movie" ? t("Todavía no agregaste ninguna película a tu perfil.") : t("Todavía no agregaste ninguna serie a tu perfil.")}
-            </Text>
-          }
-          renderItem={({ item }) => (
-            <Pressable style={styles.fila} onPress={() => (tipo === "movie" ? elegirMovie(item) : tocarSerie(item))}>
-              {item.poster_path ? (
-                <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.poster} />
-              ) : (
-                <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
-              )}
-              <Text style={styles.nombre} numberOfLines={2}>
-                {item.nombre}
-              </Text>
-              <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
-            </Pressable>
+      {tipo === "poll" ? (
+        <View style={styles.encuestaWrap}>
+          <Text style={styles.encuestaTexto}>{t("Compartí una encuesta con todos en el Lobby.")}</Text>
+          <Pressable style={styles.crearEncuestaBtn} onPress={() => setCrearEncuestaVisible(true)}>
+            <Text style={styles.crearEncuestaBtnTexto}>{t("Crear encuesta")}</Text>
+          </Pressable>
+          {userId && (
+            <CrearEncuestaModal
+              visible={crearEncuestaVisible}
+              onCerrar={() => setCrearEncuestaVisible(false)}
+              userId={userId}
+              onCreada={() => navigation.goBack()}
+            />
           )}
-        />
+        </View>
+      ) : (
+        <>
+          <View style={styles.buscadorWrap}>
+            <Ionicons name="search" size={16} color={theme.colors.textFaint} />
+            <TextInput
+              style={styles.buscador}
+              placeholder={tipo === "movie" ? t("Buscar en tus películas...") : t("Buscar en tus series...")}
+              placeholderTextColor={theme.colors.textFaint}
+              value={busqueda}
+              onChangeText={setBusqueda}
+            />
+          </View>
+          {cargando ? (
+            <ActivityIndicator style={{ marginTop: 32 }} />
+          ) : (
+            <FlatList
+              keyboardShouldPersistTaps="handled"
+              data={filtrados}
+              keyExtractor={(i) => String(i.tmdb_id)}
+              contentContainerStyle={{ padding: 12 }}
+              ListEmptyComponent={
+                <Text style={styles.vacio}>
+                  {tipo === "movie" ? t("Todavía no agregaste ninguna película a tu perfil.") : t("Todavía no agregaste ninguna serie a tu perfil.")}
+                </Text>
+              }
+              renderItem={({ item }) => (
+                <Pressable style={styles.fila} onPress={() => (tipo === "movie" ? elegirMovie(item) : tocarSerie(item))}>
+                  {item.poster_path ? (
+                    <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.poster} />
+                  ) : (
+                    <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
+                  )}
+                  <Text style={styles.nombre} numberOfLines={2}>
+                    {item.nombre}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+                </Pressable>
+              )}
+            />
+          )}
+        </>
       )}
     </View>
   );
@@ -312,6 +335,10 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background, padding: 12 },
+  encuestaWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
+  encuestaTexto: { fontSize: 14, color: theme.colors.textMuted, textAlign: "center", marginBottom: 20 },
+  crearEncuestaBtn: { backgroundColor: theme.colors.primary, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 24 },
+  crearEncuestaBtnTexto: { color: "#000000", fontWeight: "700", fontSize: 14 },
   buscadorWrap: {
     flexDirection: "row",
     alignItems: "center",

@@ -188,7 +188,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
             value={nuevoTexto}
             onChangeText={setNuevoTexto}
             multiline
-            maxLength={2500}
+            maxLength={2000}
           />
           <View style={{ flexDirection: "row" }}>
             <Pressable style={styles.gifBtn} onPress={() => abrirGifPicker(setGifElegido)}>
@@ -585,7 +585,7 @@ export function NodoComentario({
                 value={texto}
                 onChangeText={setTexto}
                 placeholder={t("Tu respuesta...")}
-                maxLength={2500}
+                maxLength={2000}
               />
               <Pressable style={styles.gifBtn} onPress={abrirGifPicker}>
                 <Text style={styles.gifBtnTexto}>GIF</Text>

@@ -355,7 +355,7 @@ export default function PostCard({
             value={nuevaRespuesta}
             onChangeText={setNuevaRespuesta}
             multiline
-            maxLength={2500}
+            maxLength={2000}
           />
           <View style={{ flexDirection: "row" }}>
             <Pressable style={styles.gifBtn} onPress={abrirGifPicker}>

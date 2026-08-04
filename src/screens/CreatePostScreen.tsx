@@ -71,7 +71,7 @@ export default function CreatePostScreen({ route, navigation }: Props) {
         value={texto}
         onChangeText={setTexto}
         multiline
-        maxLength={2500}
+        maxLength={2000}
         autoFocus
       />
 

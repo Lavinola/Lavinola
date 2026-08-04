@@ -49,13 +49,15 @@ export default function AdminReportsScreen({ navigation }: any) {
     // en un puñado de consultas en tanda, no una por reporte.
     const idsComment = filas.filter((r) => r.target_type === "comment").map((r) => r.target_id);
     const idsPost = filas.filter((r) => r.target_type === "post").map((r) => r.target_id);
+    const idsPoll = filas.filter((r) => r.target_type === "poll").map((r) => r.target_id);
     const idsGroup = filas.filter((r) => r.target_type === "group").map((r) => r.target_id);
     const idsList = filas.filter((r) => r.target_type === "list").map((r) => r.target_id);
     const idsSharedTitle = filas.filter((r) => r.target_type === "shared_title").map((r) => r.target_id);
 
-    const [{ data: comentarios }, { data: posts }, { data: grupos }, { data: listas }, { data: mensajes }] = await Promise.all([
+    const [{ data: comentarios }, { data: posts }, { data: polls }, { data: grupos }, { data: listas }, { data: mensajes }] = await Promise.all([
       idsComment.length ? supabase.from("comentarios").select("id, content, user_id").in("id", idsComment) : Promise.resolve({ data: [] as any[] }),
       idsPost.length ? supabase.from("posts").select("id, content, user_id").in("id", idsPost) : Promise.resolve({ data: [] as any[] }),
+      idsPoll.length ? supabase.from("polls").select("id, question_text, user_id").in("id", idsPoll) : Promise.resolve({ data: [] as any[] }),
       idsGroup.length ? supabase.from("groups").select("id, name, creator_id").in("id", idsGroup) : Promise.resolve({ data: [] as any[] }),
       idsList.length ? supabase.from("lists").select("id, title, user_id").in("id", idsList) : Promise.resolve({ data: [] as any[] }),
       idsSharedTitle.length
@@ -64,6 +66,7 @@ export default function AdminReportsScreen({ navigation }: any) {
     ]);
     const comentarioMap = new Map((comentarios ?? []).map((c: any) => [c.id, c]));
     const postMap = new Map((posts ?? []).map((p: any) => [p.id, p]));
+    const pollMap = new Map((polls ?? []).map((p: any) => [p.id, p]));
     const grupoMap = new Map((grupos ?? []).map((g: any) => [g.id, g]));
     const listaMap = new Map((listas ?? []).map((l: any) => [l.id, l]));
     const mensajeMap = new Map((mensajes ?? []).map((m: any) => [m.id, m]));
@@ -77,6 +80,10 @@ export default function AdminReportsScreen({ navigation }: any) {
       if (r.target_type === "post") {
         const p = postMap.get(r.target_id);
         return { reportadoId: p?.user_id ?? null, contenido: p ? p.content : "(post ya borrado)" };
+      }
+      if (r.target_type === "poll") {
+        const p = pollMap.get(r.target_id);
+        return { reportadoId: p?.user_id ?? null, contenido: p ? `Encuesta: ${p.question_text ?? "(sin pregunta escrita)"}` : "(encuesta ya borrada)" };
       }
       if (r.target_type === "group") {
         const g = grupoMap.get(r.target_id);
@@ -121,8 +128,14 @@ export default function AdminReportsScreen({ navigation }: any) {
     setLoading(false);
   }
 
-  async function resolver(id: string, status: "reviewed" | "dismissed") {
+  async function resolver(id: string, status: "reviewed" | "dismissed", targetType?: string, targetId?: string) {
     await supabase.from("reports").update({ status }).eq("id", id);
+    // Si se descarta el reporte y el contenido había quedado oculto en
+    // revisión (el admin del grupo lo reportó), vuelve a aparecer donde estaba.
+    if (status === "dismissed" && targetId && (targetType === "comment" || targetType === "poll")) {
+      const tabla = targetType === "comment" ? "comentarios" : "polls";
+      await supabase.from(tabla).update({ oculto_por_reporte: false }).eq("id", targetId);
+    }
     cargar();
   }
 
@@ -135,7 +148,7 @@ export default function AdminReportsScreen({ navigation }: any) {
     if (confirmBorrar.targetType === "shared_title") {
       await eliminarMensajeChat(confirmBorrar.targetId);
     } else {
-      const tabla = confirmBorrar.targetType === "post" ? "posts" : "comentarios";
+      const tabla = confirmBorrar.targetType === "post" ? "posts" : confirmBorrar.targetType === "poll" ? "polls" : "comentarios";
       await supabase.from(tabla).delete().eq("id", confirmBorrar.targetId);
     }
     await resolver(confirmBorrar.reportId, "reviewed");
@@ -187,7 +200,7 @@ export default function AdminReportsScreen({ navigation }: any) {
             )}
             <Text style={styles.fecha}>{formatearFechaHora(item.created_at)}</Text>
             <View style={styles.accionesRow}>
-              {(item.target_type === "comment" || item.target_type === "post" || item.target_type === "shared_title") && (
+              {(item.target_type === "comment" || item.target_type === "post" || item.target_type === "poll" || item.target_type === "shared_title") && (
                 <Pressable style={styles.btnBorrar} onPress={() => pedirBorrado(item.target_id, item.target_type, item.id)}>
                   <Text style={styles.btnBorrarTexto}>{t("Borrar contenido")}</Text>
                 </Pressable>
@@ -197,7 +210,7 @@ export default function AdminReportsScreen({ navigation }: any) {
                   <Text style={styles.btnVerPerfilTexto}>{t("Ver perfil")}</Text>
                 </Pressable>
               )}
-              <Pressable style={styles.btnDescartar} onPress={() => resolver(item.id, "dismissed")}>
+              <Pressable style={styles.btnDescartar} onPress={() => resolver(item.id, "dismissed", item.target_type, item.target_id)}>
                 <Text style={styles.btnDescartarTexto}>{t("Descartar reporte")}</Text>
               </Pressable>
             </View>

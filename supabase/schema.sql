@@ -288,13 +288,21 @@ create policy "group_members_select_all" on group_members for select using (true
 drop policy if exists "group_members_manage_own" on group_members;
 create policy "group_members_manage_own" on group_members for all using (auth.uid() = user_id);
 
--- Comentarios: lectura pública, solo el autor edita/borra el propio, cualquiera autenticado postea
+-- Comentarios: lectura pública salvo que esté oculto por un reporte en
+-- revisión, solo el autor (o un admin de la app) edita/borra el propio,
+-- cualquiera autenticado postea
+alter table comentarios add column if not exists oculto_por_reporte boolean not null default false;
 drop policy if exists "comentarios_select_all" on comentarios;
-create policy "comentarios_select_all" on comentarios for select using (true);
+create policy "comentarios_select_all" on comentarios for select using (
+  not oculto_por_reporte
+  or exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+);
 drop policy if exists "comentarios_insert_auth" on comentarios;
 create policy "comentarios_insert_auth" on comentarios for insert with check (auth.uid() = user_id);
 drop policy if exists "comentarios_delete_own" on comentarios;
-create policy "comentarios_delete_own" on comentarios for delete using (auth.uid() = user_id);
+create policy "comentarios_delete_own" on comentarios for delete using (
+  auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+);
 
 drop policy if exists "likes_select_all" on likes_comentario;
 create policy "likes_select_all" on likes_comentario for select using (true);
@@ -1003,8 +1011,8 @@ begin
     if autor_id is not null and autor_id <> new.user_id then
       select notify_replies into quiere_notif from profiles where id = autor_id;
       if coalesce(quiere_notif, true) then
-        insert into notifications (user_id, type, actor_id, target_type, target_id, comment_id)
-          values (autor_id, 'reply', new.user_id, new.target_type, new.target_id, new.parent_comment_id);
+        insert into notifications (user_id, type, actor_id, target_type, target_id, comment_id, trigger_comment_id)
+          values (autor_id, 'reply', new.user_id, new.target_type, new.target_id, new.parent_comment_id, new.id);
       end if;
     end if;
   end if;
@@ -1443,6 +1451,8 @@ declare
   es_privado boolean;
   miembro record;
 begin
+  if new.group_id is null then return new; end if; -- encuesta del Lobby, no de un grupo — no hay a quién avisarle acá
+
   select (visibility = 'private') into es_privado from groups where id = new.group_id;
 
   for miembro in
@@ -2362,7 +2372,7 @@ alter table comentarios add column if not exists has_spoiler boolean not null de
 -- ============================================================
 create table if not exists polls (
   id uuid primary key default gen_random_uuid(),
-  group_id uuid not null references groups(id) on delete cascade,
+  group_id uuid references groups(id) on delete cascade, -- null = encuesta del Lobby, no de un grupo puntual
   user_id uuid not null references profiles(id) on delete cascade,
   question_text text,
   question_item_type text check (question_item_type in ('series', 'movie', 'episode')),
@@ -2373,6 +2383,7 @@ create table if not exists polls (
   created_at timestamptz not null default now(),
   constraint poll_question_no_vacia check (coalesce(trim(question_text), '') <> '' or question_tmdb_id is not null)
 );
+alter table polls alter column group_id drop not null;
 
 create table if not exists poll_options (
   id uuid primary key default gen_random_uuid(),
@@ -2403,14 +2414,38 @@ alter table polls enable row level security;
 alter table poll_options enable row level security;
 alter table poll_votes enable row level security;
 
+-- Igual que con comentarios: si el admin de un grupo denuncia una encuesta
+-- hecha DENTRO de su grupo, se oculta al toque hasta que un admin de la
+-- app la revise (la borra, o descarta el reporte y vuelve a aparecer).
+alter table polls add column if not exists oculto_por_reporte boolean not null default false;
+
 drop policy if exists "polls_select" on polls;
-create policy "polls_select" on polls for select using (true);
+create policy "polls_select" on polls for select using (
+  (
+    group_id is not null -- las de un grupo se ven igual que siempre
+    or auth.uid() = user_id
+    or exists (select 1 from profiles where profiles.id = polls.user_id and profiles.is_private = false)
+    or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = polls.user_id)
+  )
+  and (not oculto_por_reporte or exists (select 1 from profiles where id = auth.uid() and is_admin = true))
+);
 drop policy if exists "polls_insert" on polls;
 create policy "polls_insert" on polls for insert with check (
-  auth.uid() = user_id and exists (select 1 from group_members where group_members.group_id = polls.group_id and group_members.user_id = auth.uid())
+  auth.uid() = user_id and (
+    group_id is null or exists (select 1 from group_members where group_members.group_id = polls.group_id and group_members.user_id = auth.uid())
+  )
 );
 drop policy if exists "polls_delete" on polls;
 create policy "polls_delete" on polls for delete using (auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and is_admin = true));
+
+drop policy if exists "polls_update_moderacion" on polls;
+create policy "polls_update_moderacion" on polls for update using (
+  exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  or exists (select 1 from groups where groups.id = polls.group_id and groups.creator_id = auth.uid())
+) with check (
+  exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  or exists (select 1 from groups where groups.id = polls.group_id and groups.creator_id = auth.uid())
+);
 
 drop policy if exists "poll_options_select" on poll_options;
 create policy "poll_options_select" on poll_options for select using (true);
@@ -2430,3 +2465,55 @@ create policy "poll_votes_insert" on poll_votes for insert with check (
 );
 drop policy if exists "poll_votes_delete" on poll_votes;
 create policy "poll_votes_delete" on poll_votes for delete using (auth.uid() = user_id);
+
+-- ============================================================
+-- Si borrás un comentario/respuesta, cualquier notificación relacionada
+-- (que a alguien le avisó "le gustó tu comentario" o "te respondieron")
+-- se borra también — si no, queda una notificación "fantasma" que ya no
+-- lleva a ningún lado y solo confunde.
+-- ============================================================
+
+-- Guarda cuál respuesta puntual generó la notificación de "te respondieron"
+-- (comment_id ya guardaba a QUIÉN se le respondió, no la respuesta en sí).
+alter table notifications add column if not exists trigger_comment_id uuid;
+
+create or replace function borrar_notificaciones_de_comentario() returns trigger as $$
+begin
+  delete from notifications where comment_id = old.id or trigger_comment_id = old.id;
+  return old;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_borrar_notificaciones_comentario on comentarios;
+create trigger trg_borrar_notificaciones_comentario after delete on comentarios
+  for each row execute function borrar_notificaciones_de_comentario();
+
+-- Si sacás un "me gusta" de un comentario, se borra la notificación de ESE
+-- like puntual (no las de otras personas que también reaccionaron a lo mismo).
+create or replace function borrar_notificacion_de_like() returns trigger as $$
+begin
+  delete from notifications
+    where type = 'like' and comment_id = old.comment_id and actor_id = old.user_id;
+  return old;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_borrar_notificacion_like on likes_comentario;
+create trigger trg_borrar_notificacion_like after delete on likes_comentario
+  for each row execute function borrar_notificacion_de_like();
+
+-- ============================================================
+-- Si el ADMIN de un grupo denuncia un mensaje/comentario/respuesta DENTRO
+-- de su propio grupo, ese contenido se oculta al toque (nadie más lo ve,
+-- ver la política de select de arriba) hasta que un admin de la app lo
+-- revise: si lo borra, desaparece para siempre; si descarta el reporte,
+-- vuelve a aparecer donde estaba.
+-- ============================================================
+drop policy if exists "comentarios_update_moderacion" on comentarios;
+create policy "comentarios_update_moderacion" on comentarios for update using (
+  exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  or exists (select 1 from groups where groups.id = comentarios.group_id and groups.creator_id = auth.uid())
+) with check (
+  exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  or exists (select 1 from groups where groups.id = comentarios.group_id and groups.creator_id = auth.uid())
+);

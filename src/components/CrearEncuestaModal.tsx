@@ -23,7 +23,7 @@ interface Props {
   visible: boolean;
   onCerrar: () => void;
   userId: string;
-  groupId: string;
+  groupId?: string;
   onCreada: () => void;
 }
 

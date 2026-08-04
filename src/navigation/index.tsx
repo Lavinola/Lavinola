@@ -214,7 +214,7 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
       <Stack.Screen
         name="SeleccionarTituloPost"
         component={SeleccionarTituloPostScreen}
-        options={{ title: t("¿De qué querés hablar?"), presentation: "modal" }}
+        options={{ title: t("¿Sobre qué querés publicar?"), presentation: "modal" }}
       />
       <Stack.Screen name="Insignias" component={BadgesScreen} options={{ title: t("Insignias") }} />
     </>

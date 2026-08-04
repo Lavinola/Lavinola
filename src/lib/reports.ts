@@ -17,6 +17,25 @@ export async function reportar(params: {
     details: params.details?.trim() || null,
   });
   if (error) throw error;
+
+  // Si quien reporta es el admin del grupo donde está esto, se oculta al
+  // toque (nadie más lo ve) hasta que un admin de la app lo revise —
+  // borrándolo para siempre, o descartando el reporte y devolviéndolo a
+  // donde estaba.
+  if (params.targetType === "comment" || params.targetType === "poll") {
+    try {
+      const tabla = params.targetType === "comment" ? "comentarios" : "polls";
+      const { data: contenido } = await supabase.from(tabla).select("group_id").eq("id", params.targetId).maybeSingle();
+      if (contenido?.group_id) {
+        const { data: grupo } = await supabase.from("groups").select("creator_id").eq("id", contenido.group_id).maybeSingle();
+        if (grupo?.creator_id === params.reporterId) {
+          await supabase.from(tabla).update({ oculto_por_reporte: true }).eq("id", params.targetId);
+        }
+      }
+    } catch (e) {
+      console.error("No se pudo ocultar el contenido reportado por el admin del grupo:", e);
+    }
+  }
 }
 
 export async function bloquearUsuario(blockerId: string, blockedId: string) {

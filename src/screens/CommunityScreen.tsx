@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -7,7 +7,9 @@ import { supabase } from "../lib/supabase";
 import { contarChatsConNoLeidos } from "../lib/chats";
 import { listarMisGrupos, contarComentariosNuevosPorGrupo, listarSolicitudesDeMisGrupos } from "../lib/groups";
 import { listarMisPosts, listarPostsSiguiendo, listarPostsParaTi, Post } from "../lib/posts";
+import { listarMisEncuestasDeLobby, listarEncuestasDeLobbySiguiendo, listarEncuestasDeLobbyParaTi, Encuesta } from "../lib/polls";
 import PostCard from "../components/PostCard";
+import EncuestaCard from "../components/EncuestaCard";
 import TopPills from "../components/TopPills";
 import UnderlineTabs from "../components/UnderlineTabs";
 import GroupsScreen from "./GroupsScreen";
@@ -123,6 +125,7 @@ function FeedDePosts({
 }) {
   const { t } = useT();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [polls, setPolls] = useState<Encuesta[]>([]);
   const [loading, setLoading] = useState(true);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [hayMas, setHayMas] = useState(true);
@@ -173,6 +176,16 @@ function FeedDePosts({
     }, [modo])
   );
 
+  type ItemFeed = { kind: "post"; createdAt: string; post: Post } | { kind: "poll"; createdAt: string; poll: Encuesta };
+  const items: ItemFeed[] = useMemo(() => {
+    const combinados: ItemFeed[] = [
+      ...posts.map((p) => ({ kind: "post" as const, createdAt: p.created_at, post: p })),
+      ...polls.map((p) => ({ kind: "poll" as const, createdAt: p.createdAt, poll: p })),
+    ];
+    combinados.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return combinados;
+  }, [posts, polls]);
+
   async function cargar(silencioso = false) {
     if (!silencioso) setLoading(true);
     try {
@@ -181,22 +194,36 @@ function FeedDePosts({
       if (!uid) return;
       setUserId(uid);
       setHayMas(true);
-      if (modo === "mios") setPosts(await listarMisPosts(uid));
-      else if (modo === "siguiendo") setPosts(await listarPostsSiguiendo(uid));
-      else setPosts(await listarPostsParaTi(uid));
+      if (modo === "mios") {
+        const [p, e] = await Promise.all([listarMisPosts(uid), listarMisEncuestasDeLobby(uid)]);
+        setPosts(p);
+        setPolls(e);
+      } else if (modo === "siguiendo") {
+        const [p, e] = await Promise.all([listarPostsSiguiendo(uid), listarEncuestasDeLobbySiguiendo(uid)]);
+        setPosts(p);
+        setPolls(e);
+      } else {
+        const [p, e] = await Promise.all([listarPostsParaTi(uid), listarEncuestasDeLobbyParaTi(uid)]);
+        setPosts(p);
+        setPolls(e);
+      }
     } finally {
       if (!silencioso) setLoading(false);
     }
   }
 
   async function cargarMas() {
-    if (cargandoMas || !hayMas || modo === "mios" || posts.length === 0) return;
+    if (cargandoMas || !hayMas || modo === "mios" || items.length === 0) return;
     setCargandoMas(true);
     try {
-      const ultimaFecha = posts[posts.length - 1].created_at;
-      const nuevos = modo === "siguiendo" ? await listarPostsSiguiendo(userId!, ultimaFecha) : await listarPostsParaTi(userId, ultimaFecha);
-      if (nuevos.length === 0) setHayMas(false);
-      setPosts((prev) => [...prev, ...nuevos]);
+      const ultimaFecha = items[items.length - 1].createdAt;
+      const [nuevosPosts, nuevosPolls] =
+        modo === "siguiendo"
+          ? await Promise.all([listarPostsSiguiendo(userId!, ultimaFecha), listarEncuestasDeLobbySiguiendo(userId!, ultimaFecha)])
+          : await Promise.all([listarPostsParaTi(userId, ultimaFecha), listarEncuestasDeLobbyParaTi(userId, ultimaFecha)]);
+      if (nuevosPosts.length === 0 && nuevosPolls.length === 0) setHayMas(false);
+      setPosts((prev) => [...prev, ...nuevosPosts]);
+      setPolls((prev) => [...prev, ...nuevosPolls]);
     } finally {
       setCargandoMas(false);
     }
@@ -206,8 +233,8 @@ function FeedDePosts({
 
   return (
     <FlatList
-      data={posts}
-      keyExtractor={(p) => p.id}
+      data={items}
+      keyExtractor={(item) => (item.kind === "post" ? item.post.id : item.poll.id)}
       contentContainerStyle={{ padding: 12 }}
       onRefresh={cargar}
       refreshing={loading}
@@ -238,7 +265,13 @@ function FeedDePosts({
           </Text>
         </View>
       }
-      renderItem={({ item }) => <PostCard post={item} navigation={navigation} onCambio={cargar} mostrarNoInteresa={modo === "paraTi"} />}
+      renderItem={({ item }) =>
+        item.kind === "post" ? (
+          <PostCard post={item.post} navigation={navigation} onCambio={cargar} mostrarNoInteresa={modo === "paraTi"} />
+        ) : (
+          <EncuestaCard encuesta={item.poll} userId={userId} navigation={navigation} onCambio={cargar} />
+        )
+      }
     />
   );
 }
