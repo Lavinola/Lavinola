@@ -590,6 +590,7 @@ export function NodoComentario({
                 value={texto}
                 onChangeText={setTexto}
                 placeholder={t("Tu respuesta...")}
+                multiline
                 maxLength={2000}
               />
               <Pressable style={styles.gifBtn} onPress={abrirGifPicker}>
