@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
 import { Text } from "../components/Themed";
 import { useT } from "../i18n/i18n";
+import { Idioma } from "../i18n/translations";
 import { theme } from "../theme";
 
 interface EpisodioProximo {
@@ -27,7 +28,7 @@ interface Seccion {
 const DIAS_HACIA_ATRAS = 21; // cuánto pasado mostramos al scrollear para arriba
 
 export default function CalendarScreen({ navigation }: any) {
-  const { t, locale } = useT();
+  const { t, idioma } = useT();
   const [secciones, setSecciones] = useState<Seccion[]>([]);
   const [loading, setLoading] = useState(true);
   const listRef = useRef<SectionList>(null);
@@ -115,7 +116,7 @@ export default function CalendarScreen({ navigation }: any) {
 
     const fechasOrdenadas = Object.keys(porFecha).sort();
     const secc: Seccion[] = fechasOrdenadas.map((fecha) => ({
-      title: etiquetaFecha(fecha, t, locale),
+      title: etiquetaFecha(fecha, t, idioma),
       data: porFecha[fecha],
     }));
 
@@ -209,7 +210,25 @@ function diasHasta(iso: string): number | null {
   return dias > 0 ? dias : null;
 }
 
-function etiquetaFecha(iso: string, t: (s: string) => string, locale: string): string {
+// Hermes (el motor de JS de React Native) no siempre trae los datos de
+// internacionalización completos — así que toLocaleDateString(locale,...)
+// puede terminar mostrando el día/mes en el idioma que le salga, sin
+// importar qué locale le pidas. Para no depender de eso, armamos el
+// nombre del día y del mes a mano, con nuestras propias traducciones.
+const DIAS_SEMANA: Record<Idioma, string[]> = {
+  es: ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"],
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  pt: ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"],
+  it: ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"],
+};
+const MESES: Record<Idioma, string[]> = {
+  es: ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  pt: ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
+  it: ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
+};
+
+function etiquetaFecha(iso: string, t: (s: string) => string, idioma: Idioma): string {
   const hoy = new Date();
   const fecha = new Date(iso + "T00:00:00");
   const hoyStr = hoy.toISOString().slice(0, 10);
@@ -223,7 +242,12 @@ function etiquetaFecha(iso: string, t: (s: string) => string, locale: string): s
   if (iso === hoyStr) return t("Hoy");
   if (iso === mañanaStr) return t("Mañana");
   if (iso === ayerStr) return t("Ayer");
-  return fecha.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" });
+
+  const diaSemana = DIAS_SEMANA[idioma][fecha.getDay()];
+  const mes = MESES[idioma][fecha.getMonth()];
+  const dia = fecha.getDate();
+  // En inglés el orden natural es "Sunday, August 9" (mes antes que el día).
+  return idioma === "en" ? `${diaSemana}, ${mes} ${dia}` : `${diaSemana}, ${dia} de ${mes}`;
 }
 
 const styles = StyleSheet.create({

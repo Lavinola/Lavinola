@@ -1702,22 +1702,18 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "Importar seu histórico do TV Time ou Letterboxd",
     it: "Importa la tua cronologia da TV Time o Letterboxd",
   },
-  'Antes de nada, necesitás el archivo con tus datos. Ninguna de las dos apps tiene un botón de "exportar" adentro de la app misma, así que hay estos caminos:': {
-    en: 'First, you need the file with your data. Neither app has an "export" button inside the app itself, so here are the ways to get it:',
-    pt: 'Antes de tudo, você precisa do arquivo com seus dados. Nenhum dos dois apps tem um botão de "exportar" dentro do app, então aqui estão os caminhos:',
-    it: 'Prima di tutto, ti serve il file con i tuoi dati. Nessuna delle due app ha un pulsante "esporta" al suo interno, quindi ecco le strade:',
+  "TV Time": { en: "TV Time", pt: "TV Time", it: "TV Time" },
+  "TV Time cerró el 15 de julio de 2026 y ya no se puede volver a descargar el archivo desde ahí — el sitio está offline y los datos de los usuarios ya fueron borrados. Esto solo funciona si ya tenés guardado, de antes del cierre, el ZIP que te llegó por mail o el archivo que exportaste con la extensión de Chrome.": {
+    en: "TV Time closed on July 15, 2026 and you can no longer download the file from there — the site is offline and user data has already been deleted. This only works if you already have, saved from before the shutdown, the ZIP that arrived by email or the file you exported with the Chrome extension.",
+    pt: "O TV Time fechou em 15 de julho de 2026 e não é mais possível baixar o arquivo de lá — o site está offline e os dados dos usuários já foram apagados. Isso só funciona se você já tiver salvo, de antes do fechamento, o ZIP que chegou por e-mail ou o arquivo exportado com a extensão do Chrome.",
+    it: "TV Time ha chiuso il 15 luglio 2026 e non è più possibile scaricare il file da lì — il sito è offline e i dati degli utenti sono già stati cancellati. Funziona solo se hai già salvato, da prima della chiusura, lo ZIP arrivato per email o il file esportato con l'estensione Chrome.",
   },
-  "Opción 1 — TV Time: pedido oficial (más lento, más completo)": {
-    en: "Option 1 — TV Time: official request (slower, more complete)",
-    pt: "Opção 1 — TV Time: pedido oficial (mais lento, mais completo)",
-    it: "Opzione 1 — TV Time: richiesta ufficiale (più lenta, più completa)",
+  'Si tenés alguno de esos guardado en tu celu (o podés pasártelo desde la compu), tocá "Ya tengo el archivo, continuar" más abajo.': {
+    en: 'If you have one of those saved on your phone (or can transfer it from your computer), tap "I already have the file, continue" below.',
+    pt: 'Se você tem algum desses salvo no celular (ou pode transferir do computador), toque em "Já tenho o arquivo, continuar" abaixo.',
+    it: 'Se hai uno di questi salvato sul telefono (o puoi trasferirlo dal computer), tocca "Ho già il file, continua" qui sotto.',
   },
-  "Opción 2 — TV Time: extensión de Chrome (más rápido)": {
-    en: "Option 2 — TV Time: Chrome extension (faster)",
-    pt: "Opção 2 — TV Time: extensão do Chrome (mais rápido)",
-    it: "Opzione 2 — TV Time: estensione Chrome (più veloce)",
-  },
-  "Opción 3 — Letterboxd (solo películas)": { en: "Option 3 — Letterboxd (movies only)", pt: "Opção 3 — Letterboxd (só filmes)", it: "Opzione 3 — Letterboxd (solo film)" },
+  "Letterboxd (solo películas)": { en: "Letterboxd (movies only)", pt: "Letterboxd (só filmes)", it: "Letterboxd (solo film)" },
   "1. Desde una compu, entrá a Letterboxd → Settings → Import & Export.": {
     en: "1. From a computer, go to Letterboxd → Settings → Import & Export.",
     pt: "1. De um computador, entre em Letterboxd → Settings → Import & Export.",

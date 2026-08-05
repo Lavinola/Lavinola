@@ -395,27 +395,19 @@ export default function ImportTVTimeScreen() {
     return (
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.instruccionesContainer}>
         <Text style={styles.titulo}>{t("Importar tu historial de TV Time o Letterboxd")}</Text>
-        <Text style={styles.parrafo}>
-          {t('Antes de nada, necesitás el archivo con tus datos. Ninguna de las dos apps tiene un botón de "exportar" adentro de la app misma, así que hay estos caminos:')}
-        </Text>
 
         <View style={styles.opcionBox}>
-          <Text style={styles.opcionTitulo}>{t("Opción 1 — TV Time: pedido oficial (más lento, más completo)")}</Text>
-          <Text style={styles.paso}>{t("1. Mandá un mail a support@tvtime.com pidiendo tus datos (pedido GDPR).")}</Text>
-          <Text style={styles.paso}>{t("2. Te va a llegar un ZIP, en general en unos días.")}</Text>
-          <Text style={styles.paso}>{t("3. Guardá ese ZIP en tu celu tal cual llega, sin descomprimir — lo subís entero.")}</Text>
+          <Text style={styles.opcionTitulo}>{t("TV Time")}</Text>
+          <Text style={styles.paso}>
+            {t(
+              "TV Time cerró el 15 de julio de 2026 y ya no se puede volver a descargar el archivo desde ahí — el sitio está offline y los datos de los usuarios ya fueron borrados. Esto solo funciona si ya tenés guardado, de antes del cierre, el ZIP que te llegó por mail o el archivo que exportaste con la extensión de Chrome."
+            )}
+          </Text>
+          <Text style={styles.paso}>{t("Si tenés alguno de esos guardado en tu celu (o podés pasártelo desde la compu), tocá \"Ya tengo el archivo, continuar\" más abajo.")}</Text>
         </View>
 
         <View style={styles.opcionBox}>
-          <Text style={styles.opcionTitulo}>{t("Opción 2 — TV Time: extensión de Chrome (más rápido)")}</Text>
-          <Text style={styles.paso}>{t('1. Desde una compu, instalá la extensión "TV Time Out by Refract" en Chrome.')}</Text>
-          <Text style={styles.paso}>{t("2. Entrá a tv-time.com y logueate con tu cuenta.")}</Text>
-          <Text style={styles.paso}>{t("3. Abrí la extensión y exportá tus datos (CSV o JSON, cualquiera de los dos sirve).")}</Text>
-          <Text style={styles.paso}>{t("4. Pasate el archivo exportado a tu celu (por mail, Drive, WhatsApp a vos mismo, etc.).")}</Text>
-        </View>
-
-        <View style={styles.opcionBox}>
-          <Text style={styles.opcionTitulo}>{t("Opción 3 — Letterboxd (solo películas)")}</Text>
+          <Text style={styles.opcionTitulo}>{t("Letterboxd (solo películas)")}</Text>
           <Text style={styles.paso}>{t("1. Desde una compu, entrá a Letterboxd → Settings → Import & Export.")}</Text>
           <Text style={styles.paso}>{t('2. Tocá "Export your data" — te descarga un ZIP.')}</Text>
           <Text style={styles.paso}>{t("3. Descomprimí el ZIP y buscá el archivo diary.csv (o watched.csv).")}</Text>
