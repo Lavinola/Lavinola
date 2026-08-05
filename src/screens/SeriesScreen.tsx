@@ -45,6 +45,8 @@ function ListaPendiente({ navigation }: any) {
   const [historial, setHistorial] = useState<EventoHistorial[]>([]);
   const [loading, setLoading] = useState(true);
   const listRef = useRef<SectionList>(null);
+  const yaScrolleoRef = useRef(false);
+  const indiceVerARef = useRef(0);
   const idCargaRef = useRef(0);
   // Orden "congelado" de Ver a continuación: en vez de recalcularlo desde
   // cero en cada recarga (lo que puede reordenar todo por pequeñas
@@ -93,6 +95,9 @@ function ListaPendiente({ navigation }: any) {
         setSeries(yaListo.series);
         setHistorial(yaListo.historial);
         setLoading(false);
+        yaScrolleoRef.current = false;
+        indiceVerARef.current = yaListo.historial.length > 0 ? 1 : 0;
+        setTimeout(() => scrollAVerAContinuacion(), 60);
       } else if (!silencioso) {
         setLoading(true);
       }
@@ -102,6 +107,11 @@ function ListaPendiente({ navigation }: any) {
       setSeries(datos.series);
       setHistorial(datos.historial);
       actualizarCacheListaPendiente(userId, datos);
+      if (!yaListo && !silencioso) {
+        yaScrolleoRef.current = false;
+        indiceVerARef.current = datos.historial.length > 0 ? 1 : 0;
+        setTimeout(() => scrollAVerAContinuacion(), 60);
+      }
     } catch (e: any) {
       console.error("Error al cargar tus series:", e);
       Alert.alert(t("No se pudieron cargar tus series"), e.message ?? "Probá de nuevo.");
@@ -226,6 +236,17 @@ function ListaPendiente({ navigation }: any) {
       (s.tipo === "historial" ? historialOrdenado.length > 0 : s.tipo === "abandonada" ? abandonadas.length > 0 : sinComenzar.length > 0)
   );
 
+  function scrollAVerAContinuacion(intentos = 6) {
+    if (indiceVerARef.current <= 0) return;
+    try {
+      listRef.current?.scrollToLocation({ sectionIndex: indiceVerARef.current, itemIndex: 0, animated: false, viewOffset: 0 });
+      yaScrolleoRef.current = true;
+    } catch {
+      // todavía no terminó de medir, reintentamos
+    }
+    if (intentos > 0) setTimeout(() => scrollAVerAContinuacion(intentos - 1), 120);
+  }
+
   return (
     <>
     <SectionList
@@ -243,6 +264,9 @@ function ListaPendiente({ navigation }: any) {
         return { ...s, data: s.colapsable && !abierta ? [] : datosCompletos, cantidad: datosCompletos.length };
       })}
       keyExtractor={(item: any, i) => `${item.tmdb_id ?? item.series_tmdb_id}-${i}`}
+      onContentSizeChange={() => {
+        if (!yaScrolleoRef.current) scrollAVerAContinuacion(2);
+      }}
       renderSectionHeader={({ section }) =>
         section.colapsable ? (
           <Pressable
