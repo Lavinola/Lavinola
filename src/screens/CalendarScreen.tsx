@@ -49,7 +49,8 @@ export default function CalendarScreen({ navigation }: any) {
   useFocusEffect(
     useCallback(() => {
       cargar();
-    }, [])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [idioma])
   );
 
   async function cargar() {
