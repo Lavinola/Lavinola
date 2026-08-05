@@ -2459,8 +2459,12 @@ create policy "poll_votes_select" on poll_votes for select using (true);
 drop policy if exists "poll_votes_insert" on poll_votes;
 create policy "poll_votes_insert" on poll_votes for insert with check (
   auth.uid() = user_id and exists (
-    select 1 from polls join group_members on group_members.group_id = polls.group_id
-    where polls.id = poll_votes.poll_id and group_members.user_id = auth.uid()
+    select 1 from polls
+    where polls.id = poll_votes.poll_id
+      and (
+        polls.group_id is null -- encuesta del Lobby: cualquiera logueado puede votar
+        or exists (select 1 from group_members where group_members.group_id = polls.group_id and group_members.user_id = auth.uid())
+      )
   )
 );
 drop policy if exists "poll_votes_delete" on poll_votes;
