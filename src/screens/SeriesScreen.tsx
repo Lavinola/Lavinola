@@ -11,6 +11,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import AgregarButton from "../components/AgregarButton";
 import CalificarModal from "../components/CalificarModal";
 import { historialReciente, SerieListado, EventoHistorial } from "../lib/seriesList";
+import { formatearFecha } from "../lib/dates";
 import { cacheSincronicaListaPendiente, obtenerListaPendiente, actualizarCacheListaPendiente, cargarDatosListaPendiente } from "../lib/seriesListCache";
 import TopPills from "../components/TopPills";
 import CalendarScreen from "./CalendarScreen";
@@ -44,8 +45,6 @@ function ListaPendiente({ navigation }: any) {
   const [historial, setHistorial] = useState<EventoHistorial[]>([]);
   const [loading, setLoading] = useState(true);
   const listRef = useRef<SectionList>(null);
-  const yaScrolleoRef = useRef(false);
-  const indiceVerARef = useRef(0);
   const idCargaRef = useRef(0);
   // Orden "congelado" de Ver a continuación: en vez de recalcularlo desde
   // cero en cada recarga (lo que puede reordenar todo por pequeñas
@@ -57,6 +56,7 @@ function ListaPendiente({ navigation }: any) {
   const [abandonadaAbierta, setAbandonadaAbierta] = useState(false);
   const [sinComenzarAbierta, setSinComenzarAbierta] = useState(false);
   const [viendoAbierta, setViendoAbierta] = useState(true);
+  const [historialAbierto, setHistorialAbierto] = useState(false);
   const [confirmAnteriores, setConfirmAnteriores] = useState<{
     item: SerieListado;
     anteriores: { season_number: number; episode_number: number }[];
@@ -93,9 +93,6 @@ function ListaPendiente({ navigation }: any) {
         setSeries(yaListo.series);
         setHistorial(yaListo.historial);
         setLoading(false);
-        yaScrolleoRef.current = false;
-        indiceVerARef.current = yaListo.historial.length > 0 ? 1 : 0;
-        setTimeout(() => scrollAVerAContinuacion(), 60);
       } else if (!silencioso) {
         setLoading(true);
       }
@@ -105,12 +102,6 @@ function ListaPendiente({ navigation }: any) {
       setSeries(datos.series);
       setHistorial(datos.historial);
       actualizarCacheListaPendiente(userId, datos);
-      if (!yaListo && !silencioso) {
-        yaScrolleoRef.current = false;
-        const hayHistorial = datos.historial.length > 0;
-        indiceVerARef.current = hayHistorial ? 1 : 0;
-        setTimeout(() => scrollAVerAContinuacion(), 60);
-      }
     } catch (e: any) {
       console.error("Error al cargar tus series:", e);
       Alert.alert(t("No se pudieron cargar tus series"), e.message ?? "Probá de nuevo.");
@@ -127,7 +118,7 @@ function ListaPendiente({ navigation }: any) {
    * El resto de la lista (Historial, que es chico) sí se refresca entero.
    */
   async function actualizarSerieLocal(userId: string, seriesTmdbId: number) {
-    const [proximo, hist] = await Promise.all([getProximoEpisodio(userId, seriesTmdbId), historialReciente(userId, 60)]);
+    const [proximo, hist] = await Promise.all([getProximoEpisodio(userId, seriesTmdbId), historialReciente(userId, 50)]);
     setHistorial(hist);
 
     setSeries((prev) =>
@@ -220,12 +211,12 @@ function ListaPendiente({ navigation }: any) {
   const abandonadas = series.filter((s) => s.estado === "abandonada").sort((a, b) => (b.last_watched_at ?? "").localeCompare(a.last_watched_at ?? ""));
   const sinComenzar = series.filter((s) => s.estado === "sin_comenzar").sort((a, b) => b.added_at.localeCompare(a.added_at));
 
-  // El historial va ordenado del más viejo (arriba) al más nuevo (justo antes de "Ver a continuación"),
-  // así al scrollear para arriba vas viendo hacia atrás en el tiempo.
-  const historialOrdenado = [...historial].reverse();
+  // Más reciente arriba, más viejo abajo — orden natural de "visto
+  // recientemente" (ya viene así de la consulta, no hace falta invertir).
+  const historialOrdenado = historial;
 
   const secciones = [
-    { titulo: t("Historial de visualización"), tipo: "historial" as const, esconderSiVacia: true, colapsable: false },
+    { titulo: t("Visto recientemente"), tipo: "historial" as const, esconderSiVacia: true, colapsable: true },
     { titulo: t("Ver a continuación"), tipo: "viendo" as const, esconderSiVacia: false, colapsable: true },
     { titulo: t("Sin ver por un tiempo"), tipo: "abandonada" as const, esconderSiVacia: true, colapsable: true },
     { titulo: t("Sin comenzar"), tipo: "sin_comenzar" as const, esconderSiVacia: true, colapsable: true },
@@ -234,17 +225,6 @@ function ListaPendiente({ navigation }: any) {
       !s.esconderSiVacia ||
       (s.tipo === "historial" ? historialOrdenado.length > 0 : s.tipo === "abandonada" ? abandonadas.length > 0 : sinComenzar.length > 0)
   );
-
-  function scrollAVerAContinuacion(intentos = 6) {
-    if (indiceVerARef.current <= 0) return;
-    try {
-      listRef.current?.scrollToLocation({ sectionIndex: indiceVerARef.current, itemIndex: 0, animated: false, viewOffset: 0 });
-      yaScrolleoRef.current = true;
-    } catch {
-      // todavía no terminó de medir, reintentamos
-    }
-    if (intentos > 0) setTimeout(() => scrollAVerAContinuacion(intentos - 1), 120);
-  }
 
   return (
     <>
@@ -258,14 +238,11 @@ function ListaPendiente({ navigation }: any) {
             ? sinComenzarAbierta
             : s.tipo === "viendo"
             ? viendoAbierta
-            : true;
+            : historialAbierto;
         const datosCompletos = s.tipo === "historial" ? historialOrdenado : s.tipo === "viendo" ? viendo : s.tipo === "abandonada" ? abandonadas : sinComenzar;
         return { ...s, data: s.colapsable && !abierta ? [] : datosCompletos, cantidad: datosCompletos.length };
       })}
       keyExtractor={(item: any, i) => `${item.tmdb_id ?? item.series_tmdb_id}-${i}`}
-      onContentSizeChange={() => {
-        if (!yaScrolleoRef.current) scrollAVerAContinuacion(2);
-      }}
       renderSectionHeader={({ section }) =>
         section.colapsable ? (
           <Pressable
@@ -273,6 +250,7 @@ function ListaPendiente({ navigation }: any) {
             onPress={() => {
               if (section.tipo === "abandonada") setAbandonadaAbierta((v) => !v);
               else if (section.tipo === "sin_comenzar") setSinComenzarAbierta((v) => !v);
+              else if (section.tipo === "historial") setHistorialAbierto((v) => !v);
               else setViendoAbierta((v) => !v);
             }}
           >
@@ -281,7 +259,7 @@ function ListaPendiente({ navigation }: any) {
             </Text>
             <Ionicons
               name={
-                (section.tipo === "abandonada" ? abandonadaAbierta : section.tipo === "sin_comenzar" ? sinComenzarAbierta : viendoAbierta)
+                (section.tipo === "abandonada" ? abandonadaAbierta : section.tipo === "sin_comenzar" ? sinComenzarAbierta : section.tipo === "historial" ? historialAbierto : viendoAbierta)
                   ? "chevron-up"
                   : "chevron-down"
               }
@@ -303,7 +281,12 @@ function ListaPendiente({ navigation }: any) {
             >
               {h.poster_path && <Image source={{ uri: posterUrl(h.poster_path, "w185")! }} style={styles.filaPosterHistorial} />}
               <View style={styles.filaInfo}>
-                <Text style={styles.filaTituloHistorial}>{h.series_name}</Text>
+                <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+                  <Text style={styles.filaTituloHistorial} numberOfLines={1}>
+                    {h.series_name}
+                  </Text>
+                  <Text style={styles.fechaHistorial}> · {formatearFecha(h.watched_at)}</Text>
+                </View>
                 <Text style={styles.filaSubHistorial} numberOfLines={1}>
                   {`T${String(h.season_number).padStart(2, "0")} - E${String(h.episode_number).padStart(2, "0")}${h.episode_name ? `: ${h.episode_name}` : ""}`}
                 </Text>
@@ -453,6 +436,7 @@ const styles = StyleSheet.create({
   filaHistorial: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, opacity: 0.55 },
   filaPosterHistorial: { width: 40, height: 60, borderRadius: 4, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },
   filaTituloHistorial: { fontSize: 14, fontWeight: "600", color: theme.colors.textMuted },
+  fechaHistorial: { fontSize: 11, color: theme.colors.textFaint },
   filaSubHistorial: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   tildeHistorial: { width: 30, height: 30, borderRadius: 15, backgroundColor: theme.colors.success, alignItems: "center", justifyContent: "center", marginLeft: 8 },
   tildeHistorialTexto: { color: theme.colors.text, fontSize: 13, fontWeight: "700" },

@@ -6,7 +6,7 @@ export interface DatosListaPendiente {
 }
 
 export async function cargarDatosListaPendiente(userId: string): Promise<DatosListaPendiente> {
-  const [series, historial] = await Promise.all([listarSeriesConEstado(userId), historialReciente(userId, 60)]);
+  const [series, historial] = await Promise.all([listarSeriesConEstado(userId), historialReciente(userId, 50)]);
   return { series, historial };
 }
 
