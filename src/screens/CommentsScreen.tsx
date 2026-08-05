@@ -420,7 +420,9 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     minHeight: 40,
-    maxHeight: 120,
+    maxHeight: 112,
+    fontSize: 14,
+    lineHeight: 19,
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: 8,

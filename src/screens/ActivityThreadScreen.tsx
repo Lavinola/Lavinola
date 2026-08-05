@@ -585,6 +585,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
           placeholderTextColor={theme.colors.textFaint}
           value={texto}
           onChangeText={setTexto}
+          multiline
           maxLength={500}
         />
         <Pressable style={styles.enviarBtn} onPress={enviar}>
@@ -748,6 +749,20 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: "row", padding: 8, alignItems: "center", borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   gifBtn: { width: 44, height: 38, borderRadius: 8, backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center", marginRight: 6 },
   gifBtnTexto: { color: theme.colors.primaryLight, fontSize: 11, fontWeight: "800" },
-  input: { flex: 1, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10, marginRight: 8 },
+  input: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 112,
+    fontSize: 14,
+    lineHeight: 19,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    color: theme.colors.text,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
   enviarBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
 });
