@@ -411,6 +411,11 @@ export function NodoComentario({
     }
     setReacciones(nuevasReacciones);
     await reaccionar(userId, comentario.id, emoji, miReaccion);
+    // Sin esto, la reacción se veía bien al toque pero solo en esta
+    // instancia puntual — si esta parte de la pantalla se volvía a armar
+    // (cerrar/abrir respuestas, volver a la pantalla), usaba datos viejos
+    // y la reacción "desaparecía" visualmente aunque siguiera guardada.
+    onReplyPropagado();
   }
 
   function reportarComentario() {
