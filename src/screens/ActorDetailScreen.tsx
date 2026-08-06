@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { View, Image, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "../components/Themed";
 import { getPersonDetails, getPersonCombinedCredits, posterUrl } from "../lib/tmdb";
+import { traducirTexto } from "../lib/translate";
 import { syncSeries, syncMovie } from "../lib/sync";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
+import { Alert } from "../lib/alert";
 
 interface Props {
   route: { params: { personId: number } };
@@ -12,15 +14,36 @@ interface Props {
 }
 
 export default function ActorDetailScreen({ route, navigation }: Props) {
-  const { t } = useT();
+  const { t, idioma } = useT();
   const { personId } = route.params;
   const [persona, setPersona] = useState<any>(null);
   const [creditos, setCreditos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [traduccionBio, setTraduccionBio] = useState<string | null>(null);
+  const [traduciendoBio, setTraduciendoBio] = useState(false);
+  const [cantidadMostrada, setCantidadMostrada] = useState(15);
 
   useEffect(() => {
+    setTraduccionBio(null);
+    setCantidadMostrada(15);
     cargar();
   }, [personId]);
+
+  async function traducirBio() {
+    if (traduccionBio) {
+      setTraduccionBio(null);
+      return;
+    }
+    if (!persona?.biography) return;
+    setTraduciendoBio(true);
+    try {
+      setTraduccionBio(await traducirTexto(persona.biography.slice(0, 500), idioma));
+    } catch (e: any) {
+      Alert.alert(t("No se pudo traducir"), e.message);
+    } finally {
+      setTraduciendoBio(false);
+    }
+  }
 
   async function cargar() {
     setLoading(true);
@@ -46,7 +69,7 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
           const fechaB = b.release_date || b.first_air_date || "";
           return fechaB.localeCompare(fechaA);
         });
-      setCreditos(todos.slice(0, 100));
+      setCreditos(todos);
     } finally {
       setLoading(false);
     }
@@ -63,7 +86,7 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
 
   return (
     <FlatList
-      data={creditos}
+      data={creditos.slice(0, cantidadMostrada)}
       keyExtractor={(c) => `${c.media_type}-${c.id}-${c.credit_id}`}
       numColumns={3}
       contentContainerStyle={{ padding: 12 }}
@@ -77,7 +100,14 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
               {persona.place_of_birth ? ` ${t("en")} ${persona.place_of_birth}` : ""}
             </Text>
           )}
-          {persona?.biography ? <Text style={styles.bio}>{persona.biography.slice(0, 500)}</Text> : null}
+          {persona?.biography ? (
+            <>
+              <Text style={styles.bio}>{traduccionBio ?? persona.biography.slice(0, 500)}</Text>
+              <Pressable onPress={traducirBio} disabled={traduciendoBio} style={styles.traducirBioBtn}>
+                <Text style={styles.traducirBioTexto}>{traduciendoBio ? t("Traduciendo...") : traduccionBio ? t("Ver original") : t("Traducir")}</Text>
+              </Pressable>
+            </>
+          ) : null}
           <Text style={styles.filmografiaTitulo}>{t("Filmografía")}</Text>
         </View>
       }
@@ -89,16 +119,27 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
           </Text>
         </Pressable>
       )}
+      ListFooterComponent={
+        cantidadMostrada < creditos.length ? (
+          <Pressable style={styles.mostrarMasBtn} onPress={() => setCantidadMostrada((c) => c + 15)}>
+            <Text style={styles.mostrarMasTexto}>{t("Mostrar más")}</Text>
+          </Pressable>
+        ) : null
+      }
     />
   );
 }
 
 const styles = StyleSheet.create({
   header: { alignItems: "center", marginBottom: 16 },
+  mostrarMasBtn: { alignItems: "center", paddingVertical: 16 },
+  mostrarMasTexto: { fontSize: 13, color: theme.colors.primaryLight, fontWeight: "700" },
   foto: { width: 140, height: 210, borderRadius: 8, marginBottom: 12, backgroundColor: theme.colors.surfaceAlt },
   nombre: { fontSize: 20, fontWeight: "700" },
   dato: { fontSize: 12, color: theme.colors.textMuted, marginTop: 4, textAlign: "center" },
   bio: { fontSize: 13, color: theme.colors.text, marginTop: 12, textAlign: "left", lineHeight: 19 },
+  traducirBioBtn: { alignSelf: "flex-end", marginTop: 6 },
+  traducirBioTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   filmografiaTitulo: { fontSize: 16, fontWeight: "700", alignSelf: "flex-start", marginTop: 20, marginBottom: 4 },
   item: { flex: 1 / 3, padding: 6 },
   poster: { width: "100%", aspectRatio: 2 / 3, borderRadius: 6, backgroundColor: theme.colors.surfaceAlt },

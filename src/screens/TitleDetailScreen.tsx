@@ -8,6 +8,7 @@ import ConfettiOverlay from "../components/ConfettiOverlay";
 import PublishActionModal from "../components/PublishActionModal";
 import { serieRecienCompletada } from "../lib/celebration";
 import { useT } from "../i18n/i18n";
+import { traducirTexto } from "../lib/translate";
 import StarRating from "../components/StarRating";
 import WatchedPlatformPicker from "../components/WatchedPlatformPicker";
 import ActionSheetModal from "../components/ActionSheetModal";
@@ -31,13 +32,15 @@ import {
   getSeriesCertification,
   getMovieCertification,
   normalizarClasificacion,
+  obtenerOverviewLocalizado,
+  getTmdbLanguage,
 } from "../lib/tmdb";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMisSeries, eliminarPeliculaDeMisPeliculas } from "../lib/sync";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { supabase } from "../lib/supabase";
 import { esFavorito, toggleFavorito, contarFavoritosDeTitulo } from "../lib/favorites";
 import { getEstadoVistoPelicula, toggleVistaPelicula, volverAVerPelicula, establecerFechaPrimeraVistaPelicula, establecerFechaUltimaVistaPelicula } from "../lib/watchStatus";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import FechaPickerNativo from "../components/FechaPickerNativo";
 import { getMoodStats, elegirMood, MoodStats } from "../lib/moods";
 import { getCastVoteStats, votarActor, CastVoteStats } from "../lib/castVotes";
 import {
@@ -421,7 +424,10 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
 }
 
 function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vistaVersion }: any) {
-  const { t } = useT();
+  const { t, idioma } = useT();
+  const [traduccionSinopsis, setTraduccionSinopsis] = useState<string | null>(null);
+  const [traduciendoSinopsis, setTraduciendoSinopsis] = useState(false);
+  const [overviewLocalizado, setOverviewLocalizado] = useState<string | null>(null);
   const [providers, setProviders] = useState<any>(null);
   const [popularidad, setPopularidad] = useState(0);
   const [promedio, setPromedio] = useState<{ promedio: number | null; cantidad: number }>({ promedio: null, cantidad: 0 });
@@ -451,6 +457,31 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
 
   const targetType = tipo as "series" | "movie";
   const targetId = String(tmdbId);
+
+  useEffect(() => {
+    setTraduccionSinopsis(null);
+    setOverviewLocalizado(null);
+    obtenerOverviewLocalizado(targetType, tmdbId, getTmdbLanguage())
+      .then(setOverviewLocalizado)
+      .catch((e) => console.error("No se pudo pedir la sinopsis en el idioma configurado:", e));
+  }, [tmdbId]);
+
+  async function traducirSinopsis() {
+    if (traduccionSinopsis) {
+      setTraduccionSinopsis(null);
+      return;
+    }
+    const base = overviewLocalizado ?? titulo.overview;
+    if (!base) return;
+    setTraduciendoSinopsis(true);
+    try {
+      setTraduccionSinopsis(await traducirTexto(base, idioma));
+    } catch (e: any) {
+      Alert.alert(t("No se pudo traducir"), e.message);
+    } finally {
+      setTraduciendoSinopsis(false);
+    }
+  }
 
   useEffect(() => {
     cargar();
@@ -640,7 +671,12 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       {titulo.overview && (
         <>
           <Text style={styles.seccionTitulo}>{t("Sinopsis")}</Text>
-          <Text style={styles.overview}>{titulo.overview}</Text>
+          <Text style={styles.overview}>{traduccionSinopsis ?? overviewLocalizado ?? titulo.overview}</Text>
+          <Pressable onPress={traducirSinopsis} disabled={traduciendoSinopsis} style={styles.traducirSinopsisBtn}>
+            <Text style={styles.traducirSinopsisTexto}>
+              {traduciendoSinopsis ? t("Traduciendo...") : traduccionSinopsis ? t("Ver original") : t("Traducir")}
+            </Text>
+          </Pressable>
         </>
       )}
 
@@ -766,15 +802,11 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       ]}
     />
     {mostrarPicker && (
-      <DateTimePicker
+      <FechaPickerNativo
         value={(campoFechaRef.current === "ultima" ? fechaVista : primeraFechaVista) ? new Date((campoFechaRef.current === "ultima" ? fechaVista : primeraFechaVista) as string) : new Date()}
-        mode="date"
-        display="default"
         maximumDate={new Date()}
-        onChange={(_event: any, fecha?: Date) => {
-          setMostrarPicker(false);
-          if (fecha) elegirFechaManual(fecha);
-        }}
+        onCerrar={() => setMostrarPicker(false)}
+        onElegida={elegirFechaManual}
       />
     )}
     </>
@@ -979,6 +1011,8 @@ const styles = StyleSheet.create({
   plataformaLogoBox: { width: 48, height: 48, borderRadius: 10, overflow: "hidden", backgroundColor: theme.colors.surfaceAlt },
   plataformaLogo: { width: 48, height: 48 },
   overview: { fontSize: 14, lineHeight: 20 },
+  traducirSinopsisBtn: { alignSelf: "flex-end", marginTop: 6 },
+  traducirSinopsisTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   directorTexto: { fontSize: 13, color: theme.colors.textMuted, marginTop: 10 },
   directorTappeable: { textDecorationLine: "underline", color: theme.colors.primaryLight },
   trailerBtn: {

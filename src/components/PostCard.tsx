@@ -54,10 +54,23 @@ export default function PostCard({
   const [gifElegido, setGifElegido] = useState<string | null>(null);
   const [idiomaUsuario, setIdiomaUsuario] = useState("en");
   const [cantidadComentarios, setCantidadComentarios] = useState(post.cantidad_comentarios ?? 0);
+  // Mismo criterio que con los comentarios: copia local de mi reacción y
+  // el conteo — así reaccionar tampoco obliga a recargar toda la
+  // pantalla de afuera (Lobby/grupo), evitando que se reinicie el scroll.
+  const [miReaccion, setMiReaccion] = useState(post.mi_reaccion ?? null);
+  const [reaccionesConteo, setReaccionesConteo] = useState(post.reacciones ?? {});
 
   React.useEffect(() => {
     setCantidadComentarios(post.cantidad_comentarios ?? 0);
   }, [post.cantidad_comentarios]);
+
+  React.useEffect(() => {
+    setMiReaccion(post.mi_reaccion ?? null);
+  }, [post.mi_reaccion]);
+
+  React.useEffect(() => {
+    setReaccionesConteo(post.reacciones ?? {});
+  }, [post.reacciones]);
 
   React.useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -130,16 +143,30 @@ export default function PostCard({
     }
   }
 
-  async function elegirReaccion(key: string) {
+  function elegirReaccion(key: string) {
     if (!userId) return;
     setPickerVisible(false);
-    try {
-      if (post.mi_reaccion === key) await quitarReaccionPost(userId, post.id);
-      else await reaccionarPost(userId, post.id, key);
-      onCambio?.();
-    } catch (e: any) {
-      Alert.alert("No se pudo reaccionar", e.message);
+    const anteriorEmoji = miReaccion;
+    const anteriorConteo = reaccionesConteo;
+    const nuevoConteo = { ...reaccionesConteo };
+    if (anteriorEmoji) nuevoConteo[anteriorEmoji] = Math.max(0, (nuevoConteo[anteriorEmoji] ?? 1) - 1);
+    if (anteriorEmoji === key) {
+      setMiReaccion(null);
+    } else {
+      nuevoConteo[key] = (nuevoConteo[key] ?? 0) + 1;
+      setMiReaccion(key);
     }
+    setReaccionesConteo(nuevoConteo);
+    (async () => {
+      try {
+        if (anteriorEmoji === key) await quitarReaccionPost(userId, post.id);
+        else await reaccionarPost(userId, post.id, key);
+      } catch (e: any) {
+        setMiReaccion(anteriorEmoji); // no se pudo guardar — volvemos a como estaba
+        setReaccionesConteo(anteriorConteo);
+        Alert.alert("No se pudo reaccionar", e.message);
+      }
+    })();
   }
 
   const esMiPost = !!userId && userId === post.user_id;
@@ -212,7 +239,7 @@ export default function PostCard({
     }
   }
 
-  const totalReacciones = Object.values(post.reacciones ?? {}).reduce((a, b) => a + b, 0);
+  const totalReacciones = Object.values(reaccionesConteo ?? {}).reduce((a, b) => a + b, 0);
 
   if (eliminado) return null;
 
@@ -329,7 +356,7 @@ export default function PostCard({
 
       <View style={styles.accionesRow}>
         <Pressable onPress={tocarBotonReaccion} style={styles.accionBtn}>
-          <IconoReaccion reaccionKey={post.mi_reaccion ?? ""} size={16} />
+          <IconoReaccion reaccionKey={miReaccion ?? ""} size={16} />
           <Text style={styles.accionTexto}>{totalReacciones > 0 ? totalReacciones : ""}</Text>
         </Pressable>
         <Pressable onPress={toggleLista} style={styles.accionBtn}>

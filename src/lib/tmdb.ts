@@ -58,8 +58,53 @@ export function getEpisodeExternalIds(seriesTmdbId: number, seasonNumber: number
   return tmdbFetch<any>(`/tv/${seriesTmdbId}/season/${seasonNumber}/episode/${episodeNumber}/external_ids`);
 }
 
-export function getSeasonEpisodes(tmdbId: number, seasonNumber: number) {
-  return tmdbFetch<any>(`/tv/${tmdbId}/season/${seasonNumber}`);
+export function getSeasonEpisodes(tmdbId: number, seasonNumber: number, idiomaForzado?: string) {
+  return tmdbFetch<any>(`/tv/${tmdbId}/season/${seasonNumber}`, {}, idiomaForzado);
+}
+
+/**
+ * Busca la sinopsis en el idioma configurado por quien mira la ficha,
+ * pidiéndosela directo a TMDB (no depende de lo que haya quedado guardado
+ * en el caché compartido, que puede estar en el idioma de quien lo haya
+ * sincronizado por última vez). Solo se usa en la ficha de detalle —un
+ * título a la vez—, no en listas, por eso el costo de pedidos es bajo.
+ *
+ * Si el idioma preferido es español latino (es-419) y TMDB no tiene una
+ * sinopsis propia ahí, se prueba con español de España antes de
+ * rendirse (mismo idioma base, mejor que nada). El resto de los idiomas
+ * piden directo el suyo, sin cascada. Si no se encuentra nada, devuelve
+ * null — se sigue mostrando lo que hubiera, y queda el botón "Traducir"
+ * como respaldo.
+ */
+export async function obtenerOverviewLocalizado(
+  tipo: "series" | "movie" | "episode",
+  tmdbId: number,
+  idiomaPreferido: string,
+  seasonNumber?: number,
+  episodeNumber?: number
+): Promise<string | null> {
+  async function pedir(idioma: string): Promise<string | null> {
+    try {
+      if (tipo === "episode" && seasonNumber != null && episodeNumber != null) {
+        const temporada = await getSeasonEpisodes(tmdbId, seasonNumber, idioma);
+        const ep = (temporada?.episodes ?? []).find((e: any) => e.episode_number === episodeNumber);
+        return ep?.overview || null;
+      }
+      const detalle = tipo === "movie" ? await getMovieDetails(tmdbId, idioma) : await getSeriesDetails(tmdbId, idioma);
+      return detalle?.overview || null;
+    } catch (e) {
+      console.error(`No se pudo pedir la sinopsis en ${idioma}:`, e);
+      return null;
+    }
+  }
+
+  const enIdiomaPreferido = await pedir(idiomaPreferido);
+  if (enIdiomaPreferido) return enIdiomaPreferido;
+
+  if (idiomaPreferido === "es-419") {
+    return pedir("es-ES");
+  }
+  return null;
 }
 
 export function getTrendingSeries(page = 1) {

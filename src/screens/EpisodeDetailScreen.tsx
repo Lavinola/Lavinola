@@ -7,6 +7,7 @@ import ConfettiOverlay from "../components/ConfettiOverlay";
 import PublishActionModal from "../components/PublishActionModal";
 import { serieRecienCompletada } from "../lib/celebration";
 import { useT } from "../i18n/i18n";
+import { traducirTexto } from "../lib/translate";
 import StarRating from "../components/StarRating";
 import WatchedPlatformPicker from "../components/WatchedPlatformPicker";
 import MoodPicker from "../components/MoodPicker";
@@ -15,11 +16,11 @@ import ConfirmModal from "../components/ConfirmModal";
 import CastVotePicker from "../components/CastVotePicker";
 import { supabase } from "../lib/supabase";
 import { calificarEpisodio, promedioEpisodio, guardarPlataformaEpisodio } from "../lib/ratings";
-import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl } from "../lib/tmdb";
+import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getTmdbLanguage } from "../lib/tmdb";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { marcarVariosEpisodios, desmarcarEpisodio, episodiosAnterioresNoVistos } from "../lib/episodes";
 import { getEstadoVistoEpisodio, volverAVerEpisodio, establecerFechaPrimeraVistaEpisodio, establecerFechaUltimaVistaEpisodio } from "../lib/watchStatus";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import FechaPickerNativo from "../components/FechaPickerNativo";
 import { getMoodStats, elegirMood, MoodStats } from "../lib/moods";
 import { getCastVoteStats, votarActor, CastVoteStats } from "../lib/castVotes";
 import { theme } from "../theme";
@@ -38,9 +39,12 @@ interface Props {
 }
 
 export default function EpisodeDetailScreen({ route, navigation }: Props) {
-  const { t } = useT();
+  const { t, idioma } = useT();
   const { seriesTmdbId, seasonNumber, episodeNumber, episodeName } = route.params;
   const [episodio, setEpisodio] = useState<any>(null);
+  const [traduccionSinopsis, setTraduccionSinopsis] = useState<string | null>(null);
+  const [traduciendoSinopsis, setTraduciendoSinopsis] = useState(false);
+  const [overviewLocalizado, setOverviewLocalizado] = useState<string | null>(null);
   const [nombreSerieParaRecomendar, setNombreSerieParaRecomendar] = useState("esta serie");
   const [mostrarConfetti, setMostrarConfetti] = useState(false);
   const [publishModalVisible, setPublishModalVisible] = useState(false);
@@ -72,6 +76,31 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     cargar();
   }, []);
+
+  useEffect(() => {
+    setTraduccionSinopsis(null);
+    setOverviewLocalizado(null);
+    obtenerOverviewLocalizado("episode", seriesTmdbId, getTmdbLanguage(), seasonNumber, episodeNumber)
+      .then(setOverviewLocalizado)
+      .catch((e) => console.error("No se pudo pedir la sinopsis del capítulo en el idioma configurado:", e));
+  }, [seriesTmdbId, seasonNumber, episodeNumber]);
+
+  async function traducirSinopsis() {
+    if (traduccionSinopsis) {
+      setTraduccionSinopsis(null);
+      return;
+    }
+    const base = overviewLocalizado ?? episodio?.overview;
+    if (!base) return;
+    setTraduciendoSinopsis(true);
+    try {
+      setTraduccionSinopsis(await traducirTexto(base, idioma));
+    } catch (e: any) {
+      Alert.alert(t("No se pudo traducir"), e.message);
+    } finally {
+      setTraduciendoSinopsis(false);
+    }
+  }
 
   async function cargar() {
     const { data: userData } = await supabase.auth.getUser();
@@ -362,7 +391,12 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
           {episodio?.overview && (
             <>
               <Text style={styles.seccionTitulo}>{t("Sinopsis")}</Text>
-              <Text style={styles.overview}>{episodio.overview}</Text>
+              <Text style={styles.overview}>{traduccionSinopsis ?? overviewLocalizado ?? episodio.overview}</Text>
+              <Pressable onPress={traducirSinopsis} disabled={traduciendoSinopsis} style={styles.traducirSinopsisBtn}>
+                <Text style={styles.traducirSinopsisTexto}>
+                  {traduciendoSinopsis ? t("Traduciendo...") : traduccionSinopsis ? t("Ver original") : t("Traducir")}
+                </Text>
+              </Pressable>
             </>
           )}
 
@@ -429,15 +463,11 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
         ]}
       />
       {mostrarPicker && (
-        <DateTimePicker
+        <FechaPickerNativo
           value={(campoFechaRef.current === "ultima" ? fechaVista : primeraFechaVista) ? new Date((campoFechaRef.current === "ultima" ? fechaVista : primeraFechaVista) as string) : new Date()}
-          mode="date"
-          display="default"
           maximumDate={new Date()}
-          onChange={(_event: any, fecha?: Date) => {
-            setMostrarPicker(false);
-            if (fecha) elegirFechaManual(fecha);
-          }}
+          onCerrar={() => setMostrarPicker(false)}
+          onElegida={elegirFechaManual}
         />
       )}
       {mostrarConfetti && <ConfettiOverlay onFin={() => setMostrarConfetti(false)} />}
@@ -496,6 +526,8 @@ const styles = StyleSheet.create({
   plataformaLogoBox: { width: 48, height: 48, borderRadius: 10, overflow: "hidden", backgroundColor: theme.colors.surfaceAlt },
   plataformaLogo: { width: 48, height: 48 },
   overview: { fontSize: 14, color: theme.colors.text, lineHeight: 20 },
+  traducirSinopsisBtn: { alignSelf: "flex-end", marginTop: 6 },
+  traducirSinopsisTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   fechaVistaBox: { marginTop: 16, alignItems: "center" },
   fechaVistaTexto: { fontSize: 12, color: theme.colors.textFaint, marginTop: 2 },
   fechaVistaVeces: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700", marginTop: 6 },

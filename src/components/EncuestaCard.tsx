@@ -163,7 +163,29 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
   const [menuVisible, setMenuVisible] = useState(false);
   const [confirmEliminarVisible, setConfirmEliminarVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
-  const nombresDeOpciones = useNombresDeOpciones(encuesta.opciones);
+
+  // Copia local de las opciones — así, al votar, se actualiza al toque
+  // SOLO esta tarjetita (círculo + contador), sin tener que pedirle de
+  // nuevo a la pantalla entera (Lobby o grupo) que recargue todo, lo que
+  // hacía que se reiniciara el scroll. Si en algún momento la pantalla de
+  // afuera SÍ trae datos frescos de la base (ej: tirás para refrescar),
+  // acá se toman esos datos nuevos con normalidad.
+  const [opciones, setOpciones] = useState(encuesta.opciones);
+  useEffect(() => {
+    setOpciones(encuesta.opciones);
+  }, [encuesta.opciones]);
+
+  const nombresDeOpciones = useNombresDeOpciones(opciones);
+
+  // Mismo criterio que con las opciones: copia local de mi reacción, el
+  // conteo de reacciones, y la cantidad de comentarios — así reaccionar o
+  // comentar tampoco obliga a recargar toda la pantalla de afuera.
+  const [miReaccion, setMiReaccion] = useState(encuesta.miReaccion);
+  const [reaccionesConteo, setReaccionesConteo] = useState(encuesta.reacciones);
+  const [cantidadComentarios, setCantidadComentarios] = useState(encuesta.cantidadComentarios);
+  useEffect(() => setMiReaccion(encuesta.miReaccion), [encuesta.miReaccion]);
+  useEffect(() => setReaccionesConteo(encuesta.reacciones), [encuesta.reacciones]);
+  useEffect(() => setCantidadComentarios(encuesta.cantidadComentarios), [encuesta.cantidadComentarios]);
 
   const [pickerVisible, setPickerVisible] = useState(false);
   const [reaccionesModalVisible, setReaccionesModalVisible] = useState(false);
@@ -190,12 +212,23 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
 
   async function votar(opcion: OpcionEncuesta) {
     if (!userId || votando) return;
+    const opcionesAnteriores = opciones;
+    // Actualizamos la pantalla al toque, calculando nosotros mismos el
+    // mismo resultado que va a quedar guardado en la base — no hace falta
+    // esperar la respuesta del servidor para verlo reflejado.
+    setOpciones((prev) =>
+      prev.map((o) => {
+        if (o.id === opcion.id) return { ...o, yoVote: !opcion.yoVote, votos: opcion.yoVote ? o.votos - 1 : o.votos + 1 };
+        if (!encuesta.allowMultiple && !opcion.yoVote && o.yoVote) return { ...o, yoVote: false, votos: o.votos - 1 };
+        return o;
+      })
+    );
     setVotando(opcion.id);
     try {
       await votarOpcion(encuesta.id, opcion.id, userId, encuesta.allowMultiple, opcion.yoVote);
-      onCambio();
     } catch (e: any) {
       console.error("Error al votar:", e);
+      setOpciones(opcionesAnteriores); // no se pudo guardar — volvemos a como estaba
       Alert.alert(t("No se pudo votar"), e.message ?? "Probá de nuevo.");
     } finally {
       setVotando(null);
@@ -212,18 +245,32 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
   }
 
   const esMiEncuesta = !!userId && userId === encuesta.userId;
-  const totalReacciones = Object.values(encuesta.reacciones ?? {}).reduce((a, b) => a + b, 0);
+  const totalReacciones = Object.values(reaccionesConteo ?? {}).reduce((a, b) => a + b, 0);
 
-  async function elegirReaccion(key: string) {
+  function elegirReaccion(emoji: string) {
     if (!userId) return;
     setPickerVisible(false);
-    try {
-      if (encuesta.miReaccion === key) await quitarReaccionEncuesta(userId, encuesta.id);
-      else await reaccionarEncuesta(userId, encuesta.id, key);
-      onCambio();
-    } catch (e: any) {
-      Alert.alert(t("No se pudo reaccionar"), e.message);
+    const anteriorEmoji = miReaccion;
+    const anteriorConteo = reaccionesConteo;
+    const nuevoConteo = { ...reaccionesConteo };
+    if (anteriorEmoji) nuevoConteo[anteriorEmoji] = Math.max(0, (nuevoConteo[anteriorEmoji] ?? 1) - 1);
+    if (anteriorEmoji === emoji) {
+      setMiReaccion(null);
+    } else {
+      nuevoConteo[emoji] = (nuevoConteo[emoji] ?? 0) + 1;
+      setMiReaccion(emoji);
     }
+    setReaccionesConteo(nuevoConteo);
+    (async () => {
+      try {
+        if (anteriorEmoji === emoji) await quitarReaccionEncuesta(userId, encuesta.id);
+        else await reaccionarEncuesta(userId, encuesta.id, emoji);
+      } catch (e: any) {
+        setMiReaccion(anteriorEmoji); // no se pudo guardar — volvemos a como estaba
+        setReaccionesConteo(anteriorConteo);
+        Alert.alert(t("No se pudo reaccionar"), e.message);
+      }
+    })();
   }
 
   async function tocarBotonReaccion() {
@@ -279,8 +326,8 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
       await postearComentario({ userId, targetType: "poll", targetId: encuesta.id, content: nuevaRespuesta.trim() });
       setNuevaRespuesta("");
       setMostrarLista(true);
+      setCantidadComentarios((c) => c + 1);
       await cargarRespuestas();
-      onCambio();
     } catch (e: any) {
       console.error("Error al postear respuesta:", e);
       Alert.alert(t("No se pudo publicar"), e.message ?? "Revisá tu conexión y probá de nuevo.");
@@ -315,7 +362,7 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
       />
       <Text style={styles.ayudaTexto}>{encuesta.allowMultiple ? t("Selecciona una opción o más") : t("Selecciona una opción")}</Text>
 
-      {encuesta.opciones.map((o) => (
+      {opciones.map((o) => (
         <Pressable key={o.id} style={styles.opcionRow} onPress={() => votar(o)} disabled={!!votando}>
           {votando === o.id ? (
             <ActivityIndicator size="small" color={theme.colors.primary} style={styles.circulo} />
@@ -355,12 +402,12 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
 
       <View style={styles.accionesRow}>
         <Pressable onPress={tocarBotonReaccion} style={styles.accionBtn}>
-          <IconoReaccion reaccionKey={encuesta.miReaccion ?? ""} size={16} />
+          <IconoReaccion reaccionKey={miReaccion ?? ""} size={16} />
           <Text style={styles.accionTexto}>{totalReacciones > 0 ? totalReacciones : ""}</Text>
         </Pressable>
         <Pressable onPress={toggleLista} style={styles.accionBtn}>
           <Ionicons name="chatbubble-outline" size={15} color={theme.colors.textMuted} />
-          <Text style={styles.accionTexto}>{encuesta.cantidadComentarios}</Text>
+          <Text style={styles.accionTexto}>{cantidadComentarios}</Text>
         </Pressable>
         <Pressable onPress={() => setMostrarInput((v) => !v)} style={styles.accionBtn}>
           <Text style={styles.accionTexto}>{t("Comentar")}</Text>
@@ -427,7 +474,7 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
         visible={votantesVisible}
         onCerrar={() => setVotantesVisible(false)}
         navigation={navigation}
-        opciones={encuesta.opciones.map((o) => ({ id: o.id, etiqueta: o.optionText || nombresDeOpciones[o.id] || t("(título)"), votos: o.votos }))}
+        opciones={opciones.map((o) => ({ id: o.id, etiqueta: o.optionText || nombresDeOpciones[o.id] || t("(título)"), votos: o.votos }))}
       />
 
       <ActionSheetModal
