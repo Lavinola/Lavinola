@@ -39,8 +39,18 @@ import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMis
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { supabase } from "../lib/supabase";
 import { esFavorito, toggleFavorito, contarFavoritosDeTitulo } from "../lib/favorites";
-import { getEstadoVistoPelicula, toggleVistaPelicula, volverAVerPelicula, establecerFechaPrimeraVistaPelicula, establecerFechaUltimaVistaPelicula } from "../lib/watchStatus";
+import {
+  getEstadoVistoPelicula,
+  toggleVistaPelicula,
+  volverAVerPelicula,
+  establecerFechaPrimeraVistaPelicula,
+  listarEventosVistaPelicula,
+  editarEventoVistaPelicula,
+  eliminarEventoVistaPelicula,
+  EventoVisto,
+} from "../lib/watchStatus";
 import FechaPickerNativo from "../components/FechaPickerNativo";
+import HistorialVistas from "../components/HistorialVistas";
 import { getMoodStats, elegirMood, MoodStats } from "../lib/moods";
 import { getCastVoteStats, votarActor, CastVoteStats } from "../lib/castVotes";
 import {
@@ -57,6 +67,8 @@ import {
   episodiosAnterioresNoVistos,
   marcarVariosEpisodios,
   desmarcarEpisodio,
+  marcarTodaLaSerieVista,
+  marcarTodaLaSerieVistaEnEstreno,
   EpisodioConEstado,
 } from "../lib/episodes";
 import { theme } from "../theme";
@@ -93,6 +105,11 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
   const [confirmEliminarVisible, setConfirmEliminarVisible] = useState(false);
   const [agregando, setAgregando] = useState(false);
   const [vista, setVista] = useState(false);
+  const [primeraFechaVistaTop, setPrimeraFechaVistaTop] = useState<string | null>(null);
+  const [menuFechaVisible, setMenuFechaVisible] = useState(false);
+  const [mostrarPickerFecha, setMostrarPickerFecha] = useState(false);
+  const [confirmVerTodaVisible, setConfirmVerTodaVisible] = useState(false);
+  const [menuCuandoSerieVisible, setMenuCuandoSerieVisible] = useState(false);
   const [vistaVersion, setVistaVersion] = useState(0); // fuerza recarga de fecha/revisitas sin cambiar `vista`
   const [menuVistaVisible, setMenuVistaVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -101,6 +118,11 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     cargar();
   }, [tmdbId]);
+
+  useEffect(() => {
+    if (!userId || tipo !== "movie") return;
+    getEstadoVistoPelicula(userId, tmdbId).then((estado) => setPrimeraFechaVistaTop(estado.firstWatchedAt));
+  }, [userId, tmdbId, tipo, vistaVersion]);
 
   async function cargar() {
     setLoading(true);
@@ -165,6 +187,46 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       await toggleVistaPelicula(userId, tmdbId, nuevoValor);
       setVista(nuevoValor);
       if (nuevoValor) setAgregada(true);
+      setVistaVersion((v) => v + 1);
+    } catch (e: any) {
+      Alert.alert("No se pudo guardar", e.message);
+    }
+  }
+
+  async function elegirFechaPrimeraDesdeMenu(fecha: Date) {
+    if (!userId) return;
+    try {
+      await establecerFechaPrimeraVistaPelicula(userId, tmdbId, fecha.toISOString());
+      setVistaVersion((v) => v + 1);
+    } catch (e: any) {
+      Alert.alert("No se pudo guardar", e.message);
+    }
+  }
+
+  function ponerFechaDeEstrenoDesdeMenu() {
+    setMenuFechaVisible(false);
+    if (titulo?.release_date) elegirFechaPrimeraDesdeMenu(new Date(titulo.release_date));
+  }
+
+  async function marcarSerieVistaCompleta() {
+    if (!userId) return;
+    setConfirmVerTodaVisible(false);
+    try {
+      await marcarTodaLaSerieVista(userId, tmdbId);
+      setVista(true);
+      setAgregada(true);
+      setVistaVersion((v) => v + 1);
+      setMostrarConfetti(true);
+    } catch (e: any) {
+      Alert.alert("No se pudo guardar", e.message);
+    }
+  }
+
+  async function marcarSerieVistaEnEstreno() {
+    if (!userId) return;
+    setMenuCuandoSerieVisible(false);
+    try {
+      await marcarTodaLaSerieVistaEnEstreno(userId, tmdbId);
       setVistaVersion((v) => v + 1);
     } catch (e: any) {
       Alert.alert("No se pudo guardar", e.message);
@@ -373,6 +435,38 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
             icono: "albums-outline",
             onPress: () => navigation.navigate("ElegirLista", { itemType: tipo, tmdbId }),
           },
+          ...(tipo === "movie" && vista
+            ? [
+                {
+                  label: `${t("¿Cuándo la viste?")}${primeraFechaVistaTop ? "  " + formatearFecha(primeraFechaVistaTop) : ""}`,
+                  icono: "calendar-outline" as const,
+                  onPress: () => {
+                    setMenuVisible(false);
+                    setMenuFechaVisible(true);
+                  },
+                },
+              ]
+            : []),
+          ...(tipo === "series"
+            ? [
+                {
+                  label: t("Ví toda la serie"),
+                  icono: "checkmark-done-outline" as const,
+                  onPress: () => {
+                    setMenuVisible(false);
+                    setConfirmVerTodaVisible(true);
+                  },
+                },
+                {
+                  label: t("¿Cuándo la viste?"),
+                  icono: "calendar-outline" as const,
+                  onPress: () => {
+                    setMenuVisible(false);
+                    setMenuCuandoSerieVisible(true);
+                  },
+                },
+              ]
+            : []),
           ...(agregada
             ? [
                 {
@@ -401,6 +495,67 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
           { label: "Eliminar", destacado: true, onPress: eliminarDeMisTitulos },
         ]}
       />
+
+      {tipo === "movie" && (
+        <>
+          <ActionSheetModal
+            visible={menuFechaVisible}
+            onCerrar={() => setMenuFechaVisible(false)}
+            titulo={t("¿Cuándo la viste?")}
+            opciones={[
+              ...(titulo?.release_date
+                ? [
+                    {
+                      label: t("Fue el día de estreno ({fecha})").replace("{fecha}", formatearFecha(titulo.release_date)),
+                      icono: "calendar-outline" as const,
+                      onPress: ponerFechaDeEstrenoDesdeMenu,
+                    },
+                  ]
+                : []),
+              { label: t("Elegir otra fecha"), icono: "create-outline", onPress: () => setMostrarPickerFecha(true) },
+            ]}
+          />
+          {mostrarPickerFecha && (
+            <FechaPickerNativo
+              value={primeraFechaVistaTop ? new Date(primeraFechaVistaTop) : new Date()}
+              maximumDate={new Date()}
+              onCerrar={() => setMostrarPickerFecha(false)}
+              onElegida={elegirFechaPrimeraDesdeMenu}
+            />
+          )}
+        </>
+      )}
+
+      {tipo === "series" && (
+        <>
+          <ConfirmModal
+            visible={confirmVerTodaVisible}
+            onCerrar={() => setConfirmVerTodaVisible(false)}
+            titulo={t("Ví toda la serie")}
+            mensaje={t("¿Viste todos los capítulos?")}
+            botones={[
+              { label: t("No"), onPress: () => {} },
+              { label: t("Sí"), destacado: true, onPress: marcarSerieVistaCompleta },
+            ]}
+          />
+          <ActionSheetModal
+            visible={menuCuandoSerieVisible}
+            onCerrar={() => setMenuCuandoSerieVisible(false)}
+            titulo={t("¿Cuándo la viste?")}
+            opciones={[
+              { label: t("Ví todos los capítulos el día de su estreno"), icono: "calendar-outline", onPress: marcarSerieVistaEnEstreno },
+              {
+                label: t("Elegir manualmente la fecha de cada capítulo"),
+                icono: "list-outline",
+                onPress: () => {
+                  setMenuCuandoSerieVisible(false);
+                  setTab("episodios");
+                },
+              },
+            ]}
+          />
+        </>
+      )}
 
       <ActionSheetModal
         visible={menuVistaVisible}
@@ -441,19 +596,9 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   const [director, setDirector] = useState<string | null>(null);
   const [directorId, setDirectorId] = useState<number | null>(null);
   const [recomendados, setRecomendados] = useState<any[]>([]);
-  const [fechaVista, setFechaVista] = useState<string | null>(null);
-  const [primeraFechaVista, setPrimeraFechaVista] = useState<string | null>(null);
-  const [vecesVista, setVecesVista] = useState(1);
+  const [eventosVista, setEventosVista] = useState<EventoVisto[]>([]);
   const [moodStats, setMoodStats] = useState<MoodStats>({ miMood: null, porcentajes: {}, total: 0 });
   const [castStats, setCastStats] = useState<CastVoteStats>({ miVoto: null, porcentajes: {}, total: 0 });
-  const [menuFechaVisible, setMenuFechaVisible] = useState<"primera" | "ultima" | null>(null);
-  const [mostrarPicker, setMostrarPicker] = useState(false);
-  // Ref (no state) para saber qué fecha se está editando en el momento en que
-  // el usuario termina de elegir una fecha en el picker nativo — el estado
-  // `menuFechaVisible` no sirve para esto porque el ActionSheetModal se
-  // auto-cierra (y lo resetea a null) apenas tocás cualquier opción, mucho
-  // antes de que el picker nativo termine de abrirse y el usuario elija algo.
-  const campoFechaRef = useRef<"primera" | "ultima">("primera");
 
   const targetType = tipo as "series" | "movie";
   const targetId = String(tmdbId);
@@ -519,9 +664,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
         setMiRating(um?.rating ?? 0);
         setMiPlataforma(um?.watched_platform ?? null);
         setPuedeCalificar(!!vista);
-        setFechaVista(um?.watched_at ?? null);
-        setPrimeraFechaVista(um?.first_watched_at ?? null);
-        setVecesVista(um?.times_watched ?? 1);
+        setEventosVista(await listarEventosVistaPelicula(userId, tmdbId));
       }
 
       setMoodStats(await getMoodStats(targetType, targetId, userId));
@@ -564,36 +707,6 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
     setMiPlataforma(plataforma);
   }
 
-  async function ponerFechaDeEstreno() {
-    if (!userId || !titulo.release_date) return;
-    try {
-      if (campoFechaRef.current === "ultima") {
-        await establecerFechaUltimaVistaPelicula(userId, tmdbId, new Date(titulo.release_date).toISOString());
-        setFechaVista(titulo.release_date);
-      } else {
-        await establecerFechaPrimeraVistaPelicula(userId, tmdbId, new Date(titulo.release_date).toISOString());
-        setPrimeraFechaVista(titulo.release_date);
-      }
-    } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
-    }
-  }
-
-  async function elegirFechaManual(fecha: Date) {
-    if (!userId) return;
-    try {
-      if (campoFechaRef.current === "ultima") {
-        await establecerFechaUltimaVistaPelicula(userId, tmdbId, fecha.toISOString());
-        setFechaVista(fecha.toISOString());
-      } else {
-        await establecerFechaPrimeraVistaPelicula(userId, tmdbId, fecha.toISOString());
-        setPrimeraFechaVista(fecha.toISOString());
-      }
-    } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
-    }
-  }
-
   async function elegirMoodPropio(mood: string) {
     if (!userId) return;
     try {
@@ -611,6 +724,26 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       setCastStats(await getCastVoteStats(targetType, targetId, userId));
     } catch (e: any) {
       Alert.alert("No se pudo guardar", e.message);
+    }
+  }
+
+  async function editarEventoVista(eventoId: string, fechaISO: string) {
+    if (!userId) return;
+    try {
+      await editarEventoVistaPelicula(userId, eventoId, tmdbId, fechaISO);
+      setEventosVista(await listarEventosVistaPelicula(userId, tmdbId));
+    } catch (e: any) {
+      Alert.alert("No se pudo guardar", e.message);
+    }
+  }
+
+  async function eliminarEventoVista(eventoId: string) {
+    if (!userId) return;
+    try {
+      await eliminarEventoVistaPelicula(userId, eventoId, tmdbId);
+      setEventosVista(await listarEventosVistaPelicula(userId, tmdbId));
+    } catch (e: any) {
+      Alert.alert("No se pudo eliminar", e.message);
     }
   }
 
@@ -742,18 +875,8 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
         </Pressable>
       </View>
 
-      {tipo === "movie" && vista && primeraFechaVista && (
-        <View style={styles.fechaVistaBox}>
-          <Pressable onPress={() => { campoFechaRef.current = "primera"; setMenuFechaVisible("primera"); }}>
-            <Text style={styles.fechaVistaTexto}>{t("Vista el")} {formatearFecha(primeraFechaVista)} ✎</Text>
-          </Pressable>
-          {vecesVista > 1 && fechaVista && fechaVista !== primeraFechaVista && (
-            <Pressable onPress={() => { campoFechaRef.current = "ultima"; setMenuFechaVisible("ultima"); }}>
-              <Text style={styles.fechaVistaTexto}>{t("Vuelta a ver el")} {formatearFecha(fechaVista)} ✎</Text>
-            </Pressable>
-          )}
-          {vecesVista > 1 && <Text style={styles.fechaVistaVeces}>{t("La viste")} {vecesVista} {t("veces")}</Text>}
-        </View>
+      {tipo === "movie" && vista && eventosVista.length > 0 && (
+        <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEliminar={eliminarEventoVista} />
       )}
 
       {recomendados.length > 0 && (
@@ -789,26 +912,6 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
         atribución a JustWatch.
       </Text>
     </View>
-
-    <ActionSheetModal
-      visible={!!menuFechaVisible}
-      onCerrar={() => setMenuFechaVisible(null)}
-      titulo={menuFechaVisible === "ultima" ? t("¿Cuándo la volviste a ver?") : t("¿Cuándo la viste?")}
-      opciones={[
-        ...(titulo.release_date
-          ? [{ label: t("Fue el día de estreno ({fecha})").replace("{fecha}", formatearFecha(titulo.release_date)), icono: "calendar-outline" as const, onPress: ponerFechaDeEstreno }]
-          : []),
-        { label: t("Elegir otra fecha"), icono: "create-outline", onPress: () => setMostrarPicker(true) },
-      ]}
-    />
-    {mostrarPicker && (
-      <FechaPickerNativo
-        value={(campoFechaRef.current === "ultima" ? fechaVista : primeraFechaVista) ? new Date((campoFechaRef.current === "ultima" ? fechaVista : primeraFechaVista) as string) : new Date()}
-        maximumDate={new Date()}
-        onCerrar={() => setMostrarPicker(false)}
-        onElegida={elegirFechaManual}
-      />
-    )}
     </>
   );
 }
@@ -1040,9 +1143,7 @@ const styles = StyleSheet.create({
   comentariosBanner: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 16, paddingHorizontal: 18 },
   comentariosBannerTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },
   comentariosBannerFlecha: { color: "#000000", fontWeight: "800", fontSize: 22 },
-  fechaVistaBox: { marginTop: 16, alignItems: "center" },
-  fechaVistaTexto: { fontSize: 12, color: theme.colors.textFaint, marginTop: 2 },
-  fechaVistaVeces: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700", marginTop: 6 },
+
   temporadaHeader: { flexDirection: "row", justifyContent: "space-between", backgroundColor: theme.colors.surface, padding: 12, borderRadius: theme.radius.md },
   temporadaTitulo: { fontSize: 15, fontWeight: "700" },
   temporadaProgreso: { fontSize: 13, color: theme.colors.textMuted },

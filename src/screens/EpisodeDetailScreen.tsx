@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, ScrollView, Image, Pressable, StyleSheet, Dimensions } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
@@ -19,7 +19,15 @@ import { calificarEpisodio, promedioEpisodio, guardarPlataformaEpisodio } from "
 import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getTmdbLanguage } from "../lib/tmdb";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { marcarVariosEpisodios, desmarcarEpisodio, episodiosAnterioresNoVistos } from "../lib/episodes";
-import { getEstadoVistoEpisodio, volverAVerEpisodio, establecerFechaPrimeraVistaEpisodio, establecerFechaUltimaVistaEpisodio } from "../lib/watchStatus";
+import {
+  volverAVerEpisodio,
+  establecerFechaPrimeraVistaEpisodio,
+  listarEventosVistaEpisodio,
+  editarEventoVistaEpisodio,
+  eliminarEventoVistaEpisodio,
+  EventoVisto,
+} from "../lib/watchStatus";
+import HistorialVistas from "../components/HistorialVistas";
 import FechaPickerNativo from "../components/FechaPickerNativo";
 import { getMoodStats, elegirMood, MoodStats } from "../lib/moods";
 import { getCastVoteStats, votarActor, CastVoteStats } from "../lib/castVotes";
@@ -59,13 +67,11 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   const [imdb, setImdb] = useState<NotaImdb | null>(null);
   const [providers, setProviders] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [fechaVista, setFechaVista] = useState<string | null>(null);
-  const [primeraFechaVista, setPrimeraFechaVista] = useState<string | null>(null);
-  const [vecesVista, setVecesVista] = useState(1);
+  const [eventosVista, setEventosVista] = useState<EventoVisto[]>([]);
   const [moodStats, setMoodStats] = useState<MoodStats>({ miMood: null, porcentajes: {}, total: 0 });
-  const [menuFechaVisible, setMenuFechaVisible] = useState<"primera" | "ultima" | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuFechaVisible, setMenuFechaVisible] = useState(false);
   const [mostrarPicker, setMostrarPicker] = useState(false);
-  const campoFechaRef = useRef<"primera" | "ultima">("primera");
   const [reparto, setReparto] = useState<any[]>([]);
   const [castStats, setCastStats] = useState<CastVoteStats>({ miVoto: null, porcentajes: {}, total: 0 });
 
@@ -132,10 +138,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       setMiRating(watched?.rating ?? 0);
       setMiPlataforma(watched?.watched_platform ?? null);
 
-      const estado = await getEstadoVistoEpisodio(uid, seriesTmdbId, seasonNumber, episodeNumber);
-      setFechaVista(estado.watchedAt);
-      setPrimeraFechaVista(estado.firstWatchedAt);
-      setVecesVista(estado.timesWatched);
+      setEventosVista(await listarEventosVistaEpisodio(uid, seriesTmdbId, seasonNumber, episodeNumber));
 
       setMoodStats(await getMoodStats("episode", targetId, uid));
       setCastStats(await getCastVoteStats("episode", targetId, uid));
@@ -229,13 +232,8 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   async function ponerFechaDeEstreno() {
     if (!userId || !episodio?.air_date) return;
     try {
-      if (campoFechaRef.current === "ultima") {
-        await establecerFechaUltimaVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber, new Date(episodio.air_date).toISOString());
-        setFechaVista(episodio.air_date);
-      } else {
-        await establecerFechaPrimeraVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber, new Date(episodio.air_date).toISOString());
-        setPrimeraFechaVista(episodio.air_date);
-      }
+      await establecerFechaPrimeraVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber, new Date(episodio.air_date).toISOString());
+      setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
     } catch (e: any) {
       Alert.alert("No se pudo guardar", e.message);
     }
@@ -244,15 +242,30 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   async function elegirFechaManual(fecha: Date) {
     if (!userId) return;
     try {
-      if (campoFechaRef.current === "ultima") {
-        await establecerFechaUltimaVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber, fecha.toISOString());
-        setFechaVista(fecha.toISOString());
-      } else {
-        await establecerFechaPrimeraVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber, fecha.toISOString());
-        setPrimeraFechaVista(fecha.toISOString());
-      }
+      await establecerFechaPrimeraVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber, fecha.toISOString());
+      setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
     } catch (e: any) {
       Alert.alert("No se pudo guardar", e.message);
+    }
+  }
+
+  async function editarEventoVista(eventoId: string, fechaISO: string) {
+    if (!userId) return;
+    try {
+      await editarEventoVistaEpisodio(userId, eventoId, seriesTmdbId, seasonNumber, episodeNumber, fechaISO);
+      setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
+    } catch (e: any) {
+      Alert.alert("No se pudo guardar", e.message);
+    }
+  }
+
+  async function eliminarEventoVista(eventoId: string) {
+    if (!userId) return;
+    try {
+      await eliminarEventoVistaEpisodio(userId, eventoId, seriesTmdbId, seasonNumber, episodeNumber);
+      setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
+    } catch (e: any) {
+      Alert.alert("No se pudo eliminar", e.message);
     }
   }
 
@@ -318,12 +331,18 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
         {episodio?.still_path ? (
           <View style={styles.backdropWrap}>
             <Image source={{ uri: posterUrl(episodio.still_path, "w500")! }} style={styles.backdrop} />
+            <Pressable style={styles.menuBtnFlotante} onPress={() => setMenuVisible(true)} hitSlop={12}>
+              <Text style={styles.menuBtnFlotanteTexto}>⋯</Text>
+            </Pressable>
             <Pressable style={styles.recomendarBtnFlotante} onPress={() => setPublishModalVisible(true)} hitSlop={12}>
               <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
             </Pressable>
           </View>
         ) : (
           <View style={styles.botonesFilaSinBackdrop}>
+            <Pressable style={styles.recomendarBtnSinBackdrop} onPress={() => setMenuVisible(true)} hitSlop={12}>
+              <Text style={styles.menuBtnFlotanteTexto}>⋯</Text>
+            </Pressable>
             <Pressable style={styles.recomendarBtnSinBackdrop} onPress={() => setPublishModalVisible(true)} hitSlop={12}>
               <Ionicons name="paper-plane" size={16} color="#FFFFFF" />
             </Pressable>
@@ -408,18 +427,8 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
             <Text style={styles.comentariosBannerFlecha}>›</Text>
           </Pressable>
 
-          {visto && primeraFechaVista && (
-            <View style={styles.fechaVistaBox}>
-              <Pressable onPress={() => { campoFechaRef.current = "primera"; setMenuFechaVisible("primera"); }}>
-                <Text style={styles.fechaVistaTexto}>{t("Visto el")} {formatearFecha(primeraFechaVista)} ✎</Text>
-              </Pressable>
-              {vecesVista > 1 && fechaVista && fechaVista !== primeraFechaVista && (
-                <Pressable onPress={() => { campoFechaRef.current = "ultima"; setMenuFechaVisible("ultima"); }}>
-                  <Text style={styles.fechaVistaTexto}>{t("Vuelto a ver el")} {formatearFecha(fechaVista)} ✎</Text>
-                </Pressable>
-              )}
-              {vecesVista > 1 && <Text style={styles.fechaVistaVeces}>{t("Lo viste")} {vecesVista} {t("veces")}</Text>}
-            </View>
+          {visto && eventosVista.length > 0 && (
+            <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEliminar={eliminarEventoVista} genero="m" />
           )}
         </View>
       </ScrollView>
@@ -429,6 +438,25 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
           {renderHeaderEpisodio()}
         </View>
       )}
+
+      <ActionSheetModal
+        visible={menuVisible}
+        onCerrar={() => setMenuVisible(false)}
+        opciones={[
+          ...(visto
+            ? [
+                {
+                  label: `${t("¿Cuándo lo viste?")}${eventosVista[0] ? "  " + formatearFecha(eventosVista[0].watchedAt) : ""}`,
+                  icono: "calendar-outline" as const,
+                  onPress: () => {
+                    setMenuVisible(false);
+                    setMenuFechaVisible(true);
+                  },
+                },
+              ]
+            : []),
+        ]}
+      />
 
       <ActionSheetModal
         visible={menuVistoVisible}
@@ -452,9 +480,9 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       />
 
       <ActionSheetModal
-        visible={!!menuFechaVisible}
-        onCerrar={() => setMenuFechaVisible(null)}
-        titulo={menuFechaVisible === "ultima" ? t("¿Cuándo lo volviste a ver?") : t("¿Cuándo lo viste?")}
+        visible={menuFechaVisible}
+        onCerrar={() => setMenuFechaVisible(false)}
+        titulo={t("¿Cuándo lo viste?")}
         opciones={[
           ...(episodio?.air_date
             ? [{ label: t("Fue el día de estreno ({fecha})").replace("{fecha}", formatearFecha(episodio.air_date)), icono: "calendar-outline" as const, onPress: ponerFechaDeEstreno }]
@@ -464,7 +492,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       />
       {mostrarPicker && (
         <FechaPickerNativo
-          value={(campoFechaRef.current === "ultima" ? fechaVista : primeraFechaVista) ? new Date((campoFechaRef.current === "ultima" ? fechaVista : primeraFechaVista) as string) : new Date()}
+          value={eventosVista[0] ? new Date(eventosVista[0].watchedAt) : new Date()}
           maximumDate={new Date()}
           onCerrar={() => setMostrarPicker(false)}
           onElegida={elegirFechaManual}
@@ -494,7 +522,9 @@ const styles = StyleSheet.create({
   backdrop: { width: "100%", height: "100%" },
   headerWrap: { backgroundColor: theme.colors.background, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   headerFlotante: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 50, elevation: 50 },
-  recomendarBtnFlotante: { position: "absolute", top: 12, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
+  recomendarBtnFlotante: { position: "absolute", top: 56, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
+  menuBtnFlotante: { position: "absolute", top: 12, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.surface, alignItems: "center", justifyContent: "center" },
+  menuBtnFlotanteTexto: { fontSize: 20, color: "#FFFFFF", fontWeight: "700" },
   publicarBtnFlotante: { position: "absolute", top: 56, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
   botonesFilaSinBackdrop: { flexDirection: "row", justifyContent: "flex-end", gap: 8, paddingHorizontal: 12, paddingTop: 12 },
   recomendarBtnSinBackdrop: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
@@ -528,7 +558,5 @@ const styles = StyleSheet.create({
   overview: { fontSize: 14, color: theme.colors.text, lineHeight: 20 },
   traducirSinopsisBtn: { alignSelf: "flex-end", marginTop: 6 },
   traducirSinopsisTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
-  fechaVistaBox: { marginTop: 16, alignItems: "center" },
-  fechaVistaTexto: { fontSize: 12, color: theme.colors.textFaint, marginTop: 2 },
-  fechaVistaVeces: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700", marginTop: 6 },
+
 });

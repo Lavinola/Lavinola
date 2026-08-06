@@ -264,6 +264,18 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "Ví toda la serie": { en: "I watched the whole series", pt: "Assisti a série inteira", it: "Ho visto tutta la serie" },
+  "¿Viste todos los capítulos?": { en: "Did you watch all the episodes?", pt: "Você assistiu a todos os episódios?", it: "Hai visto tutti gli episodi?" },
+  "Ví todos los capítulos el día de su estreno": {
+    en: "I watched every episode on its release day",
+    pt: "Assisti a todos os episódios no dia da estreia",
+    it: "Ho visto ogni episodio il giorno della sua uscita",
+  },
+  "Elegir manualmente la fecha de cada capítulo": {
+    en: "Manually choose the date for each episode",
+    pt: "Escolher manualmente a data de cada episódio",
+    it: "Scegli manualmente la data di ogni episodio",
+  },
   "Fecha inválida": { en: "Invalid date", pt: "Data inválida", it: "Data non valida" },
   Confirmar: { en: "Confirm", pt: "Confirmar", it: "Conferma" },
   "Visto recientemente": { en: "Recently watched", pt: "Visto recentemente", it: "Visto di recente" },

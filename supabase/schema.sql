@@ -2521,3 +2521,40 @@ create policy "comentarios_update_moderacion" on comentarios for update using (
   exists (select 1 from profiles where id = auth.uid() and is_admin = true)
   or exists (select 1 from groups where groups.id = comentarios.group_id and groups.creator_id = auth.uid())
 );
+
+-- ============================================================
+-- Historial real de "vistas" — antes solo se guardaba la fecha de la
+-- primera vez, la de la última, y un contador (times_watched), sin poder
+-- saber ni tocar las fechas intermedias. Ahora cada visualización es su
+-- propia fila, así se puede listar todas y borrar una puntual sin tocar
+-- las demás. Las columnas viejas (first_watched_at/watched_at/times_watched
+-- en user_movies y user_episodes_watched) se mantienen como una caché
+-- rápida — se recalculan solas a partir de estos eventos cada vez que se
+-- agrega o borra uno, así el resto de la app (estadísticas, listas, etc.)
+-- sigue funcionando igual sin tener que tocar nada más.
+-- ============================================================
+create table if not exists movie_watch_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  movie_tmdb_id integer not null,
+  watched_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_movie_watch_events on movie_watch_events(user_id, movie_tmdb_id);
+alter table movie_watch_events enable row level security;
+drop policy if exists "movie_watch_events_own" on movie_watch_events;
+create policy "movie_watch_events_own" on movie_watch_events for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create table if not exists episode_watch_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  series_tmdb_id integer not null,
+  season_number integer not null,
+  episode_number integer not null,
+  watched_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_episode_watch_events on episode_watch_events(user_id, series_tmdb_id, season_number, episode_number);
+alter table episode_watch_events enable row level security;
+drop policy if exists "episode_watch_events_own" on episode_watch_events;
+create policy "episode_watch_events_own" on episode_watch_events for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

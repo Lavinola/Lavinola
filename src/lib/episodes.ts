@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { establecerFechaPrimeraVistaEpisodio } from "./watchStatus";
 
 export interface ProximoEpisodio {
   series_tmdb_id: number;
@@ -48,6 +49,13 @@ export async function marcarEpisodioVisto(
   episodeNumber: number
 ) {
   const ahora = new Date().toISOString();
+  await supabase.from("episode_watch_events").insert({
+    user_id: userId,
+    series_tmdb_id: seriesTmdbId,
+    season_number: seasonNumber,
+    episode_number: episodeNumber,
+    watched_at: ahora,
+  });
   await supabase.from("user_episodes_watched").insert({
     user_id: userId,
     series_tmdb_id: seriesTmdbId,
@@ -137,6 +145,16 @@ export async function marcarVariosEpisodios(
   episodios: { season_number: number; episode_number: number }[]
 ) {
   const ahora = new Date().toISOString();
+  if (episodios.length > 0) {
+    const eventos = episodios.map((e) => ({
+      user_id: userId,
+      series_tmdb_id: seriesTmdbId,
+      season_number: e.season_number,
+      episode_number: e.episode_number,
+      watched_at: ahora,
+    }));
+    await supabase.from("episode_watch_events").insert(eventos);
+  }
   const filas = episodios.map((e) => ({
     user_id: userId,
     series_tmdb_id: seriesTmdbId,
@@ -149,6 +167,25 @@ export async function marcarVariosEpisodios(
   await supabase
     .from("user_series")
     .upsert({ user_id: userId, series_tmdb_id: seriesTmdbId, in_watchlist: true, last_watched_at: ahora }, { onConflict: "user_id,series_tmdb_id" });
+}
+
+/** "Ví toda la serie": marca como vistos (recién ahora) todos los capítulos que todavía no estaban vistos. Los que ya estaban vistos quedan como estaban. */
+export async function marcarTodaLaSerieVista(userId: string, seriesTmdbId: number) {
+  const { data: todos } = await supabase.from("episodes_cache").select("season_number, episode_number").eq("series_tmdb_id", seriesTmdbId);
+  const { data: vistos } = await supabase.from("user_episodes_watched").select("season_number, episode_number").eq("user_id", userId).eq("series_tmdb_id", seriesTmdbId);
+  const vistosSet = new Set((vistos ?? []).map((v) => `${v.season_number}-${v.episode_number}`));
+  const faltantes = (todos ?? []).filter((e) => !vistosSet.has(`${e.season_number}-${e.episode_number}`));
+  await marcarVariosEpisodios(userId, seriesTmdbId, faltantes);
+}
+
+/** Pone la fecha en la que viste (por primera vez) cada capítulo de la serie en su propio día de estreno — capítulo por capítulo, sin tocar los que no tienen fecha de estreno todavía. */
+export async function marcarTodaLaSerieVistaEnEstreno(userId: string, seriesTmdbId: number) {
+  const { data: todos } = await supabase.from("episodes_cache").select("season_number, episode_number, air_date").eq("series_tmdb_id", seriesTmdbId);
+  const conFecha = (todos ?? []).filter((e) => e.air_date);
+  await Promise.all(
+    conFecha.map((e) => establecerFechaPrimeraVistaEpisodio(userId, seriesTmdbId, e.season_number, e.episode_number, new Date(e.air_date).toISOString()))
+  );
+  await supabase.from("user_series").upsert({ user_id: userId, series_tmdb_id: seriesTmdbId, in_watchlist: true }, { onConflict: "user_id,series_tmdb_id" });
 }
 
 export async function desmarcarEpisodio(userId: string, seriesTmdbId: number, season: number, episode: number) {
