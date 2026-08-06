@@ -6,7 +6,7 @@ export type SeriesStatusFilter =
   | "abandonada";
 
 // Umbral fijo para MVP (ver spec). A futuro: configurable por usuario.
-export const ABANDONADA_UMBRAL_DIAS = 20;
+export const ABANDONADA_UMBRAL_DIAS = 30;
 
 export interface Profile {
   id: string;

@@ -57,11 +57,20 @@ export async function progresoDeSeries(userId: string): Promise<Record<number, P
   // los episodios vistos del usuario en una sola tanda paginada, y contamos
   // acá mismo, agrupando por serie.
   const vistos = await fetchAllRows((desde, hasta) =>
-    supabase.from("user_episodes_watched").select("series_tmdb_id").eq("user_id", userId).range(desde, hasta)
+    supabase.from("user_episodes_watched").select("series_tmdb_id, watched_at").eq("user_id", userId).range(desde, hasta)
   );
   const conteoPorSerie: Record<number, number> = {};
+  // Igual que en listarSeriesConEstado: calculamos acá la fecha real del
+  // capítulo más reciente que viste, no la tomamos del campo caché de
+  // user_series (que algunos caminos viejos podían dejar desactualizado)
+  // — si no, una serie podía clasificarse mal como "abandonada" (o nunca
+  // pasar a estarlo) según qué tan al día estuviera ese campo.
+  const ultimaVistaPorSerie: Record<number, string> = {};
   (vistos ?? []).forEach((v: any) => {
     conteoPorSerie[v.series_tmdb_id] = (conteoPorSerie[v.series_tmdb_id] ?? 0) + 1;
+    if (v.watched_at && (!ultimaVistaPorSerie[v.series_tmdb_id] || v.watched_at > ultimaVistaPorSerie[v.series_tmdb_id])) {
+      ultimaVistaPorSerie[v.series_tmdb_id] = v.watched_at;
+    }
   });
 
   const resultado: Record<number, ProgresoSerie> = {};
@@ -74,7 +83,7 @@ export async function progresoDeSeries(userId: string): Promise<Record<number, P
       episodesWatched,
       totalEpisodes,
       tmdbStatus: cache?.status ?? "",
-      lastWatchedAt: row.last_watched_at,
+      lastWatchedAt: ultimaVistaPorSerie[row.series_tmdb_id] ?? row.last_watched_at,
     });
 
     resultado[row.series_tmdb_id] = {
@@ -191,7 +200,7 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
       episodesWatched: count,
       totalEpisodes: cache?.total_episodes ?? 0,
       tmdbStatus: cache?.status ?? "",
-      lastWatchedAt: row.last_watched_at,
+      lastWatchedAt: ultimaVistaPorSerie.get(row.series_tmdb_id) ?? row.last_watched_at,
     });
 
     let nextLabel: string | null = null;
@@ -216,6 +225,16 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
     // día", no "viendo" — recién pasa a "viendo" cuando ese capítulo sale.
     if ((estado === "viendo" || estado === "abandonada") && !proximo && count > 0) {
       estado = "al_dia";
+    }
+
+    // Serie recién agregada (o que todavía no habías empezado) pero que YA
+    // tiene al menos un capítulo estrenado y sin ver — tiene que aparecer
+    // en "Ver a continuación" para invitarte a arrancarla, no quedarse
+    // escondida en "Sin comenzar" hasta que la busques ahí. Esto cubre
+    // tanto el estreno del primer capítulo de una serie nueva, como
+    // cualquier serie que agregaste antes de que saliera nada.
+    if (estado === "sin_comenzar" && proximo) {
+      estado = "viendo";
     }
 
     // "Temporada nueva": lo próximo para ver es el estreno de una temporada
