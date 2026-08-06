@@ -2622,3 +2622,23 @@ from (
 ) ultimo
 where us.user_id = ultimo.user_id and us.series_tmdb_id = ultimo.series_tmdb_id
   and (us.last_watched_at is distinct from ultimo.watched_at);
+
+-- ============================================================
+-- Limpieza única: "No visto, me equivoqué" (y sacar una película/serie
+-- de tu lista) borraban el estado rápido pero no el historial de vistas
+-- real — dejaba vistas "fantasma" que reaparecían si volvías a marcarlo
+-- como visto más adelante. Esto borra cualquier vista fantasma que haya
+-- quedado de antes de este arreglo (títulos que hoy figuran como NO
+-- vistos pero todavía tenían eventos de vista colgados).
+-- ============================================================
+delete from movie_watch_events e
+where not exists (
+  select 1 from user_movies um where um.user_id = e.user_id and um.movie_tmdb_id = e.movie_tmdb_id and um.watched = true
+);
+
+delete from episode_watch_events e
+where not exists (
+  select 1 from user_episodes_watched uew
+  where uew.user_id = e.user_id and uew.series_tmdb_id = e.series_tmdb_id
+    and uew.season_number = e.season_number and uew.episode_number = e.episode_number
+);

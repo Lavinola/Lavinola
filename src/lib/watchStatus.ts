@@ -201,7 +201,7 @@ async function recalcularCacheEpisodio(userId: string, seriesTmdbId: number, sea
   await recalcularUltimaVistaSerie(userId, seriesTmdbId);
 }
 
-async function recalcularUltimaVistaSerie(userId: string, seriesTmdbId: number) {
+export async function recalcularUltimaVistaSerie(userId: string, seriesTmdbId: number) {
   const { data: todosLosVistos } = await supabase
     .from("user_episodes_watched")
     .select("watched_at")

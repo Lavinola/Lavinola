@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { establecerFechaPrimeraVistaEpisodio } from "./watchStatus";
+import { establecerFechaPrimeraVistaEpisodio, recalcularUltimaVistaSerie } from "./watchStatus";
 
 export interface ProximoEpisodio {
   series_tmdb_id: number;
@@ -193,6 +193,11 @@ export async function marcarTodaLaSerieVistaEnEstreno(userId: string, seriesTmdb
 }
 
 export async function desmarcarEpisodio(userId: string, seriesTmdbId: number, season: number, episode: number) {
+  // "No visto, me equivoqué": borra también el historial de vistas de este
+  // capítulo (no solo la fila rápida) — si no, al volver a marcarlo como
+  // visto más adelante, las vistas viejas seguían ahí y aparecía como si
+  // lo hubieras visto varias veces con fechas fantasma.
+  await supabase.from("episode_watch_events").delete().eq("user_id", userId).eq("series_tmdb_id", seriesTmdbId).eq("season_number", season).eq("episode_number", episode);
   await supabase
     .from("user_episodes_watched")
     .delete()
@@ -200,4 +205,5 @@ export async function desmarcarEpisodio(userId: string, seriesTmdbId: number, se
     .eq("series_tmdb_id", seriesTmdbId)
     .eq("season_number", season)
     .eq("episode_number", episode);
+  await recalcularUltimaVistaSerie(userId, seriesTmdbId);
 }

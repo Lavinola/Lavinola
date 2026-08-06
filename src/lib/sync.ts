@@ -253,15 +253,18 @@ export async function agregarPelicula(userId: string, tmdbId: number) {
   }
 }
 
-/** Saca una serie de "tus series": borra también todos los capítulos que hayas marcado como vistos. */
+/** Saca una serie de "tus series": borra también todos los capítulos que hayas marcado como vistos (y el historial de vistas de cada uno). */
 export async function eliminarSerieDeMisSeries(userId: string, tmdbId: number) {
+  await supabase.from("episode_watch_events").delete().eq("user_id", userId).eq("series_tmdb_id", tmdbId);
   await supabase.from("user_episodes_watched").delete().eq("user_id", userId).eq("series_tmdb_id", tmdbId);
   const { error } = await supabase.from("user_series").delete().eq("user_id", userId).eq("series_tmdb_id", tmdbId);
   if (error) throw error;
 }
 
 /** Saca una película de "tus películas" (si la habías marcado como vista, se pierde ese estado). */
+/** Saca una película de "tus películas" (se pierde también todo el historial de vistas, no solo el estado). */
 export async function eliminarPeliculaDeMisPeliculas(userId: string, tmdbId: number) {
+  await supabase.from("movie_watch_events").delete().eq("user_id", userId).eq("movie_tmdb_id", tmdbId);
   const { error } = await supabase.from("user_movies").delete().eq("user_id", userId).eq("movie_tmdb_id", tmdbId);
   if (error) throw error;
 }
