@@ -2606,3 +2606,19 @@ where watched_at is not null and watched_at <> coalesce(first_watched_at, watche
       and e.season_number = user_episodes_watched.season_number and e.episode_number = user_episodes_watched.episode_number
       and e.watched_at = user_episodes_watched.watched_at
   );
+
+-- ============================================================
+-- Recalcula last_watched_at de cada serie como el capítulo realmente más
+-- reciente que se vio (antes, en algunos casos podía quedar con la fecha
+-- de un capítulo puntual editado, no la del capítulo más nuevo de toda
+-- la serie) — corrige cualquier desvío de una sola vez.
+-- ============================================================
+update user_series us
+set last_watched_at = ultimo.watched_at
+from (
+  select user_id, series_tmdb_id, max(watched_at) as watched_at
+  from user_episodes_watched
+  group by user_id, series_tmdb_id
+) ultimo
+where us.user_id = ultimo.user_id and us.series_tmdb_id = ultimo.series_tmdb_id
+  and (us.last_watched_at is distinct from ultimo.watched_at);

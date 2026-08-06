@@ -10,6 +10,7 @@ export interface OpcionMenu {
   destructivo?: boolean;
   violeta?: boolean; // texto e ícono en violeta (para acciones normales que se quieren destacar, no negativas)
   icono?: keyof typeof Ionicons.glyphMap;
+  deshabilitado?: boolean; // se ve en gris y tocarla no hace nada — para mostrar una opción que todavía no se puede usar
 }
 
 interface Props {
@@ -41,18 +42,27 @@ export default function ActionSheetModal({ visible, onCerrar, titulo, opciones }
                 style={styles.opcion}
                 onPress={() => {
                   onCerrar();
-                  op.onPress();
+                  if (!op.deshabilitado) op.onPress();
                 }}
               >
                 {op.icono && (
                   <Ionicons
                     name={op.icono}
                     size={19}
-                    color={op.destructivo ? theme.colors.danger : theme.colors.primaryLight}
+                    color={op.deshabilitado ? theme.colors.textFaint : op.destructivo ? theme.colors.danger : theme.colors.primaryLight}
                     style={styles.opcionIcono}
                   />
                 )}
-                <Text style={[styles.opcionTexto, op.destructivo && styles.opcionDestructiva, op.violeta && styles.opcionVioleta]}>{op.label}</Text>
+                <Text
+                  style={[
+                    styles.opcionTexto,
+                    op.destructivo && styles.opcionDestructiva,
+                    op.violeta && styles.opcionVioleta,
+                    op.deshabilitado && styles.opcionDeshabilitada,
+                  ]}
+                >
+                  {op.label}
+                </Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -75,4 +85,5 @@ const styles = StyleSheet.create({
   opcionTexto: { fontSize: 15, color: theme.colors.text },
   opcionDestructiva: { color: theme.colors.danger },
   opcionVioleta: { color: theme.colors.primaryLight, fontWeight: "700" },
+  opcionDeshabilitada: { color: theme.colors.textFaint },
 });

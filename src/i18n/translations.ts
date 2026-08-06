@@ -1475,6 +1475,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   },
   Sacar: { en: "Remove", pt: "Tirar", it: "Rimuovi" },
   "Salió el": { en: "Aired on", pt: "Saiu em", it: "Uscito il" },
+  "Saldrá el": { en: "Will air on", pt: "Vai sair em", it: "Uscirà il" },
   Miembros: { en: "Members", pt: "Membros", it: "Membri" },
   "No se pudo eliminar": { en: "Couldn't delete", pt: "Não foi possível excluir", it: "Non è stato possibile eliminare" },
   "¿Qué querés contar sobre esto?": { en: "What do you want to say about this?", pt: "O que você quer contar sobre isso?", it: "Cosa vuoi raccontare su questo?" },

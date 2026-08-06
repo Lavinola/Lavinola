@@ -28,6 +28,7 @@ interface PeliculaRow {
   poster_path: string | null;
   watched: boolean;
   watched_at: string | null;
+  first_watched_at: string | null;
   runtime_minutes: number | null;
   release_date: string | null;
   rating: number | null;
@@ -90,7 +91,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
     const data = await fetchAllRows((desde, hasta) =>
       supabase
         .from("user_movies")
-        .select("watched, watched_at, custom_poster_path, rating, movies_cache(*)")
+        .select("watched, watched_at, custom_poster_path, rating, first_watched_at, movies_cache(*)")
         .eq("user_id", uid)
         .order("added_at", { ascending: false })
         .range(desde, hasta)
@@ -104,6 +105,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
         poster_path: r.custom_poster_path ?? r.movies_cache.poster_path,
         watched: r.watched,
         watched_at: r.watched_at,
+        first_watched_at: r.first_watched_at ?? null,
         runtime_minutes: r.movies_cache.runtime_minutes ?? null,
         release_date: r.movies_cache.release_date ?? null,
         rating: r.rating ?? null,

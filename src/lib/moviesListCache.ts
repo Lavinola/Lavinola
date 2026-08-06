@@ -11,6 +11,7 @@ export interface PeliculaRow {
   runtime_minutes: number | null;
   added_at: string;
   genre_ids: number[];
+  first_watched_at: string | null;
 }
 
 export interface DatosPeliculas {
@@ -25,7 +26,7 @@ export async function cargarDatosPeliculas(userId: string): Promise<DatosPelicul
     fetchAllRows<any>((desde, hasta) =>
       supabase
         .from("user_movies")
-        .select("watched, added_at, custom_poster_path, movies_cache(*)")
+        .select("watched, added_at, custom_poster_path, first_watched_at, movies_cache(*)")
         .eq("user_id", userId)
         .order("added_at", { ascending: false })
         .range(desde, hasta)
@@ -43,6 +44,7 @@ export async function cargarDatosPeliculas(userId: string): Promise<DatosPelicul
       runtime_minutes: r.movies_cache.runtime_minutes,
       added_at: r.added_at,
       genre_ids: r.movies_cache.genre_ids ?? [],
+      first_watched_at: r.first_watched_at ?? null,
     }));
 
   const puntuaciones = await promedioPuntuacionPeliculas(rows.map((r) => r.tmdb_id));

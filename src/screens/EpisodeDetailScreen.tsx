@@ -302,7 +302,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
           <Text style={styles.titulo}>
             T{seasonNumber} - E{episodeNumber}: {episodio?.name ?? episodeName}
           </Text>
-          {episodio?.air_date && <Text style={styles.fecha}>{t("Salió el")} {formatearFecha(episodio.air_date)}</Text>}
+          {episodio?.air_date && <Text style={styles.fecha}>{t(noSalioTodavia ? "Saldrá el" : "Salió el")} {formatearFecha(episodio.air_date)}</Text>}
         </View>
         {userId && (
           <View style={styles.vistaRowHeader}>
@@ -340,7 +340,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
           </View>
         ) : (
           <View style={styles.botonesFilaSinBackdrop}>
-            <Pressable style={styles.recomendarBtnSinBackdrop} onPress={() => setMenuVisible(true)} hitSlop={12}>
+            <Pressable style={styles.menuBtnSinBackdrop} onPress={() => setMenuVisible(true)} hitSlop={12}>
               <Text style={styles.menuBtnFlotanteTexto}>⋯</Text>
             </Pressable>
             <Pressable style={styles.recomendarBtnSinBackdrop} onPress={() => setPublishModalVisible(true)} hitSlop={12}>
@@ -443,18 +443,12 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
         visible={menuVisible}
         onCerrar={() => setMenuVisible(false)}
         opciones={[
-          ...(visto
-            ? [
-                {
-                  label: `${t("¿Cuándo lo viste?")}${eventosVista[0] ? "  " + formatearFecha(eventosVista[0].watchedAt) : ""}`,
-                  icono: "calendar-outline" as const,
-                  onPress: () => {
-                    setMenuVisible(false);
-                    setMenuFechaVisible(true);
-                  },
-                },
-              ]
-            : []),
+          {
+            label: `${t("¿Cuándo lo viste?")}${visto && eventosVista[0] ? "  " + formatearFecha(eventosVista[0].watchedAt) : ""}`,
+            icono: "calendar-outline",
+            deshabilitado: !visto,
+            onPress: () => setMenuFechaVisible(true),
+          },
         ]}
       />
 
@@ -524,6 +518,7 @@ const styles = StyleSheet.create({
   headerFlotante: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 50, elevation: 50 },
   recomendarBtnFlotante: { position: "absolute", top: 56, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
   menuBtnFlotante: { position: "absolute", top: 12, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.surface, alignItems: "center", justifyContent: "center" },
+  menuBtnSinBackdrop: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, alignItems: "center", justifyContent: "center" },
   menuBtnFlotanteTexto: { fontSize: 20, color: "#FFFFFF", fontWeight: "700" },
   publicarBtnFlotante: { position: "absolute", top: 56, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
   botonesFilaSinBackdrop: { flexDirection: "row", justifyContent: "flex-end", gap: 8, paddingHorizontal: 12, paddingTop: 12 },

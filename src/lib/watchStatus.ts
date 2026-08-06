@@ -179,6 +179,7 @@ async function recalcularCacheEpisodio(userId: string, seriesTmdbId: number, sea
       .eq("series_tmdb_id", seriesTmdbId)
       .eq("season_number", season)
       .eq("episode_number", episode);
+    await recalcularUltimaVistaSerie(userId, seriesTmdbId);
     return;
   }
   await supabase.from("user_episodes_watched").upsert(
@@ -193,7 +194,27 @@ async function recalcularCacheEpisodio(userId: string, seriesTmdbId: number, sea
     },
     { onConflict: "user_id,series_tmdb_id,season_number,episode_number" }
   );
-  await supabase.from("user_series").update({ last_watched_at: eventos[eventos.length - 1].watchedAt }).eq("user_id", userId).eq("series_tmdb_id", seriesTmdbId);
+  // "La serie, última vez vista" tiene que ser el capítulo más reciente
+  // de TODA la serie, no solo de este capítulo puntual — si no, corregir
+  // (o volver a ver) un capítulo viejo podía pisar por error la fecha
+  // real del capítulo que viste más recientemente.
+  await recalcularUltimaVistaSerie(userId, seriesTmdbId);
+}
+
+async function recalcularUltimaVistaSerie(userId: string, seriesTmdbId: number) {
+  const { data: todosLosVistos } = await supabase
+    .from("user_episodes_watched")
+    .select("watched_at")
+    .eq("user_id", userId)
+    .eq("series_tmdb_id", seriesTmdbId)
+    .order("watched_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  await supabase
+    .from("user_series")
+    .update({ last_watched_at: todosLosVistos?.watched_at ?? null })
+    .eq("user_id", userId)
+    .eq("series_tmdb_id", seriesTmdbId);
 }
 
 /** "Volvés a ver" un capítulo ya visto: agrega una vista más, con la fecha de ahora. */
