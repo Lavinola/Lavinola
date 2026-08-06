@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, Image, ScrollView, FlatList, Pressable, StyleSheet, ActivityIndicator, Dimensions } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
@@ -47,6 +48,7 @@ import {
   listarEventosVistaPelicula,
   editarEventoVistaPelicula,
   eliminarEventoVistaPelicula,
+  volverAVerEpisodio,
   EventoVisto,
 } from "../lib/watchStatus";
 import FechaPickerNativo from "../components/FechaPickerNativo";
@@ -937,10 +939,22 @@ function EpisodiosTab({
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmDatos, setConfirmDatos] = useState<{ cantidad: number; marcarEste: (con: boolean) => void } | null>(null);
   const [temporadasFuturas, setTemporadasFuturas] = useState<{ season_number: number; air_date: string | null; name: string | null }[]>([]);
+  const [menuVistoEpisodio, setMenuVistoEpisodio] = useState<EpisodioConEstado | null>(null);
 
   useEffect(() => {
     cargar();
   }, [vistaVersion, userId]);
+
+  // Al volver de la ficha de un capítulo puntual (donde lo pudiste haber
+  // marcado/desmarcado como visto), esta pantalla recupera el foco —
+  // recargamos acá para que se vea reflejado al instante, sin tener que
+  // navegar a otro lado y volver.
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, tmdbId])
+  );
 
   async function cargar() {
     if (!userId) return;
@@ -959,8 +973,7 @@ function EpisodiosTab({
     if (!ep.visto && (!ep.air_date || ep.air_date > hoy)) return; // todavía no salió, no se puede marcar
 
     if (ep.visto) {
-      await desmarcarEpisodio(userId, tmdbId, ep.season_number, ep.episode_number);
-      cargar();
+      setMenuVistoEpisodio(ep);
       return;
     }
 
@@ -978,6 +991,26 @@ function EpisodiosTab({
       setConfirmVisible(true);
     } else {
       marcarEste(false);
+    }
+  }
+
+  async function marcarNoVistoDesdeMenu() {
+    if (!userId || !menuVistoEpisodio) return;
+    const ep = menuVistoEpisodio;
+    setMenuVistoEpisodio(null);
+    await desmarcarEpisodio(userId, tmdbId, ep.season_number, ep.episode_number);
+    cargar();
+  }
+
+  async function marcarVolverAVerDesdeMenu() {
+    if (!userId || !menuVistoEpisodio) return;
+    const ep = menuVistoEpisodio;
+    setMenuVistoEpisodio(null);
+    try {
+      await volverAVerEpisodio(userId, tmdbId, ep.season_number, ep.episode_number);
+      cargar();
+    } catch (e: any) {
+      Alert.alert("No se pudo guardar", e.message);
     }
   }
 
@@ -1074,6 +1107,15 @@ function EpisodiosTab({
       botones={[
         { label: t("Solo este"), onPress: () => confirmDatos?.marcarEste(false) },
         { label: t("Marcar todos"), onPress: () => confirmDatos?.marcarEste(true), destacado: true },
+      ]}
+    />
+    <ActionSheetModal
+      visible={!!menuVistoEpisodio}
+      onCerrar={() => setMenuVistoEpisodio(null)}
+      titulo={t("Ya lo marcaste como visto")}
+      opciones={[
+        { label: t("No visto (me equivoqué)"), icono: "eye-off-outline", onPress: marcarNoVistoDesdeMenu },
+        { label: t("Volví a verlo"), icono: "eye-outline", onPress: marcarVolverAVerDesdeMenu },
       ]}
     />
     </>
