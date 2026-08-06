@@ -876,7 +876,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       </View>
 
       {tipo === "movie" && vista && eventosVista.length > 0 && (
-        <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEliminar={eliminarEventoVista} />
+        <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEliminar={eliminarEventoVista} fechaEstreno={titulo?.release_date ?? null} />
       )}
 
       {recomendados.length > 0 && (

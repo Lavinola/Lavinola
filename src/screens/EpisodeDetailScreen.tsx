@@ -428,7 +428,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
           </Pressable>
 
           {visto && eventosVista.length > 0 && (
-            <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEliminar={eliminarEventoVista} genero="m" />
+            <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEliminar={eliminarEventoVista} genero="m" fechaEstreno={episodio?.air_date ?? null} />
           )}
         </View>
       </ScrollView>

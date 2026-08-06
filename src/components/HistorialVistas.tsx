@@ -14,16 +14,21 @@ interface Props {
   onEditarFecha: (eventoId: string, fechaISO: string) => void;
   onEliminar: (eventoId: string) => void;
   genero?: "f" | "m"; // "f" = "Vista"/"La viste" (película, serie) — "m" = "Visto"/"Lo viste" (capítulo)
+  fechaEstreno?: string | null; // para poder ofrecer "Fue el día de estreno" en la primera vista, como en los 3 puntitos
 }
 
 /**
  * Lista completa de todas las veces que se vio un título (película o
  * capítulo) — la primera como "Vista/Visto el", el resto como "Vuelta a
- * ver el", cada una con su lápiz para editar la fecha puntual o eliminar
- * esa vista en particular (quedan las demás).
+ * ver el". El lápiz de la PRIMERA abre el mismo menú "¿Cuándo la
+ * viste?" de siempre (día de estreno / elegir otra fecha) — no tiene
+ * sentido "eliminar" la primera vista sin más (eso es "no vista, me
+ * equivoqué", que es otra acción). El lápiz de las demás (las "Vuelta a
+ * ver") sí ofrece Editar fecha / Eliminar esa vista puntual.
  */
-export default function HistorialVistas({ eventos, onEditarFecha, onEliminar, genero = "f" }: Props) {
+export default function HistorialVistas({ eventos, onEditarFecha, onEliminar, genero = "f", fechaEstreno }: Props) {
   const { t } = useT();
+  const [menuPrimeraVisible, setMenuPrimeraVisible] = useState(false);
   const [menuEventoId, setMenuEventoId] = useState<string | null>(null);
   const [pickerEventoId, setPickerEventoId] = useState<string | null>(null);
   const [confirmEliminarId, setConfirmEliminarId] = useState<string | null>(null);
@@ -40,7 +45,7 @@ export default function HistorialVistas({ eventos, onEditarFecha, onEliminar, ge
         <Text style={styles.texto}>
           {textoVista} {formatearFecha(primero.watchedAt)}
         </Text>
-        <Pressable onPress={() => setMenuEventoId(primero.id)} hitSlop={8}>
+        <Pressable onPress={() => setMenuPrimeraVisible(true)} hitSlop={8}>
           <Text style={styles.lapiz}>✎</Text>
         </Pressable>
       </View>
@@ -59,6 +64,24 @@ export default function HistorialVistas({ eventos, onEditarFecha, onEliminar, ge
           {textoLaViste} {eventos.length} {t("veces")}
         </Text>
       )}
+
+      <ActionSheetModal
+        visible={menuPrimeraVisible}
+        onCerrar={() => setMenuPrimeraVisible(false)}
+        titulo={genero === "m" ? t("¿Cuándo lo viste?") : t("¿Cuándo la viste?")}
+        opciones={[
+          ...(fechaEstreno
+            ? [
+                {
+                  label: t("Fue el día de estreno ({fecha})").replace("{fecha}", formatearFecha(fechaEstreno)),
+                  icono: "calendar-outline" as const,
+                  onPress: () => onEditarFecha(primero.id, new Date(fechaEstreno).toISOString()),
+                },
+              ]
+            : []),
+          { label: t("Elegir otra fecha"), icono: "create-outline", onPress: () => setPickerEventoId(primero.id) },
+        ]}
+      />
 
       <ActionSheetModal
         visible={!!menuEventoId}
