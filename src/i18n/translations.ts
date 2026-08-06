@@ -263,6 +263,9 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Recomendar (Chat/Grupo)": { en: "Recommend (Chat/Group)", pt: "Recomendar (Chat/Grupo)", it: "Consiglia (Chat/Gruppo)" },
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
+  "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "Fecha inválida": { en: "Invalid date", pt: "Data inválida", it: "Data non valida" },
+  Confirmar: { en: "Confirm", pt: "Confirmar", it: "Conferma" },
   "Visto recientemente": { en: "Recently watched", pt: "Visto recentemente", it: "Visto di recente" },
   "¿Sobre qué querés publicar?": { en: "What do you want to post about?", pt: "Sobre o que você quer publicar?", it: "Su cosa vuoi pubblicare?" },
   "Compartí una encuesta con todos en el Lobby.": {
