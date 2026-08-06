@@ -390,7 +390,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
           tab === "info" ? (
             <InformacionTab tmdbId={tmdbId} tipo={tipo} titulo={titulo} userId={userId} navigation={navigation} vista={vista} vistaVersion={vistaVersion} />
           ) : (
-            <EpisodiosTab tmdbId={tmdbId} userId={userId} navigation={navigation} onSerieAgregada={() => setAgregada(true)} onSerieCompletada={() => setMostrarConfetti(true)} />
+            <EpisodiosTab tmdbId={tmdbId} userId={userId} navigation={navigation} onSerieAgregada={() => setAgregada(true)} onSerieCompletada={() => setMostrarConfetti(true)} vistaVersion={vistaVersion} />
           )
         ) : (
           <InformacionTab tmdbId={tmdbId} tipo={tipo} titulo={titulo} userId={userId} navigation={navigation} vista={vista} vistaVersion={vistaVersion} />
@@ -916,7 +916,21 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   );
 }
 
-function EpisodiosTab({ tmdbId, userId, navigation, onSerieAgregada, onSerieCompletada }: { tmdbId: number; userId: string | null; navigation: any; onSerieAgregada?: () => void; onSerieCompletada?: () => void }) {
+function EpisodiosTab({
+  tmdbId,
+  userId,
+  navigation,
+  onSerieAgregada,
+  onSerieCompletada,
+  vistaVersion,
+}: {
+  tmdbId: number;
+  userId: string | null;
+  navigation: any;
+  onSerieAgregada?: () => void;
+  onSerieCompletada?: () => void;
+  vistaVersion?: number;
+}) {
   const { t } = useT();
   const [porTemporada, setPorTemporada] = useState<Record<number, EpisodioConEstado[]>>({});
   const [temporadaAbierta, setTemporadaAbierta] = useState<number | null>(null);
@@ -926,14 +940,12 @@ function EpisodiosTab({ tmdbId, userId, navigation, onSerieAgregada, onSerieComp
 
   useEffect(() => {
     cargar();
-  }, []);
+  }, [vistaVersion, userId]);
 
   async function cargar() {
     if (!userId) return;
     const data = await listarEpisodiosPorTemporada(userId, tmdbId);
     setPorTemporada(data);
-    const temporadas = Object.keys(data).map(Number);
-    if (temporadas.length > 0 && temporadaAbierta === null) setTemporadaAbierta(temporadas[0]);
 
     const { data: cache } = await supabase.from("series_cache").select("seasons_meta").eq("tmdb_id", tmdbId).maybeSingle();
     const meta = (cache?.seasons_meta ?? []) as { season_number: number; air_date: string | null; episode_count: number; name: string | null }[];

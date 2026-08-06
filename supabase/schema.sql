@@ -2558,3 +2558,51 @@ create index if not exists idx_episode_watch_events on episode_watch_events(user
 alter table episode_watch_events enable row level security;
 drop policy if exists "episode_watch_events_own" on episode_watch_events;
 create policy "episode_watch_events_own" on episode_watch_events for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ============================================================
+-- Backfill: quienes ya tenían películas/capítulos marcados como vistos
+-- ANTES de que existiera el historial por eventos no tenían ninguna fila
+-- en movie_watch_events/episode_watch_events (esas tablas se crearon
+-- vacías) — por eso el historial de abajo de la ficha aparecía vacío
+-- aunque la película siguiera figurando como vista. Esto reconstruye un
+-- evento por cada "primera vez" y, si la última vez fue una fecha
+-- distinta, otro evento más para esa — usa "not exists" así es seguro
+-- correrlo de nuevo sin duplicar nada.
+-- ============================================================
+insert into movie_watch_events (user_id, movie_tmdb_id, watched_at)
+select user_id, movie_tmdb_id, first_watched_at
+from user_movies
+where watched = true and first_watched_at is not null
+  and not exists (
+    select 1 from movie_watch_events e where e.user_id = user_movies.user_id and e.movie_tmdb_id = user_movies.movie_tmdb_id
+  );
+
+insert into movie_watch_events (user_id, movie_tmdb_id, watched_at)
+select user_id, movie_tmdb_id, watched_at
+from user_movies
+where watched = true and watched_at is not null and watched_at <> first_watched_at
+  and not exists (
+    select 1 from movie_watch_events e
+    where e.user_id = user_movies.user_id and e.movie_tmdb_id = user_movies.movie_tmdb_id and e.watched_at = user_movies.watched_at
+  );
+
+insert into episode_watch_events (user_id, series_tmdb_id, season_number, episode_number, watched_at)
+select user_id, series_tmdb_id, season_number, episode_number, coalesce(first_watched_at, watched_at)
+from user_episodes_watched
+where coalesce(first_watched_at, watched_at) is not null
+  and not exists (
+    select 1 from episode_watch_events e
+    where e.user_id = user_episodes_watched.user_id and e.series_tmdb_id = user_episodes_watched.series_tmdb_id
+      and e.season_number = user_episodes_watched.season_number and e.episode_number = user_episodes_watched.episode_number
+  );
+
+insert into episode_watch_events (user_id, series_tmdb_id, season_number, episode_number, watched_at)
+select user_id, series_tmdb_id, season_number, episode_number, watched_at
+from user_episodes_watched
+where watched_at is not null and watched_at <> coalesce(first_watched_at, watched_at)
+  and not exists (
+    select 1 from episode_watch_events e
+    where e.user_id = user_episodes_watched.user_id and e.series_tmdb_id = user_episodes_watched.series_tmdb_id
+      and e.season_number = user_episodes_watched.season_number and e.episode_number = user_episodes_watched.episode_number
+      and e.watched_at = user_episodes_watched.watched_at
+  );
