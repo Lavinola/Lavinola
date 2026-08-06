@@ -271,6 +271,11 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "Assisti a todos os episódios no dia da estreia",
     it: "Ho visto ogni episodio il giorno della sua uscita",
   },
+  "Ví todos los capítulos el día de su estreno (aplica solo a los capítulos ya vistos)": {
+    en: "I watched every episode on its release day (only applies to episodes already watched)",
+    pt: "Assisti a todos os episódios no dia da estreia (só se aplica aos episódios já assistidos)",
+    it: "Ho visto ogni episodio il giorno della sua uscita (si applica solo agli episodi già visti)",
+  },
   "Elegir manualmente la fecha de cada capítulo": {
     en: "Manually choose the date for each episode",
     pt: "Escolher manualmente a data de cada episódio",

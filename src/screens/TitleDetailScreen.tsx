@@ -543,7 +543,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
             onCerrar={() => setMenuCuandoSerieVisible(false)}
             titulo={t("¿Cuándo la viste?")}
             opciones={[
-              { label: t("Ví todos los capítulos el día de su estreno"), icono: "calendar-outline", onPress: marcarSerieVistaEnEstreno },
+              { label: t("Ví todos los capítulos el día de su estreno (aplica solo a los capítulos ya vistos)"), icono: "calendar-outline", onPress: marcarSerieVistaEnEstreno },
               {
                 label: t("Elegir manualmente la fecha de cada capítulo"),
                 icono: "list-outline",

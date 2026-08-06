@@ -179,11 +179,13 @@ export async function marcarTodaLaSerieVista(userId: string, seriesTmdbId: numbe
   await marcarVariosEpisodios(userId, seriesTmdbId, faltantes);
 }
 
-/** Pone la fecha en la que viste (por primera vez) cada capítulo YA ESTRENADO de la serie en su propio día de estreno — capítulo por capítulo, sin tocar los que todavía no salieron. */
+/** Pone la fecha en la que viste (por primera vez) cada capítulo YA VISTO y YA ESTRENADO de la serie en su propio día de estreno — solo corrige la fecha, no marca como vistos los que todavía no lo estaban. */
 export async function marcarTodaLaSerieVistaEnEstreno(userId: string, seriesTmdbId: number) {
   const hoy = new Date().toISOString().slice(0, 10);
   const { data: todos } = await supabase.from("episodes_cache").select("season_number, episode_number, air_date").eq("series_tmdb_id", seriesTmdbId);
-  const conFecha = (todos ?? []).filter((e) => e.air_date && e.air_date <= hoy);
+  const { data: vistos } = await supabase.from("user_episodes_watched").select("season_number, episode_number").eq("user_id", userId).eq("series_tmdb_id", seriesTmdbId);
+  const vistosSet = new Set((vistos ?? []).map((v) => `${v.season_number}-${v.episode_number}`));
+  const conFecha = (todos ?? []).filter((e) => e.air_date && e.air_date <= hoy && vistosSet.has(`${e.season_number}-${e.episode_number}`));
   await Promise.all(
     conFecha.map((e) => establecerFechaPrimeraVistaEpisodio(userId, seriesTmdbId, e.season_number, e.episode_number, new Date(e.air_date).toISOString()))
   );
