@@ -102,12 +102,20 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
   // 1) Todos los episodios vistos del usuario, de una — reemplaza el COUNT
   // por serie de antes.
   const vistos = await fetchAllRows((desde, hasta) =>
-    supabase.from("user_episodes_watched").select("series_tmdb_id, season_number, episode_number").eq("user_id", userId).range(desde, hasta)
+    supabase.from("user_episodes_watched").select("series_tmdb_id, season_number, episode_number, watched_at").eq("user_id", userId).range(desde, hasta)
   );
   const vistosPorSerie = new Map<number, Set<string>>();
+  // "Última vez vista" calculada de una, acá, directo de los capítulos
+  // vistos reales — no del campo last_watched_at de user_series, que
+  // algunos caminos viejos (como importar de TV Time) podían dejar sin
+  // actualizar, dando un orden incorrecto.
+  const ultimaVistaPorSerie = new Map<number, string>();
   (vistos ?? []).forEach((v: any) => {
     if (!vistosPorSerie.has(v.series_tmdb_id)) vistosPorSerie.set(v.series_tmdb_id, new Set());
     vistosPorSerie.get(v.series_tmdb_id)!.add(`${v.season_number}-${v.episode_number}`);
+    if (v.watched_at && (!ultimaVistaPorSerie.has(v.series_tmdb_id) || v.watched_at > ultimaVistaPorSerie.get(v.series_tmdb_id)!)) {
+      ultimaVistaPorSerie.set(v.series_tmdb_id, v.watched_at);
+    }
   });
   const conteos: Record<number, number> = {};
   vistosPorSerie.forEach((set, id) => (conteos[id] = set.size));
@@ -224,7 +232,7 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
       next_episode_name: nextName,
       next_episode_season: nextSeason,
       next_episode_number: nextNumber,
-      last_watched_at: row.last_watched_at,
+      last_watched_at: ultimaVistaPorSerie.get(row.series_tmdb_id) ?? row.last_watched_at,
       episodios_restantes: Math.max(0, (cache?.total_episodes ?? 0) - count),
       temporada_nueva: temporadaNueva,
       total_seasons: cache?.total_seasons ?? 0,
