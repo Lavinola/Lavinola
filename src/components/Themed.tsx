@@ -3,6 +3,17 @@
  * `Text` de react-native en todas las pantallas: sin esto, cualquier texto
  * sin color explícito se renderiza negro (default de RN) y queda invisible
  * sobre el fondo negro de la app.
+ *
+ * Además, por default limitamos cuánto puede agrandarse un texto por el
+ * ajuste de "tamaño de letra" del sistema (`maxFontSizeMultiplier`). Sin
+ * este límite, alguien con la letra grande puesta podía romper espacios
+ * chicos y ajustados (el renglón de arriba con el logo, botones,
+ * chips, etc.) — el texto crecía pero el espacio a su alrededor no. Con
+ * el límite puesto, ese texto igual crece un poco (sigue siendo más
+ * accesible que nada), pero no lo suficiente como para desbordar. Si
+ * hace falta que un texto puntual escale libremente (por ejemplo, un
+ * párrafo largo de contenido real), se le puede pasar
+ * `maxFontSizeMultiplier` explícito para pisar este default.
  */
 import React from "react";
 import {
@@ -15,8 +26,8 @@ import {
 } from "react-native";
 import { theme } from "../theme";
 
-export function Text({ style, ...props }: TextProps) {
-  return <RNText style={[styles.text, style]} {...props} />;
+export function Text({ style, maxFontSizeMultiplier = 1.3, ...props }: TextProps) {
+  return <RNText style={[styles.text, style]} maxFontSizeMultiplier={maxFontSizeMultiplier} {...props} />;
 }
 
 interface AppButtonProps extends Omit<PressableProps, "style"> {
@@ -45,6 +56,7 @@ export function AppButton({ title, variant = "primary", disabled, loading, ...pr
         <ActivityIndicator color={theme.colors.text} size="small" />
       ) : (
         <RNText
+          maxFontSizeMultiplier={1.2}
           style={[
             styles.btnText,
             variant === "primary" && styles.btnTextPrimary,

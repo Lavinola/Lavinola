@@ -132,6 +132,7 @@ const tabScreenOptions = {
   tabBarActiveTintColor: theme.colors.primary,
   tabBarInactiveTintColor: theme.colors.textMuted,
   tabBarLabelStyle: { fontSize: 13, fontWeight: "600" as const },
+  tabBarAllowFontScaling: false,
 };
 
 const styles = StyleSheet.create({

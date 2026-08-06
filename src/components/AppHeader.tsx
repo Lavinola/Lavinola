@@ -31,7 +31,7 @@ export default function AppHeader({ navigation }: { navigation: any }) {
       <View style={[styles.lado, { flexDirection: "row", alignItems: "flex-end", justifyContent: "flex-start" }]}>
         <Image source={require("../../assets/logo-wordmark.png")} style={styles.wordmark} resizeMode="contain" />
         <Pressable onPress={abrirAyuda} hitSlop={10} style={styles.ayudaBtn}>
-          <Text style={styles.ayudaTexto}>?</Text>
+          <Text style={styles.ayudaTexto} allowFontScaling={false}>?</Text>
         </Pressable>
       </View>
 
@@ -47,7 +47,7 @@ export default function AppHeader({ navigation }: { navigation: any }) {
           <Ionicons name="notifications" size={24} color={theme.colors.primaryLight} />
           {noLeidas > 0 && (
             <View style={styles.badge}>
-              <Text style={styles.badgeTexto}>{noLeidas > 9 ? "9+" : noLeidas}</Text>
+              <Text style={styles.badgeTexto} allowFontScaling={false}>{noLeidas > 9 ? "9+" : noLeidas}</Text>
             </View>
           )}
         </Pressable>
