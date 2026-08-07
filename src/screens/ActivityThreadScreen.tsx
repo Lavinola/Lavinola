@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, FlatList, TextInput, Pressable, Image, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, ActivityIndicator } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
+import NombreUsuario from "../components/NombreUsuario";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import {
@@ -59,6 +60,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     Record<string, { nombre: string | null; poster_path: string | null; subtitulo: string | null; posters?: (string | null)[]; eliminado?: boolean }>
   >({});
   const [otroAvatarUrl, setOtroAvatarUrl] = useState<string | null>(null);
+  const [otroDisplayName, setOtroDisplayName] = useState<string | null>(null);
   const [otroEsAdmin, setOtroEsAdmin] = useState(false);
   const [silenciado, setSilenciado] = useState(false);
   const [bloqueado, setBloqueado] = useState(false);
@@ -66,6 +68,20 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
   const [otroLastReadAt, setOtroLastReadAt] = useState<string | null>(null);
   const [mensajeMenuAccion, setMensajeMenuAccion] = useState<MensajeChat | null>(null);
   const [respondiendoA, setRespondiendoA] = useState<MensajeChat | null>(null);
+  const listRef = useRef<FlatList<any>>(null);
+  const [mensajeResaltado, setMensajeResaltado] = useState<string | null>(null);
+
+  function scrollAMensaje(id: string) {
+    const encontrado = mensajes.find((m) => m.id === id);
+    if (!encontrado) return;
+    try {
+      listRef.current?.scrollToItem({ item: encontrado, animated: true, viewPosition: 0.5 });
+    } catch (e) {
+      // el mensaje puede no estar montado todavía (lista muy larga) — no rompemos nada si falla
+    }
+    setMensajeResaltado(id);
+    setTimeout(() => setMensajeResaltado((actual) => (actual === id ? null : actual)), 1200);
+  }
   const [reportarMensajeVisible, setReportarMensajeVisible] = useState(false);
   const [reaccionPickerMensajeId, setReaccionPickerMensajeId] = useState<string | null>(null);
   const [traducciones, setTraducciones] = useState<Record<string, string>>({});
@@ -112,8 +128,9 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       setMiPais(miPerfil?.country ?? "AR");
     }
     if (otroUserId) {
-      const { data: perfil } = await supabase.from("profiles").select("avatar_url, is_admin").eq("id", otroUserId).maybeSingle();
+      const { data: perfil } = await supabase.from("profiles").select("avatar_url, is_admin, display_name").eq("id", otroUserId).maybeSingle();
       setOtroAvatarUrl(perfil?.avatar_url ?? null);
+      setOtroDisplayName(perfil?.display_name ?? null);
       setOtroEsAdmin(!!perfil?.is_admin);
       setOtroLastReadAt(await obtenerUltimaLecturaDelOtro(chatId, otroUserId));
     }
@@ -345,9 +362,14 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
             <View style={[styles.tituloAvatar, { backgroundColor: theme.colors.surfaceAlt }]} />
           )}
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <Text style={styles.tituloNombre} numberOfLines={1}>
-              {otroUsername ?? t("Conversación")} {silenciado && "🔇"}
-            </Text>
+            {otroUsername ? (
+              <NombreUsuario style={styles.tituloNombre} displayName={otroDisplayName} username={otroUsername} numberOfLines={1} />
+            ) : (
+              <Text style={styles.tituloNombre} numberOfLines={1}>
+                {t("Conversación")}
+              </Text>
+            )}
+            {silenciado && <Text style={styles.tituloNombre}> 🔇</Text>}
             {otroEsAdmin && <AdminBadge />}
           </View>
         </Pressable>
@@ -362,6 +384,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       </View>
 
       <FlatList
+        ref={listRef}
         data={[...mensajes].reverse()}
         inverted
         keyExtractor={(m) => m.id}
@@ -402,6 +425,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                   esMio ? styles.burbujaPropia : styles.burbujaAjena,
                   item.kind === "shared_title" && !esLista && styles.burbujaRecomendacion,
                   esQueVemos && styles.burbujaQueVemos,
+                  mensajeResaltado === item.id && styles.burbujaResaltada,
                 ]}
               >
                 {item.reply_to_id &&
@@ -410,7 +434,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                     if (!original) return null;
                     const esMioOriginal = original.sender_id === userId;
                     return (
-                      <View style={styles.citaRow}>
+                      <Pressable style={styles.citaRow} onPress={() => scrollAMensaje(original.id)}>
                         <View style={styles.citaBarra} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.citaAutor}>{esMioOriginal ? t("Vos") : otroUsername ?? t("Conversación")}</Text>
@@ -418,7 +442,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                             {vistaPreviaMensaje(original)}
                           </Text>
                         </View>
-                      </View>
+                      </Pressable>
                     );
                   })()}
                 {item.kind === "shared_title" && esLista && (
@@ -617,7 +641,9 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
               ...(mensajeMenuAccion?.kind === "text" && Date.now() - new Date(mensajeMenuAccion.created_at).getTime() < 60 * 60 * 1000
                 ? [{ label: t("Editar"), icono: "create-outline" as const, onPress: empezarAEditar }]
                 : []),
-              { label: t("Eliminar"), icono: "trash-outline" as const, destructivo: true, onPress: () => { setMenuMensajeVisible(false); setConfirmEliminarMsgVisible(true); } },
+              ...(mensajeMenuAccion && Date.now() - new Date(mensajeMenuAccion.created_at).getTime() < 60 * 60 * 1000
+                ? [{ label: t("Eliminar"), icono: "trash-outline" as const, destructivo: true, onPress: () => { setMenuMensajeVisible(false); setConfirmEliminarMsgVisible(true); } }]
+                : []),
             ]
           : [
               { label: t("Reportar"), icono: "flag-outline" as const, destructivo: true, onPress: () => { setMenuMensajeVisible(false); setReportarMensajeVisible(true); } },
@@ -683,6 +709,7 @@ const styles = StyleSheet.create({
   burbuja: { padding: 10, borderRadius: theme.radius.md, marginBottom: 8, maxWidth: "80%" },
   burbujaRecomendacion: { width: "75%", maxWidth: "75%" },
   burbujaQueVemos: { alignSelf: "center", backgroundColor: theme.colors.primary },
+  burbujaResaltada: { borderWidth: 2, borderColor: theme.colors.primary },
   textoQueVemos: { color: "#000000", opacity: 1 },
   burbujaPropia: { backgroundColor: theme.colors.surfaceAlt, alignSelf: "flex-end" },
   burbujaAjena: { backgroundColor: "#3D1750", alignSelf: "flex-start" },

@@ -5,6 +5,7 @@ export interface Notificacion {
   type: "like" | "reply" | "follow" | "follow_request" | "follow_accepted" | "shared_title" | "group_muted" | "group_removed" | "group_message" | "group_join_request" | "list_item_added" | "list_followed";
   actor_id: string | null;
   actor_username: string | null;
+  actor_display_name: string | null;
   actor_avatar_url: string | null;
   target_type: string | null;
   target_id: string | null;
@@ -20,7 +21,7 @@ export interface Notificacion {
 export async function listarNotificaciones(userId: string): Promise<Notificacion[]> {
   const { data, error } = await supabase
     .from("notifications")
-    .select("id, type, actor_id, target_type, target_id, comment_id, read, message, created_at, profiles!notifications_actor_id_fkey(username, avatar_url)")
+    .select("id, type, actor_id, target_type, target_id, comment_id, read, message, created_at, profiles!notifications_actor_id_fkey(username, avatar_url, display_name)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -31,6 +32,7 @@ export async function listarNotificaciones(userId: string): Promise<Notificacion
     type: n.type,
     actor_id: n.actor_id,
     actor_username: n.profiles?.username ?? null,
+    actor_display_name: n.profiles?.display_name ?? null,
     actor_avatar_url: n.profiles?.avatar_url ?? null,
     target_type: n.target_type,
     target_id: n.target_id,
@@ -96,7 +98,7 @@ export async function marcarNotificacionesDeGrupoComoLeidas(userId: string, grou
 }
 
 export function textoNotificacion(n: Notificacion, t: (s: string) => string = (s) => s): string {
-  const nombre = n.actor_username ?? t("Alguien");
+  const nombre = n.actor_display_name?.trim() || n.actor_username || t("Alguien");
   switch (n.type) {
     case "like":
       return n.target_type === "post"

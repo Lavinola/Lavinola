@@ -19,6 +19,7 @@ export interface Encuesta {
   groupId: string | null;
   userId: string;
   autorUsername: string | null;
+  autorDisplayName: string | null;
   autorAvatarUrl: string | null;
   questionText: string | null;
   questionItemType: TipoItemEncuesta | null;
@@ -87,7 +88,7 @@ export async function cargarEncuestasDeGrupo(groupId: string, userId: string | n
   const { data: pollsData, error } = await supabase
     .from("polls")
     .select(
-      "id, group_id, user_id, question_text, question_item_type, question_tmdb_id, question_season_number, question_episode_number, allow_multiple, created_at, profiles!polls_user_id_fkey(username, avatar_url)"
+      "id, group_id, user_id, question_text, question_item_type, question_tmdb_id, question_season_number, question_episode_number, allow_multiple, created_at, profiles!polls_user_id_fkey(username, avatar_url, display_name)"
     )
     .eq("group_id", groupId)
     .order("created_at", { ascending: false });
@@ -96,7 +97,7 @@ export async function cargarEncuestasDeGrupo(groupId: string, userId: string | n
 }
 
 const SELECT_POLL =
-  "id, group_id, user_id, question_text, question_item_type, question_tmdb_id, question_season_number, question_episode_number, allow_multiple, created_at, profiles!polls_user_id_fkey(username, avatar_url)";
+  "id, group_id, user_id, question_text, question_item_type, question_tmdb_id, question_season_number, question_episode_number, allow_multiple, created_at, profiles!polls_user_id_fkey(username, avatar_url, display_name)";
 
 /** Tus propias encuestas publicadas directo al Lobby (no las de dentro de un grupo). */
 export async function listarMisEncuestasDeLobby(userId: string): Promise<Encuesta[]> {
@@ -182,6 +183,7 @@ async function ensamblarEncuestas(pollsData: any[], userId: string | null): Prom
     groupId: p.group_id,
     userId: p.user_id,
     autorUsername: p.profiles?.username ?? null,
+    autorDisplayName: p.profiles?.display_name ?? null,
     autorAvatarUrl: p.profiles?.avatar_url ?? null,
     questionText: p.question_text,
     questionItemType: p.question_item_type,

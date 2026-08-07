@@ -23,6 +23,8 @@ import {
   actualizarDescripcionLista,
 } from "../lib/lists";
 import ListPreviewCard from "../components/ListPreviewCard";
+import OrdenListasModal, { CriterioOrdenListas } from "../components/OrdenListasModal";
+import { nombreOUsuario } from "../components/NombreUsuario";
 import ReportModal from "../components/ReportModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -47,6 +49,12 @@ export default function ListsScreen({ navigation }: any) {
   const [editarDescVisible, setEditarDescVisible] = useState(false);
   const [descripcionEditada, setDescripcionEditada] = useState("");
   const [guardandoDesc, setGuardandoDesc] = useState(false);
+  const [ordenMiasVisible, setOrdenMiasVisible] = useState(false);
+  const [ordenMias, setOrdenMias] = useState<CriterioOrdenListas>("fecha");
+  const [ordenMiasAsc, setOrdenMiasAsc] = useState(false);
+  const [ordenSigoVisible, setOrdenSigoVisible] = useState(false);
+  const [ordenSigo, setOrdenSigo] = useState<CriterioOrdenListas>("fecha");
+  const [ordenSigoAsc, setOrdenSigoAsc] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -126,9 +134,18 @@ export default function ListsScreen({ navigation }: any) {
     cargar();
   }
 
-  const listado = (subTab === "mias" ? misListas : listasQueSigo).filter((l) =>
-    busqueda.trim() ? l.title.toLowerCase().includes(busqueda.trim().toLowerCase()) : true
-  );
+  const orden = subTab === "mias" ? ordenMias : ordenSigo;
+  const ordenAsc = subTab === "mias" ? ordenMiasAsc : ordenSigoAsc;
+
+  const listado = (subTab === "mias" ? misListas : listasQueSigo)
+    .filter((l) => (busqueda.trim() ? l.title.toLowerCase().includes(busqueda.trim().toLowerCase()) : true))
+    .sort((a, b) => {
+      let cmp = 0;
+      if (orden === "alfabetico") cmp = a.title.localeCompare(b.title);
+      else if (orden === "seguidores") cmp = (a.seguidores ?? 0) - (b.seguidores ?? 0);
+      else cmp = (subTab === "mias" ? a.created_at ?? "" : a.followed_at ?? "").localeCompare(subTab === "mias" ? b.created_at ?? "" : b.followed_at ?? "");
+      return ordenAsc ? cmp : -cmp;
+    });
 
   return (
     <View style={styles.container}>
@@ -144,12 +161,44 @@ export default function ListsScreen({ navigation }: any) {
         </Pressable>
       </View>
 
-      <TextInput
-        style={styles.buscador}
-        placeholder={t("Buscar lista...")}
-        placeholderTextColor={theme.colors.textFaint}
-        value={busqueda}
-        onChangeText={setBusqueda}
+      <View style={styles.buscadorRow}>
+        <TextInput
+          style={[styles.buscador, { flex: 1 }]}
+          placeholder={t("Buscar lista...")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={busqueda}
+          onChangeText={setBusqueda}
+        />
+        <Pressable
+          style={styles.ordenBtn}
+          onPress={() => (subTab === "mias" ? setOrdenMiasVisible(true) : setOrdenSigoVisible(true))}
+          hitSlop={8}
+        >
+          <Ionicons name="swap-vertical" size={20} color={theme.colors.text} />
+        </Pressable>
+      </View>
+
+      <OrdenListasModal
+        visible={ordenMiasVisible}
+        onCerrar={() => setOrdenMiasVisible(false)}
+        modo="mias"
+        orden={ordenMias}
+        ascendente={ordenMiasAsc}
+        onCambiar={(o, asc) => {
+          setOrdenMias(o);
+          setOrdenMiasAsc(asc);
+        }}
+      />
+      <OrdenListasModal
+        visible={ordenSigoVisible}
+        onCerrar={() => setOrdenSigoVisible(false)}
+        modo="sigo"
+        orden={ordenSigo}
+        ascendente={ordenSigoAsc}
+        onCambiar={(o, asc) => {
+          setOrdenSigo(o);
+          setOrdenSigoAsc(asc);
+        }}
       />
 
       <FlatList
@@ -178,7 +227,7 @@ export default function ListsScreen({ navigation }: any) {
                 : [
                     t("{n} títulos").replace("{n}", String(item.cantidad)),
                     item.seguidores ? t("{n} seguidores").replace("{n}", String(item.seguidores)) : null,
-                    item.autor_username ? `@${item.autor_username}${item.autor_display_name ? ` ${item.autor_display_name}` : ""}` : null,
+                    item.autor_username ? nombreOUsuario(item.autor_display_name, item.autor_username) : null,
                   ]
                     .filter(Boolean)
                     .join(" · ")
@@ -343,15 +392,24 @@ const styles = StyleSheet.create({
   tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 6, alignItems: "center", backgroundColor: "#000000", borderWidth: 1, borderColor: "transparent" },
   tabBtnActivo: { borderColor: theme.colors.primary },
   tabTexto: { fontSize: 13, fontWeight: "700", color: theme.colors.primaryLight },
+  buscadorRow: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8 },
   buscador: {
-    marginHorizontal: 12,
-    marginBottom: 8,
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
     color: theme.colors.text,
     borderRadius: theme.radius.md,
     padding: 10,
+  },
+  ordenBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
   },
   vacio: { textAlign: "center", color: theme.colors.textMuted, marginTop: 24 },
   card: { flexDirection: "row", alignItems: "center", paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },

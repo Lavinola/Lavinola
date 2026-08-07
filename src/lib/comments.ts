@@ -15,6 +15,7 @@ export interface Comentario {
   reacciones: Record<string, number>;
   mi_reaccion: string | null;
   autor_username: string | null;
+  autor_display_name: string | null;
   autor_avatar_url: string | null;
   shared_item_type: "series" | "movie" | null;
   shared_tmdb_id: number | null;
@@ -56,7 +57,7 @@ export async function cargarComentariosRaiz(
 ): Promise<Comentario[]> {
   let query = supabase
     .from("comentarios")
-    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, has_spoiler, profiles!comentarios_user_id_fkey(username, avatar_url)")
+    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, has_spoiler, profiles!comentarios_user_id_fkey(username, avatar_url, display_name)")
     .eq("target_type", targetType)
     .eq("target_id", targetId)
     .is("parent_comment_id", null);
@@ -97,7 +98,7 @@ export async function obtenerCadenaAncestros(commentId: string): Promise<string[
 export async function cargarRespuestas(parentCommentId: string, userId?: string | null): Promise<Comentario[]> {
   const { data, error } = await supabase
     .from("comentarios")
-    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, has_spoiler, profiles!comentarios_user_id_fkey(username, avatar_url)")
+    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, has_spoiler, profiles!comentarios_user_id_fkey(username, avatar_url, display_name)")
     .eq("parent_comment_id", parentCommentId)
     .order("created_at", { ascending: true });
 
@@ -134,6 +135,7 @@ async function conLikes(filas: any[], userId?: string | null): Promise<Comentari
       reacciones,
       mi_reaccion: miReaccionPorComentario[f.id] ?? null,
       autor_username: f.profiles?.username ?? null,
+      autor_display_name: f.profiles?.display_name ?? null,
       autor_avatar_url: f.profiles?.avatar_url ?? null,
       shared_item_type: f.shared_item_type ?? null,
       shared_tmdb_id: f.shared_tmdb_id ?? null,

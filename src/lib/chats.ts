@@ -5,6 +5,7 @@ export interface ChatResumen {
   chatId: string;
   otroUserId: string;
   otroUsername: string | null;
+  otroDisplayName: string | null;
   otroAvatarUrl: string | null;
   ultimoMensaje: string | null; // vista previa (texto, o "Te recomendó Fulano" si es un título)
   ultimoMensajeFecha: string | null;
@@ -44,7 +45,7 @@ export async function obtenerOCrearChat(otroUserId: string): Promise<string> {
 export async function listarChats(userId: string, t: (s: string) => string = (s) => s): Promise<ChatResumen[]> {
   const { data: chats, error } = await supabase
     .from("chats")
-    .select("id, user_a, user_b, profiles_a:profiles!chats_user_a_fkey(id,username,avatar_url), profiles_b:profiles!chats_user_b_fkey(id,username,avatar_url)")
+    .select("id, user_a, user_b, profiles_a:profiles!chats_user_a_fkey(id,username,avatar_url,display_name), profiles_b:profiles!chats_user_b_fkey(id,username,avatar_url,display_name)")
     .or(`user_a.eq.${userId},user_b.eq.${userId}`);
   if (error) throw error;
   if (!chats || chats.length === 0) return [];
@@ -92,6 +93,7 @@ export async function listarChats(userId: string, t: (s: string) => string = (s)
     resultado.push({
       chatId: c.id,
       otroUserId: otro?.id,
+      otroDisplayName: otro?.display_name ?? null,
       otroUsername: otro?.username ?? null,
       otroAvatarUrl: otro?.avatar_url ?? null,
       ultimoMensaje: ultimo

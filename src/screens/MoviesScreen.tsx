@@ -45,7 +45,7 @@ export default function MoviesScreen({ navigation }: any) {
   const { t } = useT();
   const [subTab, setSubTab] = useState<SubTab>("pendiente");
   const [vista, setVista] = useState<Vista>("grilla");
-  const [orden, setOrden] = useState<"añadida" | "alfabetico" | "año" | "puntuacion_lavinola" | "ultima_vista">("añadida");
+  const [orden, setOrden] = useState<"añadida" | "alfabetico" | "año" | "puntuacion_lavinola">("añadida");
   const [ascendente, setAscendente] = useState(false);
   const [ordenModalVisible, setOrdenModalVisible] = useState(false);
   const [filtroVisible, setFiltroVisible] = useState(false);

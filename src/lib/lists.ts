@@ -22,6 +22,8 @@ export interface Lista {
   portadas?: string[]; // poster_path de algunos títulos de la lista, para la previsualización
   silenciada?: boolean; // solo tiene sentido en "listas que sigo": si no te avisa cuando el creador agrega títulos
   mute_new_followers?: boolean; // solo tiene sentido en "mis listas": si no te avisa cuando alguien te empieza a seguir
+  created_at?: string; // fecha de creación de la lista — para ordenar "mis listas"
+  followed_at?: string; // fecha en la que empezaste a seguirla — para ordenar "listas que sigo"
 }
 
 /**
@@ -94,7 +96,7 @@ export async function borrarLista(listId: string) {
 export async function listarMisListas(userId: string): Promise<Lista[]> {
   const { data, error } = await supabase
     .from("lists")
-    .select("id, title, description, visibility, mute_new_followers, list_items(count)")
+    .select("id, title, description, visibility, mute_new_followers, created_at, list_items(count)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -105,6 +107,7 @@ export async function listarMisListas(userId: string): Promise<Lista[]> {
     visibility: l.visibility,
     cantidad: l.list_items?.[0]?.count ?? 0,
     mute_new_followers: l.mute_new_followers ?? false,
+    created_at: l.created_at,
   }));
 }
 
@@ -123,7 +126,7 @@ export async function listarListasDeUsuario(targetUserId: string): Promise<Lista
 export async function listarListasQueSigo(userId: string): Promise<Lista[]> {
   const { data, error } = await supabase
     .from("list_follows")
-    .select("muted, lists!list_follows_list_id_fkey(id, title, description, visibility, user_id, list_items(count), profiles!lists_user_id_fkey(username, display_name))")
+    .select("muted, created_at, lists!list_follows_list_id_fkey(id, title, description, visibility, user_id, list_items(count), profiles!lists_user_id_fkey(username, display_name))")
     .eq("user_id", userId);
   if (error) throw error;
   return (data ?? [])
@@ -138,6 +141,7 @@ export async function listarListasQueSigo(userId: string): Promise<Lista[]> {
       autor_username: r.lists.profiles?.username ?? null,
       autor_display_name: r.lists.profiles?.display_name ?? null,
       silenciada: r.muted ?? false,
+      followed_at: r.created_at,
     }));
 }
 

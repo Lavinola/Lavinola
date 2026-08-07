@@ -11,6 +11,7 @@ export interface Post {
   id: string;
   user_id: string;
   username: string | null;
+  display_name: string | null;
   avatar_url: string | null;
   item_type: "series" | "movie" | "episode" | "list" | "recap" | "group";
   tmdb_id: number | null;
@@ -303,6 +304,7 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
       id: f.id,
       user_id: f.user_id,
       username: f.profiles?.username ?? null,
+      display_name: f.profiles?.display_name ?? null,
       avatar_url: f.profiles?.avatar_url ?? null,
       item_type: f.item_type,
       tmdb_id: f.tmdb_id,
@@ -338,7 +340,7 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
 }
 
 const SELECT_POST =
-  "id, user_id, item_type, tmdb_id, season_number, episode_number, list_id, group_id, image_url, content, has_spoiler, created_at, es_comentario_de_titulo, mostrar_en_lobby, profiles!posts_user_id_fkey(username, avatar_url)";
+  "id, user_id, item_type, tmdb_id, season_number, episode_number, list_id, group_id, image_url, content, has_spoiler, created_at, es_comentario_de_titulo, mostrar_en_lobby, profiles!posts_user_id_fkey(username, avatar_url, display_name)";
 
 export async function listarMisPosts(userId: string): Promise<Post[]> {
   const { data, error } = await supabase.from("posts").select(SELECT_POST).eq("user_id", userId).eq("mostrar_en_lobby", true).order("created_at", { ascending: false });

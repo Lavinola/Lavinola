@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
-export type CriterioOrdenPelicula = "añadida" | "alfabetico" | "año" | "puntuacion_lavinola" | "ultima_vista";
+export type CriterioOrdenPelicula = "añadida" | "alfabetico" | "año" | "puntuacion_lavinola";
 
 interface Props {
   visible: boolean;
@@ -17,7 +17,6 @@ interface Props {
 
 const OPCIONES: { key: CriterioOrdenPelicula; label: string }[] = [
   { key: "añadida", label: "Última añadida" },
-  { key: "ultima_vista", label: "Últimas vistas" },
   { key: "alfabetico", label: "Alfabético" },
   { key: "año", label: "Año de estreno" },
   { key: "puntuacion_lavinola", label: "Puntuación Lavinola" },

@@ -24,6 +24,7 @@ import { supabase } from "../lib/supabase";
 import { Text } from "../components/Themed";
 import ActionSheetModal from "./ActionSheetModal";
 import ExpandableText from "./ExpandableText";
+import NombreUsuario from "./NombreUsuario";
 import { MOODS } from "../lib/moods";
 import IconoReaccion, { REACCIONES_ICONO } from "./IconoReaccion";
 import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
@@ -498,7 +499,7 @@ export function NodoComentario({
               <View style={[styles.avatarComentario, { backgroundColor: theme.colors.surfaceAlt }]} />
             )}
             <View style={{ flexDirection: "row", alignItems: "baseline", flexShrink: 1 }}>
-              <Text style={styles.autor}>{comentario.autor_username ?? t("Usuario")}</Text>
+              <NombreUsuario style={styles.autor} displayName={comentario.autor_display_name} username={comentario.autor_username} numberOfLines={1} />
               <Text style={styles.fechaComentario}>{formatearTiempoRelativo(comentario.created_at)}</Text>
             </View>
           </Pressable>

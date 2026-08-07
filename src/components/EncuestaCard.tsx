@@ -27,6 +27,7 @@ import ReportModal from "./ReportModal";
 import IconoReaccion, { REACCIONES_ICONO } from "./IconoReaccion";
 import { MOODS } from "../lib/moods";
 import ReaccionesListModal from "./ReaccionesListModal";
+import NombreUsuario from "./NombreUsuario";
 
 interface DatosTitulo {
   nombre: string;
@@ -344,7 +345,7 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
             <View style={[styles.avatar, styles.avatarVacio]} />
           )}
           <View style={{ flexDirection: "row", alignItems: "baseline", flexShrink: 1 }}>
-            <Text style={styles.autorTexto}>{encuesta.autorUsername ?? t("Usuario")}</Text>
+            <NombreUsuario style={styles.autorTexto} displayName={encuesta.autorDisplayName} username={encuesta.autorUsername} numberOfLines={1} />
             <Text style={styles.fechaTexto}>{formatearTiempoRelativo(encuesta.createdAt)}</Text>
           </View>
         </Pressable>

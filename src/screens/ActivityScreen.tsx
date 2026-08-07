@@ -3,6 +3,7 @@ import { View, FlatList, Image, Pressable, TextInput, StyleSheet } from "react-n
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Text } from "../components/Themed";
+import NombreUsuario from "../components/NombreUsuario";
 import { supabase } from "../lib/supabase";
 import { listarChats, ChatResumen } from "../lib/chats";
 import ChatOptionsMenu from "../components/ChatOptionsMenu";
@@ -32,7 +33,11 @@ export default function ActivityScreen({ navigation }: any) {
   }
 
   const chatsFiltrados = busqueda.trim()
-    ? chats.filter((c) => (c.otroUsername ?? "").toLowerCase().includes(busqueda.trim().toLowerCase()))
+    ? chats.filter(
+        (c) =>
+          (c.otroUsername ?? "").toLowerCase().includes(busqueda.trim().toLowerCase()) ||
+          (c.otroDisplayName ?? "").toLowerCase().includes(busqueda.trim().toLowerCase())
+      )
     : chats;
 
   return (
@@ -79,9 +84,10 @@ export default function ActivityScreen({ navigation }: any) {
               <View style={[styles.avatar, styles.avatarPlaceholder]} />
             )}
             <View style={{ flex: 1 }}>
-              <Text style={styles.nombre}>
-                {item.otroUsername ?? t("Usuario")} {item.silenciado && "🔇"}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+                <NombreUsuario style={styles.nombre} displayName={item.otroDisplayName} username={item.otroUsername} />
+                {item.silenciado && <Text style={styles.nombre}> 🔇</Text>}
+              </View>
               {item.noLeidos > 0 ? (
                 <Text style={styles.nuevoMensaje}>{t("Tienen mensajes nuevos")}</Text>
               ) : (
