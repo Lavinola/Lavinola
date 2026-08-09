@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { moderarTexto } from "./moderation";
+import { idsGuardadosDe } from "./savedItems";
 
 export type OrdenComentarios = "nuevo" | "viejo" | "mas_respuestas";
 
@@ -25,6 +26,10 @@ export interface Comentario {
   shared_episode_number: number | null;
   es_que_vemos: boolean;
   has_spoiler: boolean;
+  is_saved?: boolean;
+  target_type?: "series" | "movie" | "episode" | "group" | "post" | "poll";
+  target_id?: string;
+  group_id?: string | null;
 }
 
 const NIVEL_COLAPSO = 4; // a partir de este nivel de anidamiento, la UI colapsa en "ver N respuestas más"
@@ -106,10 +111,24 @@ export async function cargarRespuestas(parentCommentId: string, userId?: string 
   return await conLikes(data ?? [], userId);
 }
 
+/** Un lote puntual de comentarios por id (para "guardados", sin importar de qué hilo son). */
+export async function obtenerComentariosPorIds(ids: string[], userId?: string | null): Promise<Comentario[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("comentarios")
+    .select("id, parent_comment_id, user_id, content, gif_url, reply_count, created_at, target_type, target_id, group_id, shared_item_type, shared_tmdb_id, shared_group_id, shared_list_id, shared_season_number, shared_episode_number, es_que_vemos, has_spoiler, profiles!comentarios_user_id_fkey(username, avatar_url, display_name)")
+    .in("id", ids);
+  if (error) throw error;
+  return await conLikes(data ?? [], userId);
+}
+
 async function conLikes(filas: any[], userId?: string | null): Promise<Comentario[]> {
   if (filas.length === 0) return [];
   const ids = filas.map((f) => f.id);
-  const { data: likes } = await supabase.from("likes_comentario").select("comment_id, emoji, user_id").in("comment_id", ids);
+  const [{ data: likes }, guardadosSet] = await Promise.all([
+    supabase.from("likes_comentario").select("comment_id, emoji, user_id").in("comment_id", ids),
+    idsGuardadosDe(userId ?? null, "comment", ids),
+  ]);
 
   const reaccionesPorComentario: Record<string, Record<string, number>> = {};
   const miReaccionPorComentario: Record<string, string> = {};
@@ -134,6 +153,10 @@ async function conLikes(filas: any[], userId?: string | null): Promise<Comentari
       likes_count: totalReacciones,
       reacciones,
       mi_reaccion: miReaccionPorComentario[f.id] ?? null,
+      is_saved: guardadosSet.has(f.id),
+      target_type: f.target_type,
+      target_id: f.target_id,
+      group_id: f.group_id ?? null,
       autor_username: f.profiles?.username ?? null,
       autor_display_name: f.profiles?.display_name ?? null,
       autor_avatar_url: f.profiles?.avatar_url ?? null,

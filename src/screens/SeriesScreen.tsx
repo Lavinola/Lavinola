@@ -325,7 +325,7 @@ function ListaPendiente({ navigation }: any) {
         if (section.tipo === "viendo" && viendo.length === 0) {
           return <Text style={styles.vacio}>{t("Agregá series para empezar a trackear.")}</Text>;
         }
-        return <FilaSerie item={s} onTocarTilde={() => tocarSiguienteCapitulo(s)} navigation={navigation} />;
+        return <FilaSerie item={s} onTocarTilde={() => tocarSiguienteCapitulo(s)} navigation={navigation} esSinEstrenar={section.tipo === "sin_comenzar"} />;
       }}
       ListFooterComponent={
         <View style={{ padding: 12, alignItems: "flex-start" }}>
@@ -364,10 +364,12 @@ function FilaSerie({
   item,
   onTocarTilde,
   navigation,
+  esSinEstrenar,
 }: {
   item: SerieListado;
   onTocarTilde: () => Promise<void>;
   navigation: any;
+  esSinEstrenar?: boolean;
 }) {
   const { t } = useT();
   const [marcando, setMarcando] = useState(false);
@@ -425,6 +427,15 @@ function FilaSerie({
           <Animated.Text style={[styles.filaSubMarcada, { opacity: opacidad }]}>
             {episodiosRestantes > 0 ? t("Te quedan {n} episodios").replace("{n}", String(episodiosRestantes)) : t("¡Terminaste la serie!")}
           </Animated.Text>
+        ) : esSinEstrenar ? (
+          item.primer_capitulo_season != null && (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={styles.filaSub} numberOfLines={1}>
+                {`T${item.primer_capitulo_season} - E${item.primer_capitulo_number}${item.primer_capitulo_nombre ? `: ${item.primer_capitulo_nombre}` : ""}`}
+              </Text>
+              {!!item.primer_capitulo_fecha && <Text style={styles.filaFechaEstreno}> · {formatearFecha(item.primer_capitulo_fecha)}</Text>}
+            </View>
+          )
         ) : (
           item.next_episode_label && (
             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -436,7 +447,12 @@ function FilaSerie({
           )
         )}
       </View>
-      <Pressable style={[styles.tildeBtn, marcando && styles.tildeBtnMarcado]} onPress={handleTilde} hitSlop={10} disabled={marcando}>
+      <Pressable
+        style={[styles.tildeBtn, marcando && styles.tildeBtnMarcado, esSinEstrenar && styles.tildeBtnDeshabilitado]}
+        onPress={handleTilde}
+        hitSlop={10}
+        disabled={marcando || esSinEstrenar}
+      >
         <Text style={[styles.tildeTexto, marcando && styles.tildeTextoMarcado]}>✓</Text>
       </Pressable>
     </Pressable>
@@ -478,6 +494,7 @@ const styles = StyleSheet.create({
   filaFlecha: { fontSize: 18, color: theme.colors.textMuted, marginLeft: 3 },
   filaSub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2, flexShrink: 1 },
   filaMasCapitulos: { fontSize: 11, color: theme.colors.textFaint, marginTop: 2 },
+  filaFechaEstreno: { fontSize: 11, color: theme.colors.textFaint },
   filaSubMarcada: { fontSize: 13, color: theme.colors.text, fontWeight: "700", marginTop: 2 },
   tildeBtn: {
     width: 36,
@@ -490,6 +507,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   tildeBtnMarcado: { backgroundColor: theme.colors.text, borderColor: theme.colors.text },
+  tildeBtnDeshabilitado: { opacity: 0.35 },
   tildeTexto: { color: theme.colors.primary, fontSize: 16, fontWeight: "700" },
   tildeTextoMarcado: { color: theme.colors.primary },
 });

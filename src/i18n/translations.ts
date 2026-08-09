@@ -264,6 +264,9 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  Guardados: { en: "Saved", pt: "Salvos", it: "Salvati" },
+  "Buscar en tus guardados...": { en: "Search your saved items...", pt: "Buscar nos seus salvos...", it: "Cerca nei tuoi salvati..." },
+  "Todavía no guardaste nada.": { en: "You haven't saved anything yet.", pt: "Você ainda não salvou nada.", it: "Non hai ancora salvato nulla." },
   "Ví toda la serie": { en: "I watched the whole series", pt: "Assisti a série inteira", it: "Ho visto tutta la serie" },
   "¿Viste todos los capítulos?": { en: "Did you watch all the episodes?", pt: "Você assistiu a todos os episódios?", it: "Hai visto tutti gli episodi?" },
   "Ví todos los capítulos el día de su estreno": {

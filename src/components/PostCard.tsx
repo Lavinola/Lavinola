@@ -8,6 +8,7 @@ import ActionSheetModal from "./ActionSheetModal";
 import ConfirmModal from "./ConfirmModal";
 import ReportModal from "./ReportModal";
 import { Post, reaccionarPost, quitarReaccionPost, eliminarPost, marcarPostNoInteresa, listarReaccionesDePost, ReaccionConAutor } from "../lib/posts";
+import { guardarItem, quitarGuardado } from "../lib/savedItems";
 import { Comentario, cargarComentariosRaiz, postearComentario } from "../lib/comments";
 import { NodoComentario } from "./CommentThread";
 import ReaccionesListModal from "./ReaccionesListModal";
@@ -60,6 +61,11 @@ export default function PostCard({
   // pantalla de afuera (Lobby/grupo), evitando que se reinicie el scroll.
   const [miReaccion, setMiReaccion] = useState(post.mi_reaccion ?? null);
   const [reaccionesConteo, setReaccionesConteo] = useState(post.reacciones ?? {});
+  const [guardado, setGuardado] = useState(post.is_saved ?? false);
+
+  React.useEffect(() => {
+    setGuardado(post.is_saved ?? false);
+  }, [post.is_saved]);
 
   React.useEffect(() => {
     setCantidadComentarios(post.cantidad_comentarios ?? 0);
@@ -142,6 +148,21 @@ export default function PostCard({
       console.error("Error al postear respuesta:", e);
       Alert.alert(t("No se pudo publicar"), e.message ?? "Revisá tu conexión y probá de nuevo.");
     }
+  }
+
+  function toggleGuardado() {
+    if (!userId) return;
+    const anterior = guardado;
+    setGuardado(!anterior);
+    (async () => {
+      try {
+        if (anterior) await quitarGuardado(userId, "post", post.id);
+        else await guardarItem(userId, "post", post.id);
+      } catch (e: any) {
+        setGuardado(anterior);
+        Alert.alert("No se pudo guardar", e.message);
+      }
+    })();
   }
 
   function elegirReaccion(key: string) {
@@ -366,6 +387,9 @@ export default function PostCard({
         </Pressable>
         <Pressable onPress={toggleInput} style={styles.accionBtn}>
           <Text style={styles.accionTexto}>{t("Comentar")}</Text>
+        </Pressable>
+        <Pressable onPress={toggleGuardado} style={styles.accionBtn} hitSlop={6}>
+          <Ionicons name={guardado ? "bookmark" : "bookmark-outline"} size={16} color={guardado ? theme.colors.primary : theme.colors.textMuted} />
         </Pressable>
         {!!post.content?.trim() && (
           <Pressable onPress={traducir} disabled={traduciendo} style={styles.traducirBtn}>

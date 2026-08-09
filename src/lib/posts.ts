@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { idsGuardadosDe } from "./savedItems";
 import { moderarTexto } from "./moderation";
 
 export interface ListaPreviewItem {
@@ -32,6 +33,7 @@ export interface Post {
   subtitulo?: string | null; // año / temporadas / "T1 - E3"
   reacciones?: Record<string, number>;
   mi_reaccion?: string | null;
+  is_saved?: boolean;
   cantidad_comentarios?: number;
   lista_items?: ListaPreviewItem[]; // solo si item_type === "list"
   lista_items_total?: number;
@@ -167,6 +169,12 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
   (listasRows ?? []).forEach((l: any) => (listas[l.id] = l));
   const grupos: Record<string, any> = {};
   (gruposRows ?? []).forEach((g: any) => (grupos[g.id] = g));
+
+  const guardadosSet = await idsGuardadosDe(
+    viewerId ?? null,
+    "post",
+    filas.map((f) => f.id)
+  );
 
   // Preview de portadas para los posts de listas (hasta 5, en el orden en que se agregaron).
   const listaItemsPorLista: Record<string, ListaPreviewItem[]> = {};
@@ -324,6 +332,7 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
       subtitulo,
       reacciones: reaccionesPorPost[f.id] ?? {},
       mi_reaccion: miReaccionPorPost[f.id] ?? null,
+      is_saved: guardadosSet.has(f.id),
       cantidad_comentarios: comentariosPorPost[f.id] ?? 0,
       lista_items: f.item_type === "list" ? listaItemsPorLista[f.list_id] ?? [] : undefined,
       lista_items_total: f.item_type === "list" ? listaTotalPorLista[f.list_id] ?? 0 : undefined,
@@ -341,6 +350,14 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
 
 const SELECT_POST =
   "id, user_id, item_type, tmdb_id, season_number, episode_number, list_id, group_id, image_url, content, has_spoiler, created_at, es_comentario_de_titulo, mostrar_en_lobby, profiles!posts_user_id_fkey(username, avatar_url, display_name)";
+
+/** Un lote puntual de posts por id (para "guardados", donde no importa el orden natural del feed). */
+export async function obtenerPostsPorIds(ids: string[], viewerId?: string | null): Promise<Post[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.from("posts").select(SELECT_POST).in("id", ids);
+  if (error) throw error;
+  return resolverDatosDeTitulos(data ?? [], viewerId);
+}
 
 export async function listarMisPosts(userId: string): Promise<Post[]> {
   const { data, error } = await supabase.from("posts").select(SELECT_POST).eq("user_id", userId).eq("mostrar_en_lobby", true).order("created_at", { ascending: false });

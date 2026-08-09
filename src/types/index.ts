@@ -7,6 +7,12 @@ export type SeriesStatusFilter =
 
 // Umbral fijo para MVP (ver spec). A futuro: configurable por usuario.
 export const ABANDONADA_UMBRAL_DIAS = 30;
+// Una serie que agregaste y NUNCA empezaste a ver: cuánto tiempo, desde que
+// salió su primer capítulo, se queda invitándote en "Ver a continuación"
+// antes de volver a "Sin comenzar" por falta de uso. Apenas ves un
+// capítulo, la serie deja de regirse por este umbral y pasa a regirse por
+// ABANDONADA_UMBRAL_DIAS de ahí en más.
+export const DIAS_SIN_COMENZAR_EN_VER_A_CONTINUACION = 15;
 
 export interface Profile {
   id: string;

@@ -66,6 +66,7 @@ import AdminBroadcastScreen from "../screens/AdminBroadcastScreen";
 import AdminMetricsScreen from "../screens/AdminMetricsScreen";
 import GroupModerateUsersScreen from "../screens/GroupModerateUsersScreen";
 import LobbySearchScreen from "../screens/LobbySearchScreen";
+import GuardadosScreen from "../screens/GuardadosScreen";
 import GroupMembersScreen from "../screens/GroupMembersScreen";
 import FavoritedByScreen from "../screens/FavoritedByScreen";
 import AnnouncementsScreen from "../screens/AnnouncementsScreen";
@@ -174,6 +175,7 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
       <Stack.Screen name="AdminGrupos" component={AdminGroupsScreen} options={{ title: t("Administrar mis grupos") }} />
       <Stack.Screen name="ModerarUsuariosGrupo" component={GroupModerateUsersScreen} options={{ title: t("Moderar") }} />
       <Stack.Screen name="BuscarEnLobby" component={LobbySearchScreen} options={{ title: t("Buscar"), presentation: "modal" }} />
+      <Stack.Screen name="Guardados" component={GuardadosScreen} options={{ title: t("Guardados") }} />
       <Stack.Screen name="MiembrosGrupo" component={GroupMembersScreen} options={{ title: t("Miembros") }} />
       <Stack.Screen name="FavoritosDe" component={FavoritedByScreen} options={{ title: t("En Favoritos") }} />
       <Stack.Screen

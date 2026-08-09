@@ -31,6 +31,7 @@ import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
 import NivelUpModal from "./NivelUpModal";
 import QueVemosModal from "./QueVemosModal";
 import { listarMiembrosIds } from "../lib/groups";
+import { guardarItem, quitarGuardado } from "../lib/savedItems";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -329,6 +330,7 @@ export function NodoComentario({
   const [texto, setTexto] = useState("");
   const [gifElegido, setGifElegido] = useState<string | null>(null);
   const [miReaccion, setMiReaccion] = useState<string | null>(comentario.mi_reaccion);
+  const [guardado, setGuardado] = useState(comentario.is_saved ?? false);
   const [reacciones, setReacciones] = useState<Record<string, number>>(comentario.reacciones ?? {});
   const { t } = useT();
   const [traduccion, setTraduccion] = useState<string | null>(null);
@@ -397,6 +399,21 @@ export function NodoComentario({
       console.error("Error al postear respuesta:", e);
       Alert.alert("No se pudo publicar", e.message ?? "Revisá tu conexión y probá de nuevo.");
     }
+  }
+
+  function toggleGuardado() {
+    if (!userId) return;
+    const anterior = guardado;
+    setGuardado(!anterior);
+    (async () => {
+      try {
+        if (anterior) await quitarGuardado(userId, "comment", comentario.id);
+        else await guardarItem(userId, "comment", comentario.id);
+      } catch (e: any) {
+        setGuardado(anterior);
+        Alert.alert("No se pudo guardar", e.message);
+      }
+    })();
   }
 
   async function elegirReaccion(emoji: string) {
@@ -567,6 +584,11 @@ export function NodoComentario({
           <Pressable onPress={() => setMostrandoInput(!mostrandoInput)}>
             <Text style={styles.accionTexto}>{t("Responder")}</Text>
           </Pressable>
+          {targetType === "post" && (
+            <Pressable onPress={toggleGuardado} hitSlop={6}>
+              <Ionicons name={guardado ? "bookmark" : "bookmark-outline"} size={16} color={guardado ? theme.colors.primary : theme.colors.textMuted} />
+            </Pressable>
+          )}
           {comentario.content && (
             <Pressable onPress={traducir} disabled={traduciendo} hitSlop={6} style={styles.traducirBtn}>
               <Text style={styles.traducirTexto}>{traduciendo ? t("Traduciendo...") : traduccion ? t("Ver original") : t("Traducir")}</Text>

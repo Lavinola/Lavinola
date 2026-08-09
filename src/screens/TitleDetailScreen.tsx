@@ -174,6 +174,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
 
   function toqueVista() {
     if (!userId || tipo !== "movie") return;
+    if (!vista && titulo?.release_date && titulo.release_date > new Date().toISOString().slice(0, 10)) return; // todavía no se estrenó
     if (vista) {
       // Ya está vista: en vez de destildarla directo, preguntamos qué quiso decir
       // (por ahí se equivocó, o por ahí la volvió a ver).
@@ -328,14 +329,23 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
               </>
             )}
           </View>
-          {tipo === "movie" && (
-            <View style={styles.vistaRowHeader}>
-              <Text style={styles.vistaTextoHeader}>{vista ? t("Vista") : t("No vista")}</Text>
-              <Pressable style={[styles.vistaCirculo, vista && styles.vistaCirculoActivo]} onPress={toqueVista} hitSlop={10}>
-                <Text style={[styles.vistaTilde, vista && styles.vistaTildeActivo]}>✓</Text>
-              </Pressable>
-            </View>
-          )}
+          {tipo === "movie" &&
+            (() => {
+              const noSalioTodavia = !vista && !!titulo?.release_date && titulo.release_date > new Date().toISOString().slice(0, 10);
+              return (
+                <View style={styles.vistaRowHeader}>
+                  <Text style={styles.vistaTextoHeader}>{vista ? t("Vista") : t("No vista")}</Text>
+                  <Pressable
+                    style={[styles.vistaCirculo, vista && styles.vistaCirculoActivo, noSalioTodavia && styles.vistaCirculoDeshabilitado]}
+                    onPress={toqueVista}
+                    hitSlop={10}
+                    disabled={noSalioTodavia}
+                  >
+                    <Text style={[styles.vistaTilde, vista && styles.vistaTildeActivo]}>✓</Text>
+                  </Pressable>
+                </View>
+              );
+            })()}
         </View>
 
         {tipo === "series" && (
@@ -1149,6 +1159,7 @@ const styles = StyleSheet.create({
   agregarBtnGrandeTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },
   vistaCirculo: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: theme.colors.border, alignItems: "center", justifyContent: "center" },
   vistaCirculoActivo: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  vistaCirculoDeshabilitado: { opacity: 0.35 },
   vistaTilde: { color: theme.colors.textFaint, fontSize: 20, fontWeight: "700" },
   vistaTildeActivo: { color: theme.colors.text },
   tabContainer: { padding: 16 },

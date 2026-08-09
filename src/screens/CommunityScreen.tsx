@@ -85,6 +85,9 @@ export default function CommunityScreen({ navigation, route }: any) {
                 onCambiar={setLobbySubTab}
               />
             </View>
+            <Pressable style={styles.guardadosBtn} onPress={() => navigation.navigate("Guardados")} hitSlop={10}>
+              <Ionicons name="bookmark" size={20} color={theme.colors.primary} />
+            </Pressable>
             <Pressable style={styles.lupaBtn} onPress={() => navigation.navigate("BuscarEnLobby", { modo: "lobby" })} hitSlop={10}>
               <Ionicons name="search" size={20} color={theme.colors.primaryLight} />
             </Pressable>
@@ -280,6 +283,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   lobbyTogglesWrap: { flexDirection: "row", alignItems: "center", backgroundColor: "#000000" },
   lupaBtn: { paddingHorizontal: 14, paddingVertical: 12 },
+  guardadosBtn: { paddingHorizontal: 6, paddingVertical: 12 },
   misPostsHeaderRow: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4 },
   lupaBtnMisPosts: {
     flexDirection: "row",

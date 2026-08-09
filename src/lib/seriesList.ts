@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { fetchAllRows } from "./pagination";
-import { computeSeriesStatus, SeriesStatusFilter } from "../types";
+import { computeSeriesStatus, SeriesStatusFilter, DIAS_SIN_COMENZAR_EN_VER_A_CONTINUACION } from "../types";
 import { refrescarMetaSerie } from "./sync";
 
 export interface SerieListado {
@@ -21,6 +21,10 @@ export interface SerieListado {
   rating: number | null;
   genre_ids: number[];
   added_at: string;
+  primer_capitulo_season: number | null; // solo para "sin_comenzar": el capítulo 1, salga o no — para mostrar qué se viene
+  primer_capitulo_number: number | null;
+  primer_capitulo_nombre: string | null;
+  primer_capitulo_fecha: string | null;
 }
 
 export interface EventoHistorial {
@@ -233,14 +237,28 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
     // escondida en "Sin comenzar" hasta que la busques ahí. Esto cubre
     // tanto el estreno del primer capítulo de una serie nueva, como
     // cualquier serie que agregaste antes de que saliera nada.
+    //
+    // Pero esto dura 15 días desde que salió el primer capítulo: si en ese
+    // tiempo no viste nada, se considera que no te "enganchó" y vuelve a
+    // "Sin comenzar" (no se queda en Ver a continuación para siempre). Ni
+    // bien ves un capítulo, la serie ya cuenta como "empezada" — ahí pasa a
+    // regirse por el umbral de 30 días de siempre (abandonada), no por este.
     if (estado === "sin_comenzar" && proximo) {
-      estado = "viendo";
+      const diasDisponible = cache?.first_air_date ? (Date.now() - new Date(cache.first_air_date).getTime()) / (1000 * 60 * 60 * 24) : 0;
+      if (diasDisponible <= DIAS_SIN_COMENZAR_EN_VER_A_CONTINUACION) {
+        estado = "viendo";
+      }
     }
 
     // "Temporada nueva": lo próximo para ver es el estreno de una temporada
     // (episodio 1) que no sea la primera — o sea, veías todo y te salió una
     // temporada nueva, no que recién empezás la serie de cero.
     const temporadaNueva = nextNumber === 1 && (nextSeason ?? 0) > 1 && count > 0;
+
+    // Para "sin_comenzar": el capítulo 1 (haya salido o no) — así se puede
+    // mostrar qué se viene, aunque todavía no tenga fecha real o nombre.
+    const todosLosEpisodios = episodiosPorSerie.get(row.series_tmdb_id) ?? [];
+    const primerCapitulo = todosLosEpisodios[0] ?? null;
 
     resultado.push({
       tmdb_id: row.series_tmdb_id,
@@ -260,6 +278,10 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
       rating: (row as any).rating ?? null,
       genre_ids: cache?.genre_ids ?? [],
       added_at: row.created_at,
+      primer_capitulo_season: primerCapitulo?.season_number ?? null,
+      primer_capitulo_number: primerCapitulo?.episode_number ?? null,
+      primer_capitulo_nombre: primerCapitulo?.name ?? null,
+      primer_capitulo_fecha: primerCapitulo?.air_date ?? null,
     });
   }
   return resultado;

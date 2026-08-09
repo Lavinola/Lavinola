@@ -2642,3 +2642,22 @@ where not exists (
   where uew.user_id = e.user_id and uew.series_tmdb_id = e.series_tmdb_id
     and uew.season_number = e.season_number and uew.episode_number = e.episode_number
 );
+
+-- ============================================================
+-- Guardados — posts del Lobby y comentarios (de detalles de título, y
+-- respuestas dentro del Lobby) que el usuario quiere guardar para
+-- después, sin depender de likes/reacciones (algo más privado, tipo
+-- "guardado" de Instagram/X).
+-- ============================================================
+create table if not exists saved_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  target_type text not null check (target_type in ('post', 'comment')),
+  target_id uuid not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, target_type, target_id)
+);
+create index if not exists idx_saved_items_user on saved_items(user_id, created_at desc);
+alter table saved_items enable row level security;
+drop policy if exists "saved_items_own" on saved_items;
+create policy "saved_items_own" on saved_items for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
