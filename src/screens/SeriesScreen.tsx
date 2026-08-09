@@ -325,7 +325,7 @@ function ListaPendiente({ navigation }: any) {
         if (section.tipo === "viendo" && viendo.length === 0) {
           return <Text style={styles.vacio}>{t("Agregá series para empezar a trackear.")}</Text>;
         }
-        return <FilaSerie item={s} onTocarTilde={() => tocarSiguienteCapitulo(s)} navigation={navigation} esSinEstrenar={section.tipo === "sin_comenzar"} />;
+        return <FilaSerie item={s} onTocarTilde={() => tocarSiguienteCapitulo(s)} navigation={navigation} />;
       }}
       ListFooterComponent={
         <View style={{ padding: 12, alignItems: "flex-start" }}>
@@ -364,12 +364,10 @@ function FilaSerie({
   item,
   onTocarTilde,
   navigation,
-  esSinEstrenar,
 }: {
   item: SerieListado;
   onTocarTilde: () => Promise<void>;
   navigation: any;
-  esSinEstrenar?: boolean;
 }) {
   const { t } = useT();
   const [marcando, setMarcando] = useState(false);
@@ -393,6 +391,13 @@ function FilaSerie({
   }
 
   const episodiosRestantes = Math.max(0, (item.episodios_restantes ?? 1) - 1);
+  // Ojo: "esSinEstrenar" (la sección en la que está) NO alcanza para saber si
+  // hay que deshabilitar el tilde — una serie puede estar en "Sin comenzar"
+  // porque ya pasaron 15 días sin arrancarla, aunque el primer capítulo YA
+  // salió y se puede ver perfectamente. Lo que hay que chequear es si
+  // realmente hay un capítulo disponible (next_episode_season): si lo hay,
+  // se comporta como cualquier otra fila, tilde activo y todo.
+  const realmenteSinEstrenar = item.next_episode_season == null;
   const colorFondo = opacidad.interpolate({ inputRange: [0, 1], outputRange: [theme.colors.background, theme.colors.primary] });
 
   return (
@@ -427,7 +432,7 @@ function FilaSerie({
           <Animated.Text style={[styles.filaSubMarcada, { opacity: opacidad }]}>
             {episodiosRestantes > 0 ? t("Te quedan {n} episodios").replace("{n}", String(episodiosRestantes)) : t("¡Terminaste la serie!")}
           </Animated.Text>
-        ) : esSinEstrenar ? (
+        ) : realmenteSinEstrenar ? (
           item.primer_capitulo_season != null && (
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text style={styles.filaSub} numberOfLines={1}>
@@ -448,10 +453,10 @@ function FilaSerie({
         )}
       </View>
       <Pressable
-        style={[styles.tildeBtn, marcando && styles.tildeBtnMarcado, esSinEstrenar && styles.tildeBtnDeshabilitado]}
+        style={[styles.tildeBtn, marcando && styles.tildeBtnMarcado, realmenteSinEstrenar && styles.tildeBtnDeshabilitado]}
         onPress={handleTilde}
         hitSlop={10}
-        disabled={marcando || esSinEstrenar}
+        disabled={marcando || realmenteSinEstrenar}
       >
         <Text style={[styles.tildeTexto, marcando && styles.tildeTextoMarcado]}>✓</Text>
       </Pressable>
