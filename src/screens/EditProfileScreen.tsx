@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   campoConIcono: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   iconoRed: { width: 20 },
   inputConIcono: { flex: 1, marginBottom: 0 },
-  contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: 0, marginBottom: 6 },
+  contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: 3, marginBottom: 6 },
   container: { padding: 16, paddingBottom: 100 },
   avatarRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   avatar: { width: 56, height: 56, borderRadius: 28, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },

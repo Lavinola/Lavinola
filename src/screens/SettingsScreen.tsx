@@ -47,6 +47,15 @@ const GENEROS = [
   { value: "otro", label: "Otro" },
 ];
 
+function SeccionTitulo({ texto }: { texto: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 24, marginBottom: 8 }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.primary }} />
+      <Text style={{ fontSize: 16, fontWeight: "700" }}>{texto}</Text>
+    </View>
+  );
+}
+
 function TabCuenta({ navigation }: any) {
   const { t } = useT();
   const [perfil, setPerfil] = useState<PerfilCompleto | null>(null);
@@ -177,7 +186,7 @@ function TabCuenta({ navigation }: any) {
   return (
     <>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container}>
-      <Text style={styles.seccionTitulo}>{t("Identificación")}</Text>
+      <SeccionTitulo texto={t("Identificación")} />
       <Text style={styles.label}>{t("Nombre de usuario")}</Text>
       <Pressable onPress={() => navigation.navigate("EditarPerfil")}>
         <Text style={styles.valorLink}>{perfil?.username ?? t("Elegir uno")}</Text>
@@ -211,7 +220,7 @@ function TabCuenta({ navigation }: any) {
         </View>
       )}
 
-      <Text style={styles.label}>{t("Año de nacimiento")}</Text>
+      <Text style={[styles.label, { marginTop: 14 }]}>{t("Año de nacimiento")}</Text>
       <TextInput
         style={styles.input}
         value={birthYear}
@@ -229,7 +238,7 @@ function TabCuenta({ navigation }: any) {
       <View style={{ height: 16 }} />
       <AppButton title={t("Editar perfil")} onPress={() => navigation.navigate("EditarPerfil")} variant="outline" />
 
-      <Text style={styles.seccionTitulo}>{t("Privacidad")}</Text>
+      <SeccionTitulo texto={t("Privacidad")} />
       <View style={styles.switchRow}>
         <View style={{ flex: 1 }}>
           <Text style={styles.switchLabel}>{t("Perfil privado")}</Text>
@@ -348,7 +357,7 @@ function TabAplicacion({ navigation }: any) {
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container}>
-      <Text style={styles.seccionTitulo}>{t("Idioma de la aplicación")}</Text>
+      <SeccionTitulo texto={t("Idioma de la aplicación")} />
       <Text style={styles.switchHint}>
         {t("Este es el idioma que se usa para toda la app: menús, botones, y (si lo activás abajo) los títulos de películas y series.")}
       </Text>
@@ -359,13 +368,13 @@ function TabAplicacion({ navigation }: any) {
         titulo={t("Idioma de la aplicación")}
       />
 
-      <Text style={styles.seccionTitulo}>{t("País de residencia")}</Text>
+      <SeccionTitulo texto={t("País de residencia")} />
       <Text style={styles.switchHint}>
         {t("Se usa para mostrarte dónde ver cada título en tu país. Si te mudaste, cambialo acá y se actualiza solo.")}
       </Text>
       <CountryPickerField valor={p.country ?? "AR"} onCambiar={(v) => actualizar({ country: v })} />
 
-      <Text style={styles.seccionTitulo}>{t("Títulos")}</Text>
+      <SeccionTitulo texto={t("Títulos")} />
       <View style={styles.switchRow}>
         <View style={{ flex: 1 }}>
           <Text style={styles.switchLabel}>{t("Mostrar en tu idioma")}</Text>
@@ -377,7 +386,7 @@ function TabAplicacion({ navigation }: any) {
         />
       </View>
 
-      <Text style={styles.seccionTitulo}>{t("Notificaciones")}</Text>
+      <SeccionTitulo texto={t("Notificaciones")} />
       <Text style={styles.label}>{t("Cuando sale un episodio nuevo")}</Text>
       <SelectField
         opciones={OPCIONES_NOTIFY_EPISODIO}
@@ -394,28 +403,28 @@ function TabAplicacion({ navigation }: any) {
       <SwitchLinea etiqueta={t("Mensajes en grupos privados")} valor={p.notify_group_messages_private !== false} onCambiar={(v) => actualizar({ notify_group_messages_private: v })} />
       <SwitchLinea etiqueta={t("Mensajes en grupos públicos")} valor={p.notify_group_messages_public !== false} onCambiar={(v) => actualizar({ notify_group_messages_public: v })} />
 
-      <Text style={styles.seccionTitulo}>{t("Qué ven las personas que te siguen")}</Text>
+      <SeccionTitulo texto={t("Qué ven las personas que te siguen")} />
       <SwitchLinea etiqueta={t("Películas favoritas")} valor={p.show_favorite_movies} onCambiar={(v) => actualizar({ show_favorite_movies: v })} />
       <SwitchLinea etiqueta={t("Series favoritas")} valor={p.show_favorite_series} onCambiar={(v) => actualizar({ show_favorite_series: v })} />
       <SwitchLinea etiqueta={t("Grupos en los que estás")} valor={p.show_groups} onCambiar={(v) => actualizar({ show_groups: v })} />
       <SwitchLinea etiqueta={t("Posts/Comentarios")} valor={p.show_comments} onCambiar={(v) => actualizar({ show_comments: v })} />
 
-      <Text style={styles.seccionTitulo}>{t("Importar Datos")}</Text>
+      <SeccionTitulo texto={t("Importar Datos")} />
       <Pressable onPress={() => navigation.navigate("ImportarTVTime")}>
         <Text style={styles.link}>{t("Importar mi historial de TV Time o Letterboxd")}</Text>
       </Pressable>
 
-      <Text style={styles.seccionTitulo}>{t("Tus datos")}</Text>
+      <SeccionTitulo texto={t("Tus datos")} />
       <Text style={styles.switchHint}>{t("Descargá una copia de todo lo que guardaste en Lavinola.")}</Text>
       <View style={{ height: 8 }} />
       <AppButton title={exportando ? t("Preparando...") : t("Descargar todos mis datos (ZIP)")} onPress={exportar} variant="outline" disabled={exportando} />
 
-      <View style={{ height: 4 }} />
+      <View style={{ height: 16 }} />
       <Pressable onPress={() => navigation.navigate("UsuariosBloqueados")}>
         <Text style={styles.link}>{t("Usuarios bloqueados")}</Text>
       </Pressable>
 
-      <View style={{ height: 4 }} />
+      <View style={{ height: 16 }} />
       <Pressable onPress={() => navigation.navigate("PoliticaPrivacidad")}>
         <Text style={styles.link}>{t("Política de privacidad")}</Text>
       </Pressable>
@@ -468,11 +477,10 @@ const toggleStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 48 },
-  seccionTitulo: { fontSize: 16, fontWeight: "700", marginTop: 24, marginBottom: 8 },
   label: { fontSize: 13, color: theme.colors.textMuted, marginTop: 12, marginBottom: 4 },
   valor: { fontSize: 15, marginBottom: 4 },
   valorLink: { fontSize: 15, color: theme.colors.primaryLight, marginBottom: 4 },
-  link: { color: theme.colors.primaryLight, fontSize: 14, marginTop: 4 },
+  link: { color: theme.colors.primaryLight, fontSize: 14, marginTop: 10 },
   input: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10, marginBottom: 8 },
   pickerBox: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, overflow: "hidden" },
   switchRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },

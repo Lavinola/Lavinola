@@ -1,16 +1,10 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "../components/Themed";
-import { searchSeries, searchMovies, getSeriesImages, getMovieImages, posterUrl } from "../lib/tmdb";
+import { getSeriesImages, getMovieImages, posterUrl } from "../lib/tmdb";
+import { buscarTitulosTolerante, ResultadoTitulo } from "../lib/tituloSearch";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
-
-interface Resultado {
-  id: number;
-  titulo: string;
-  poster_path: string | null;
-  tipo: "series" | "movie";
-}
 
 interface Props {
   route: {
@@ -33,32 +27,41 @@ export default function ChooseTmdbImageScreen({ route, navigation }: Props) {
   const { t } = useT();
   const { titulo, onElegir, modo = "backdrops" } = route.params;
   const [query, setQuery] = useState("");
-  const [resultados, setResultados] = useState<Resultado[]>([]);
+  const [resultados, setResultados] = useState<ResultadoTitulo[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tituloElegido, setTituloElegido] = useState<Resultado | null>(null);
+  const [tituloElegido, setTituloElegido] = useState<ResultadoTitulo | null>(null);
   const [backdrops, setBackdrops] = useState<any[]>([]);
   const [cargandoBackdrops, setCargandoBackdrops] = useState(false);
+  const idPedidoRef = useRef(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function buscar(texto: string) {
+  function buscar(texto: string) {
     setQuery(texto);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (texto.trim().length < 2) {
+      idPedidoRef.current++;
       setResultados([]);
+      setLoading(false);
       return;
     }
     setLoading(true);
+    // Esperamos un poquito (debounce) antes de disparar la búsqueda — si no,
+    // cada letra que escribís dispara un pedido nuevo a TMDB.
+    debounceRef.current = setTimeout(() => ejecutarBusqueda(texto), 350);
+  }
+
+  async function ejecutarBusqueda(texto: string) {
+    const miId = ++idPedidoRef.current;
     try {
-      const [series, movies] = await Promise.all([searchSeries(texto), searchMovies(texto)]);
-      const mezcla: Resultado[] = [
-        ...(series.results ?? []).map((s: any) => ({ id: s.id, titulo: s.name, poster_path: s.poster_path, tipo: "series" as const })),
-        ...(movies.results ?? []).map((p: any) => ({ id: p.id, titulo: p.title, poster_path: p.poster_path, tipo: "movie" as const })),
-      ];
+      const mezcla = await buscarTitulosTolerante(texto, () => idPedidoRef.current === miId);
+      if (idPedidoRef.current !== miId) return; // llegó tarde, ya hay una búsqueda más nueva en curso
       setResultados(mezcla);
     } finally {
-      setLoading(false);
+      if (idPedidoRef.current === miId) setLoading(false);
     }
   }
 
-  async function abrirBackdrops(item: Resultado) {
+  async function abrirBackdrops(item: ResultadoTitulo) {
     setTituloElegido(item);
     setCargandoBackdrops(true);
     try {
@@ -126,7 +129,10 @@ export default function ChooseTmdbImageScreen({ route, navigation }: Props) {
             ) : (
               <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
             )}
-            <Text style={styles.titulo}>{item.titulo}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.titulo}>{item.titulo}</Text>
+              {!!item.anio && <Text style={styles.anio}>{item.anio}</Text>}
+            </View>
           </Pressable>
         )}
       />
@@ -139,7 +145,8 @@ const styles = StyleSheet.create({
   input: { margin: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10 },
   card: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8 },
   poster: { width: 40, height: 60, borderRadius: 4, marginRight: 12 },
-  titulo: { flex: 1, fontSize: 15 },
+  titulo: { fontSize: 15 },
+  anio: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   volver: { padding: 12 },
   volverTexto: { color: theme.colors.primaryLight, fontSize: 14, fontWeight: "600" },
   subtitulo: { fontSize: 14, color: theme.colors.textMuted, paddingHorizontal: 12, marginBottom: 4 },

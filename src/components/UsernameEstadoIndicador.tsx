@@ -55,6 +55,6 @@ export default function UsernameEstadoIndicador({ estado }: { estado: EstadoUser
 }
 
 const styles = StyleSheet.create({
-  fila: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4, marginBottom: 6 },
+  fila: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 0, marginBottom: 6 },
   texto: { fontSize: 11.5, fontWeight: "600" },
 });
