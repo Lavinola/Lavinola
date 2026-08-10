@@ -73,6 +73,7 @@ function TabCuenta({ navigation }: any) {
     if (p) {
       setPerfil(p);
       setBirthYear(p.birth_year ? String(p.birth_year) : "");
+      anioGuardadoRef.current = p.birth_year ? String(p.birth_year) : "";
       setGender((p as any).gender ?? "");
     }
   }
@@ -97,12 +98,21 @@ function TabCuenta({ navigation }: any) {
     setPass2("");
   }
 
-  async function guardarDatosPersonales() {
+  const anioGuardadoRef = React.useRef<string | null>(null);
+
+  async function guardarAnioNacimiento() {
     if (!userId) return;
-    await actualizarPerfil(userId, {
-      birth_year: birthYear ? Number(birthYear) : null,
-      gender: gender || null,
-    } as any);
+    if (birthYear === (anioGuardadoRef.current ?? "")) return; // no cambió desde el último guardado, no hace falta pegarle a la base de nuevo
+    if (birthYear && birthYear.length !== 4) return; // todavía no terminó de escribir un año válido
+    anioGuardadoRef.current = birthYear;
+    await actualizarPerfil(userId, { birth_year: birthYear ? Number(birthYear) : null } as any);
+    setToastVisible(true);
+  }
+
+  async function guardarGenero(valor: string) {
+    if (!userId) return;
+    setGender(valor);
+    await actualizarPerfil(userId, { gender: valor || null } as any);
     setToastVisible(true);
   }
 
@@ -206,6 +216,7 @@ function TabCuenta({ navigation }: any) {
         style={styles.input}
         value={birthYear}
         onChangeText={setBirthYear}
+        onBlur={guardarAnioNacimiento}
         placeholder={t("Ej: 1995")}
         placeholderTextColor={theme.colors.textFaint}
         keyboardType="number-pad"
@@ -213,8 +224,7 @@ function TabCuenta({ navigation }: any) {
       />
 
       <Text style={styles.label}>Género</Text>
-      <SelectField opciones={GENEROS.map((g) => ({ value: g.value, label: t(g.label) }))} valor={gender} onCambiar={setGender} titulo="Género" />
-      <AppButton title={t("Guardar")} onPress={guardarDatosPersonales} variant="outline" />
+      <SelectField opciones={GENEROS.map((g) => ({ value: g.value, label: t(g.label) }))} valor={gender} onCambiar={guardarGenero} titulo="Género" />
 
       <View style={{ height: 16 }} />
       <AppButton title={t("Editar perfil")} onPress={() => navigation.navigate("EditarPerfil")} variant="outline" />
