@@ -19,6 +19,7 @@ export async function usuariosMutuos(userId: string): Promise<UsuarioBasico[]> {
 export interface UsuarioBasico {
   id: string;
   username: string | null;
+  display_name?: string | null;
   avatar_url: string | null;
   siguiendo: boolean; // ¿el usuario actual lo sigue?
   solicitudPendiente?: boolean; // ¿le mandó una solicitud que todavía no le contestaron?
@@ -71,7 +72,7 @@ export async function buscarUsuarios(query: string, currentUserId: string | null
 export async function usuariosQueSigo(userId: string, viewerId: string | null = userId): Promise<UsuarioBasico[]> {
   const { data, error } = await supabase
     .from("follows")
-    .select("followee_id, created_at, profiles!follows_followee_id_fkey(id, username, avatar_url)")
+    .select("followee_id, created_at, profiles!follows_followee_id_fkey(id, username, avatar_url, display_name)")
     .eq("follower_id", userId);
   if (error) throw error;
 
@@ -89,6 +90,7 @@ export async function usuariosQueSigo(userId: string, viewerId: string | null = 
   return (data ?? []).map((f: any) => ({
     id: f.profiles.id,
     username: f.profiles.username,
+    display_name: f.profiles.display_name,
     avatar_url: f.profiles.avatar_url,
     siguiendo: viewerId === userId ? true : siguiendoSet.has(f.profiles.id),
     solicitudPendiente: solicitudesSet.has(f.profiles.id),
@@ -100,7 +102,7 @@ export async function usuariosQueSigo(userId: string, viewerId: string | null = 
 export async function seguidoresDe(userId: string, viewerId: string | null): Promise<UsuarioBasico[]> {
   const { data, error } = await supabase
     .from("follows")
-    .select("follower_id, created_at, profiles!follows_follower_id_fkey(id, username, avatar_url)")
+    .select("follower_id, created_at, profiles!follows_follower_id_fkey(id, username, avatar_url, display_name)")
     .eq("followee_id", userId);
   if (error) throw error;
 
@@ -118,6 +120,7 @@ export async function seguidoresDe(userId: string, viewerId: string | null): Pro
   return (data ?? []).map((f: any) => ({
     id: f.profiles.id,
     username: f.profiles.username,
+    display_name: f.profiles.display_name,
     avatar_url: f.profiles.avatar_url,
     siguiendo: siguiendoSet.has(f.profiles.id),
     solicitudPendiente: solicitudesSet.has(f.profiles.id),

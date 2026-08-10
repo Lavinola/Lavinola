@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { View, TextInput, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
-import SelectField from "../components/SelectField";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { decode } from "base64-arraybuffer";
@@ -16,22 +16,16 @@ import { theme } from "../theme";
 
 const FRASE_MAX = 110; // aprox. lo que entra en dos renglones en el ancho del perfil
 
-const GENEROS = [
-  { value: "", label: "Preferís no decir" },
-  { value: "hombre", label: "Hombre" },
-  { value: "mujer", label: "Mujer" },
-  { value: "otro", label: "Otro" },
-];
-
 export default function EditProfileScreen({ navigation }: any) {
   const { t } = useT();
   const [perfil, setPerfil] = useState<PerfilCompleto | null>(null);
   const [username, setUsername] = useState("");
   const estadoUsername = useDisponibilidadUsername(username, perfil?.username);
   const [displayName, setDisplayName] = useState("");
-  const [birthYear, setBirthYear] = useState("");
-  const [gender, setGender] = useState("");
   const [fraseFavorita, setFraseFavorita] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [twitter, setTwitter] = useState("");
+  const [tiktok, setTiktok] = useState("");
   const [coverPath, setCoverPath] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -51,9 +45,10 @@ export default function EditProfileScreen({ navigation }: any) {
       setPerfil(p);
       setUsername(p.username ?? "");
       setDisplayName(p.display_name ?? "");
-      setBirthYear(p.birth_year ? String(p.birth_year) : "");
-      setGender(p.gender ?? "");
       setFraseFavorita(p.favorite_quote ?? "");
+      setInstagram((p as any).social_instagram ?? "");
+      setTwitter((p as any).social_twitter ?? "");
+      setTiktok((p as any).social_tiktok ?? "");
       setCoverPath(await getCoverPosterPath(p));
     }
   }
@@ -116,9 +111,10 @@ export default function EditProfileScreen({ navigation }: any) {
       await actualizarPerfil(userId, {
         username: usernameLimpio || null,
         display_name: displayName.trim() || null,
-        birth_year: birthYear ? Number(birthYear) : null,
-        gender: gender || null,
         favorite_quote: fraseFavorita.trim() || null,
+        social_instagram: instagram.trim() || null,
+        social_twitter: twitter.trim() || null,
+        social_tiktok: tiktok.trim() || null,
         avatar_url: perfil?.avatar_url ?? null,
         username_placeholder: false,
       } as any);
@@ -172,26 +168,12 @@ export default function EditProfileScreen({ navigation }: any) {
       <TextInput
         style={styles.input}
         value={displayName}
-        onChangeText={(texto) => setDisplayName(texto.slice(0, 14))}
+        onChangeText={(texto) => setDisplayName(texto.slice(0, 15))}
         placeholder={t("Cómo querés que te vean")}
         placeholderTextColor={theme.colors.textFaint}
-        maxLength={14}
+        maxLength={15}
       />
-      <Text style={styles.contadorCaracteres}>{displayName.length}/14</Text>
-
-      <Text style={styles.label}>{t("Año de nacimiento")}</Text>
-      <TextInput
-        style={styles.input}
-        value={birthYear}
-        onChangeText={setBirthYear}
-        placeholder={t("Ej: 1995")}
-        placeholderTextColor={theme.colors.textFaint}
-        keyboardType="number-pad"
-        maxLength={4}
-      />
-
-      <Text style={styles.label}>Género</Text>
-      <SelectField opciones={GENEROS.map((g) => ({ value: g.value, label: t(g.label) }))} valor={gender} onCambiar={setGender} titulo="Género" />
+      <Text style={styles.contadorCaracteres}>{displayName.length}/15</Text>
 
       <Text style={styles.label}>{t("Tu frase (opcional)")}</Text>
       <TextInput
@@ -208,6 +190,41 @@ export default function EditProfileScreen({ navigation }: any) {
         {fraseFavorita.length}/{FRASE_MAX}
       </Text>
 
+      <Text style={styles.seccionTitulo}>{t("Redes sociales")}</Text>
+      <View style={styles.campoConIcono}>
+        <Ionicons name="logo-instagram" size={20} color={theme.colors.primaryLight} style={styles.iconoRed} />
+        <TextInput
+          style={[styles.input, styles.inputConIcono]}
+          placeholder={t("Instagram (usuario)")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={instagram}
+          onChangeText={setInstagram}
+          autoCapitalize="none"
+        />
+      </View>
+      <View style={styles.campoConIcono}>
+        <Ionicons name="logo-x" size={20} color={theme.colors.primaryLight} style={styles.iconoRed} />
+        <TextInput
+          style={[styles.input, styles.inputConIcono]}
+          placeholder={t("Twitter / X (usuario)")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={twitter}
+          onChangeText={setTwitter}
+          autoCapitalize="none"
+        />
+      </View>
+      <View style={styles.campoConIcono}>
+        <Ionicons name="logo-tiktok" size={20} color={theme.colors.primaryLight} style={styles.iconoRed} />
+        <TextInput
+          style={[styles.input, styles.inputConIcono]}
+          placeholder={t("TikTok (usuario)")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={tiktok}
+          onChangeText={setTiktok}
+          autoCapitalize="none"
+        />
+      </View>
+
       <View style={{ height: 40 }} />
       <AppButton title={guardando ? t("Guardando...") : t("Guardar cambios")} onPress={guardar} disabled={guardando} />
     </ScrollView>
@@ -216,6 +233,10 @@ export default function EditProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  seccionTitulo: { fontSize: 16, fontWeight: "700", marginTop: 24, marginBottom: 8 },
+  campoConIcono: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  iconoRed: { width: 20 },
+  inputConIcono: { flex: 1, marginBottom: 0 },
   contadorCaracteres: { fontSize: 11, color: theme.colors.textFaint, textAlign: "right", marginTop: 0, marginBottom: 6 },
   container: { padding: 16, paddingBottom: 100 },
   avatarRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },

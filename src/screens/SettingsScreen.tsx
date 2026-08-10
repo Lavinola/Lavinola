@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { View, Image, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import SelectField from "../components/SelectField";
@@ -41,6 +40,13 @@ export default function SettingsScreen({ navigation }: any) {
 // ============================================================
 // CUENTA
 // ============================================================
+const GENEROS = [
+  { value: "", label: "Preferís no decir" },
+  { value: "hombre", label: "Hombre" },
+  { value: "mujer", label: "Mujer" },
+  { value: "otro", label: "Otro" },
+];
+
 function TabCuenta({ navigation }: any) {
   const { t } = useT();
   const [perfil, setPerfil] = useState<PerfilCompleto | null>(null);
@@ -50,9 +56,8 @@ function TabCuenta({ navigation }: any) {
   const [toastVisible, setToastVisible] = useState(false);
   const [pass1, setPass1] = useState("");
   const [pass2, setPass2] = useState("");
-  const [instagram, setInstagram] = useState("");
-  const [twitter, setTwitter] = useState("");
-  const [tiktok, setTiktok] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [gender, setGender] = useState("");
 
   useEffect(() => {
     cargar();
@@ -67,9 +72,8 @@ function TabCuenta({ navigation }: any) {
     const p = await getPerfil(uid);
     if (p) {
       setPerfil(p);
-      setInstagram((p as any).social_instagram ?? "");
-      setTwitter((p as any).social_twitter ?? "");
-      setTiktok((p as any).social_tiktok ?? "");
+      setBirthYear(p.birth_year ? String(p.birth_year) : "");
+      setGender((p as any).gender ?? "");
     }
   }
 
@@ -93,12 +97,11 @@ function TabCuenta({ navigation }: any) {
     setPass2("");
   }
 
-  async function guardarRedes() {
+  async function guardarDatosPersonales() {
     if (!userId) return;
     await actualizarPerfil(userId, {
-      social_instagram: instagram.trim() || null,
-      social_twitter: twitter.trim() || null,
-      social_tiktok: tiktok.trim() || null,
+      birth_year: birthYear ? Number(birthYear) : null,
+      gender: gender || null,
     } as any);
     setToastVisible(true);
   }
@@ -198,41 +201,23 @@ function TabCuenta({ navigation }: any) {
         </View>
       )}
 
-      <Text style={styles.seccionTitulo}>{t("Redes sociales")}</Text>
-      <View style={styles.campoConIcono}>
-        <Ionicons name="logo-instagram" size={20} color={theme.colors.primaryLight} style={styles.iconoRed} />
-        <TextInput
-          style={[styles.input, styles.inputConIcono]}
-          placeholder={t("Instagram (usuario)")}
-          placeholderTextColor={theme.colors.textFaint}
-          value={instagram}
-          onChangeText={setInstagram}
-          autoCapitalize="none"
-        />
-      </View>
-      <View style={styles.campoConIcono}>
-        <Ionicons name="logo-x" size={20} color={theme.colors.primaryLight} style={styles.iconoRed} />
-        <TextInput
-          style={[styles.input, styles.inputConIcono]}
-          placeholder={t("Twitter / X (usuario)")}
-          placeholderTextColor={theme.colors.textFaint}
-          value={twitter}
-          onChangeText={setTwitter}
-          autoCapitalize="none"
-        />
-      </View>
-      <View style={styles.campoConIcono}>
-        <Ionicons name="logo-tiktok" size={20} color={theme.colors.primaryLight} style={styles.iconoRed} />
-        <TextInput
-          style={[styles.input, styles.inputConIcono]}
-          placeholder={t("TikTok (usuario)")}
-          placeholderTextColor={theme.colors.textFaint}
-          value={tiktok}
-          onChangeText={setTiktok}
-          autoCapitalize="none"
-        />
-      </View>
-      <AppButton title={t("Guardar")} onPress={guardarRedes} variant="outline" />
+      <Text style={styles.label}>{t("Año de nacimiento")}</Text>
+      <TextInput
+        style={styles.input}
+        value={birthYear}
+        onChangeText={setBirthYear}
+        placeholder={t("Ej: 1995")}
+        placeholderTextColor={theme.colors.textFaint}
+        keyboardType="number-pad"
+        maxLength={4}
+      />
+
+      <Text style={styles.label}>Género</Text>
+      <SelectField opciones={GENEROS.map((g) => ({ value: g.value, label: t(g.label) }))} valor={gender} onCambiar={setGender} titulo="Género" />
+      <AppButton title={t("Guardar")} onPress={guardarDatosPersonales} variant="outline" />
+
+      <View style={{ height: 16 }} />
+      <AppButton title={t("Editar perfil")} onPress={() => navigation.navigate("EditarPerfil")} variant="outline" />
 
       <Text style={styles.seccionTitulo}>{t("Privacidad")}</Text>
       <View style={styles.switchRow}>
@@ -270,7 +255,7 @@ function TabCuenta({ navigation }: any) {
         { label: t("Eliminar cuenta"), onPress: eliminarCuentaDeVerdad, destacado: true },
       ]}
     />
-    <Toast visible={toastVisible} mensaje={`${t("Guardado")} — ${t("Tus redes sociales se actualizaron.")}`} onOcultar={() => setToastVisible(false)} />
+    <Toast visible={toastVisible} mensaje={`${t("Guardado")} — ${t("Tus datos se actualizaron.")}`} onOcultar={() => setToastVisible(false)} />
     </>
   );
 }
@@ -479,9 +464,6 @@ const styles = StyleSheet.create({
   valorLink: { fontSize: 15, color: theme.colors.primaryLight, marginBottom: 4 },
   link: { color: theme.colors.primaryLight, fontSize: 14, marginTop: 4 },
   input: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10, marginBottom: 8 },
-  campoConIcono: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
-  iconoRed: { width: 20 },
-  inputConIcono: { flex: 1, marginBottom: 0 },
   pickerBox: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, overflow: "hidden" },
   switchRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   switchLabel: { fontSize: 14 },

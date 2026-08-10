@@ -815,6 +815,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Tu contraseña se actualizó.": { en: "Your password was updated.", pt: "Sua senha foi atualizada.", it: "La tua password è stata aggiornata." },
   Guardado: { en: "Saved", pt: "Salvo", it: "Salvato" },
   "Tus redes sociales se actualizaron.": { en: "Your social links were updated.", pt: "Suas redes sociais foram atualizadas.", it: "I tuoi social sono stati aggiornati." },
+  "Tus datos se actualizaron.": { en: "Your info was updated.", pt: "Seus dados foram atualizados.", it: "I tuoi dati sono stati aggiornati." },
 
   // ---------- Perfil (completando lo que faltaba) ----------
   Vos: { en: "You", pt: "Você", it: "Tu" },

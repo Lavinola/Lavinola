@@ -3,6 +3,7 @@ import { View, FlatList, Image, Pressable, TextInput, StyleSheet, Platform } fro
 import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
+import NombreUsuario from "../components/NombreUsuario";
 import { supabase } from "../lib/supabase";
 import { usuariosQueSigo, seguidoresDe, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
@@ -45,10 +46,10 @@ export default function FollowListScreen({ route, navigation }: Props) {
   const listaFinal = useMemo(() => {
     let resultado = [...lista];
 
-    // Búsqueda por nombre de usuario, siempre disponible.
+    // Búsqueda por nombre de usuario o nombre para mostrar, siempre disponible.
     const texto = busqueda.trim().toLowerCase();
     if (texto.length > 0) {
-      resultado = resultado.filter((u) => (u.username ?? "").toLowerCase().includes(texto));
+      resultado = resultado.filter((u) => (u.username ?? "").toLowerCase().includes(texto) || (u.display_name ?? "").toLowerCase().includes(texto));
     }
 
     if (esMiPropiaLista) {
@@ -136,7 +137,7 @@ export default function FollowListScreen({ route, navigation }: Props) {
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]} />
             )}
-            <Text style={styles.username}>{item.username ?? "Usuario"}</Text>
+            <NombreUsuario style={styles.username} displayName={item.display_name} username={item.username} numberOfLines={1} />
             {viewerId && viewerId !== item.id && (
               <Pressable
                 style={[styles.followBtn, (item.siguiendo || item.solicitudPendiente) && styles.followBtnActivo]}
