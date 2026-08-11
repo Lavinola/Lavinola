@@ -4,7 +4,6 @@ import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";
-import TituloConTraduccion from "../components/TituloConTraduccion";
 import { searchPerson, posterUrl } from "../lib/tmdb";
 import { buscarTitulosTolerante, ResultadoTitulo } from "../lib/tituloSearch";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie } from "../lib/sync";
@@ -239,7 +238,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
                   <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
                 )}
                 <View style={{ flex: 1 }}>
-                  <TituloConTraduccion tipo={item.tipo} id={item.id} titulo={item.titulo} style={styles.nombre} numberOfLines={2} />
+                  <Text style={styles.nombre}>{item.titulo}</Text>
                   {item.anio && <Text style={styles.anio}>{item.anio}</Text>}
                 </View>
                 {abriendo === item.id && <ActivityIndicator size="small" style={{ marginRight: 8 }} />}
