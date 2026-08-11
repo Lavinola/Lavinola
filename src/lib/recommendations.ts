@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import { fetchAllRows } from "./pagination";
 import { discoverSeriesByGenres, discoverMoviesByGenres, getMovieRecommendations, getSeriesRecommendations } from "./tmdb";
 
-const CANTIDAD_SEMILLAS = 5; // de cuántos títulos propios partimos para pedir "recomendado a partir de esto"
+const CANTIDAD_SEMILLAS = 10; // de cuántos títulos propios partimos para pedir "recomendado a partir de esto"
 
 /**
  * "Las mejores series/películas para ti": mira los géneros de lo que el

@@ -27,7 +27,6 @@ import { abrirRedSocial } from "../lib/social";
 import InsigniaChica from "../components/InsigniaChica";
 import TiempoDedicadoTexto from "../components/TiempoDedicadoTexto";
 import FilaRedesSociales from "../components/FilaRedesSociales";
-import { obtenerPuntosInsignias, nivelAlcanzado } from "../lib/badges";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -133,6 +132,7 @@ export default function ProfileScreen({ navigation }: any) {
     setProgreso(datos.progreso);
     setMisPeliculas(datos.misPeliculas);
     setStats(datos.stats);
+    setNivelInsigniaNumero(datos.nivelInsignia);
   }
 
   async function cargar() {
@@ -152,9 +152,6 @@ export default function ProfileScreen({ navigation }: any) {
     aplicarDatosPerfil(datos);
     actualizarCachePerfilPropio(userId, datos);
 
-    obtenerPuntosInsignias(userId)
-      .then((puntos) => setNivelInsigniaNumero(nivelAlcanzado(puntos)?.nivel ?? null))
-      .catch((e) => console.error("Error al calcular el nivel de insignias:", e));
     setIsAdmin(!!(datos.perfil as any)?.is_admin);
     if ((datos.perfil as any)?.is_admin) {
       const { count } = await supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending");

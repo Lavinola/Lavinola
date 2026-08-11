@@ -4,6 +4,7 @@ import { getPerfil, getStatsSociales, getCoverPosterPath, PerfilCompleto, StatsS
 import { listarFavoritos, Favorito } from "./favorites";
 import { listarListasDeUsuarioOrdenadasPorSeguidores, Lista } from "./lists";
 import { progresoDeSeries, ProgresoSerie } from "./seriesList";
+import { obtenerPuntosInsignias, nivelAlcanzado } from "./badges";
 
 export interface ItemMiniPerfil {
   tmdb_id: number;
@@ -28,6 +29,7 @@ export interface DatosPerfilPropio {
   progreso: Record<number, ProgresoSerie>;
   misPeliculas: ItemMiniPerfil[];
   stats: StatsPerfil;
+  nivelInsignia: number | null;
 }
 
 /**
@@ -38,7 +40,7 @@ export interface DatosPerfilPropio {
  * están (o casi) listos en vez de tener que esperar a que arranquen.
  */
 export async function cargarDatosPerfilPropio(userId: string): Promise<DatosPerfilPropio> {
-  const [p, soc, favs, listasOrdenadas, seriesRows, progresoSeries, movieRows, episodiosVistos, peliculasVistas] = await Promise.all([
+  const [p, soc, favs, listasOrdenadas, seriesRows, progresoSeries, movieRows, episodiosVistos, peliculasVistas, puntosInsignias] = await Promise.all([
     getPerfil(userId),
     getStatsSociales(userId),
     listarFavoritos(userId),
@@ -75,6 +77,10 @@ export async function cargarDatosPerfilPropio(userId: string): Promise<DatosPerf
         .eq("watched", true)
         .range(desde, hasta)
     ),
+    obtenerPuntosInsignias(userId).catch((e) => {
+      console.error("Error al calcular el nivel de insignias (precarga del perfil):", e);
+      return 0;
+    }),
   ]);
 
   const coverPath = p ? await getCoverPosterPath(p) : null;
@@ -103,6 +109,7 @@ export async function cargarDatosPerfilPropio(userId: string): Promise<DatosPerf
       minutosPeliculasVistas: (peliculasVistas ?? []).reduce((acc: number, p2: any) => acc + (p2.movies_cache?.runtime_minutes ?? 0) * (p2.times_watched ?? 1), 0),
       peliculasVistas: (peliculasVistas ?? []).reduce((acc: number, p2: any) => acc + (p2.times_watched ?? 1), 0),
     },
+    nivelInsignia: nivelAlcanzado(puntosInsignias)?.nivel ?? null,
   };
 }
 
