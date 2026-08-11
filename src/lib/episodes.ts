@@ -207,3 +207,28 @@ export async function desmarcarEpisodio(userId: string, seriesTmdbId: number, se
     .eq("episode_number", episode);
   await recalcularUltimaVistaSerie(userId, seriesTmdbId);
 }
+
+/** Capítulo anterior y siguiente (si existen) de una serie, en orden cronológico real (cruza de temporada sin problema). El siguiente solo cuenta si ya se estrenó — no tiene sentido "avanzar" a un capítulo que todavía no salió. */
+export async function obtenerEpisodiosAdyacentes(
+  seriesTmdbId: number,
+  seasonNumber: number,
+  episodeNumber: number
+): Promise<{ anterior: { season_number: number; episode_number: number } | null; siguiente: { season_number: number; episode_number: number } | null }> {
+  const { data } = await supabase
+    .from("episodes_cache")
+    .select("season_number, episode_number, air_date")
+    .eq("series_tmdb_id", seriesTmdbId)
+    .order("season_number", { ascending: true })
+    .order("episode_number", { ascending: true });
+  const episodios = data ?? [];
+  const idx = episodios.findIndex((e) => e.season_number === seasonNumber && e.episode_number === episodeNumber);
+  if (idx === -1) return { anterior: null, siguiente: null };
+
+  const anterior = idx > 0 ? episodios[idx - 1] : null;
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  const candidatoSiguiente = idx < episodios.length - 1 ? episodios[idx + 1] : null;
+  const siguiente = candidatoSiguiente && candidatoSiguiente.air_date && candidatoSiguiente.air_date <= hoy ? candidatoSiguiente : null;
+
+  return { anterior, siguiente };
+}

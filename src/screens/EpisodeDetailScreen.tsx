@@ -18,7 +18,7 @@ import { supabase } from "../lib/supabase";
 import { calificarEpisodio, promedioEpisodio, guardarPlataformaEpisodio } from "../lib/ratings";
 import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getTmdbLanguage } from "../lib/tmdb";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
-import { marcarVariosEpisodios, desmarcarEpisodio, episodiosAnterioresNoVistos } from "../lib/episodes";
+import { marcarVariosEpisodios, desmarcarEpisodio, episodiosAnterioresNoVistos, obtenerEpisodiosAdyacentes } from "../lib/episodes";
 import {
   volverAVerEpisodio,
   establecerFechaPrimeraVistaEpisodio,
@@ -68,6 +68,10 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   const [providers, setProviders] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [eventosVista, setEventosVista] = useState<EventoVisto[]>([]);
+  const [adyacentes, setAdyacentes] = useState<{
+    anterior: { season_number: number; episode_number: number } | null;
+    siguiente: { season_number: number; episode_number: number } | null;
+  }>({ anterior: null, siguiente: null });
   const [moodStats, setMoodStats] = useState<MoodStats>({ miMood: null, porcentajes: {}, total: 0 });
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuFechaVisible, setMenuFechaVisible] = useState(false);
@@ -124,6 +128,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       .eq("episode_number", episodeNumber)
       .maybeSingle();
     setEpisodio(ep);
+    obtenerEpisodiosAdyacentes(seriesTmdbId, seasonNumber, episodeNumber).then(setAdyacentes);
 
     if (uid) {
       const { data: watched } = await supabase
@@ -269,6 +274,10 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
     }
   }
 
+  function irAEpisodio(ep: { season_number: number; episode_number: number }) {
+    navigation.replace("EpisodioDetalle", { seriesTmdbId, seasonNumber: ep.season_number, episodeNumber: ep.episode_number });
+  }
+
   async function elegirMoodPropio(mood: string) {
     if (!userId) return;
     try {
@@ -352,6 +361,25 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
         <View style={[styles.headerWrap, { opacity: headerAncladoEp ? 0 : 1 }]} pointerEvents={headerAncladoEp ? "none" : "auto"}>
           {renderHeaderEpisodio()}
         </View>
+
+        {(adyacentes.anterior || adyacentes.siguiente) && (
+          <View style={styles.flechasRow}>
+            {adyacentes.anterior ? (
+              <Pressable onPress={() => irAEpisodio(adyacentes.anterior!)} hitSlop={12}>
+                <Ionicons name="chevron-back" size={28} color={theme.colors.primary} />
+              </Pressable>
+            ) : (
+              <View />
+            )}
+            {adyacentes.siguiente ? (
+              <Pressable onPress={() => irAEpisodio(adyacentes.siguiente!)} hitSlop={12}>
+                <Ionicons name="chevron-forward" size={28} color={theme.colors.primary} />
+              </Pressable>
+            ) : (
+              <View />
+            )}
+          </View>
+        )}
 
         <View style={styles.container}>
           <View style={styles.puntajeRow}>
@@ -535,6 +563,7 @@ const styles = StyleSheet.create({
   comentariosBannerTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },
   comentariosBannerFlecha: { color: "#000000", fontWeight: "800", fontSize: 22 },
   container: { padding: 16 },
+  flechasRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 8, paddingTop: 8 },
   nombreSerie: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 2 },
   titulo: { fontSize: 19, fontWeight: "700" },
   fecha: { fontSize: 13, color: theme.colors.textMuted, marginTop: 4 },
