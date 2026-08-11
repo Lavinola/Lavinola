@@ -279,6 +279,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "Sin conexión a internet": { en: "No internet connection", pt: "Sem conexão com a internet", it: "Nessuna connessione a internet" },
   Guardados: { en: "Saved", pt: "Salvos", it: "Salvati" },
   "Buscar en tus guardados...": { en: "Search your saved items...", pt: "Buscar nos seus salvos...", it: "Cerca nei tuoi salvati..." },
   "Todavía no guardaste nada.": { en: "You haven't saved anything yet.", pt: "Você ainda não salvou nada.", it: "Non hai ancora salvato nulla." },

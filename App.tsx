@@ -7,6 +7,8 @@ import { AppLanguageProvider } from "./src/i18n/i18n";
 import { theme } from "./src/theme";
 import GlobalAlertHost from "./src/components/GlobalAlertHost";
 import ErrorBoundary from "./src/components/ErrorBoundary";
+import OfflineBanner from "./src/components/OfflineBanner";
+import UpdateGate from "./src/components/UpdateGate";
 import { inicializarReporteDeErrores } from "./src/lib/errorReporting";
 
 inicializarReporteDeErrores();
@@ -43,7 +45,12 @@ export default function App() {
     <ErrorBoundary>
       <AppLanguageProvider>
         <StatusBar style="auto" />
-        <RootNavigation />
+        <UpdateGate>
+          <View style={{ flex: 1 }}>
+            <OfflineBanner />
+            <RootNavigation />
+          </View>
+        </UpdateGate>
         <GlobalAlertHost />
       </AppLanguageProvider>
     </ErrorBoundary>

@@ -13,6 +13,7 @@ import { traducirTexto } from "../lib/translate";
 import StarRating from "../components/StarRating";
 import WatchedPlatformPicker from "../components/WatchedPlatformPicker";
 import ActionSheetModal from "../components/ActionSheetModal";
+import { pedirReseñaSiCorresponde } from "../lib/storeReview";
 import TituloConTraduccion from "../components/TituloConTraduccion";
 import { SkeletonTitleDetail } from "../components/SkeletonShapes";
 import ConfirmModal from "../components/ConfirmModal";
@@ -105,6 +106,14 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
   const [customPoster, setCustomPoster] = useState<string | null>(null);
   const [customBackdrop, setCustomBackdrop] = useState<string | null>(null);
   const [mostrarConfetti, setMostrarConfetti] = useState(false);
+
+  function celebrarSerieCompletada() {
+    setMostrarConfetti(true);
+    // Un rato después del confetti (no compitiendo con la animación por la
+    // atención) — terminar una serie es un buen momento para pedir la
+    // reseña, la persona está contenta con la app en ese instante.
+    setTimeout(() => pedirReseñaSiCorresponde(), 2500);
+  }
   const [publishModalVisible, setPublishModalVisible] = useState(false);
   const [confirmEliminarVisible, setConfirmEliminarVisible] = useState(false);
   const [agregando, setAgregando] = useState(false);
@@ -221,7 +230,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       setVista(true);
       setAgregada(true);
       setVistaVersion((v) => v + 1);
-      setMostrarConfetti(true);
+      celebrarSerieCompletada();
     } catch (e: any) {
       Alert.alert("No se pudo guardar", e.message);
     }
@@ -404,7 +413,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
           tab === "info" ? (
             <InformacionTab tmdbId={tmdbId} tipo={tipo} titulo={titulo} userId={userId} navigation={navigation} vista={vista} vistaVersion={vistaVersion} />
           ) : (
-            <EpisodiosTab tmdbId={tmdbId} userId={userId} navigation={navigation} onSerieAgregada={() => setAgregada(true)} onSerieCompletada={() => setMostrarConfetti(true)} vistaVersion={vistaVersion} />
+            <EpisodiosTab tmdbId={tmdbId} userId={userId} navigation={navigation} onSerieAgregada={() => setAgregada(true)} onSerieCompletada={celebrarSerieCompletada} vistaVersion={vistaVersion} />
           )
         ) : (
           <InformacionTab tmdbId={tmdbId} tipo={tipo} titulo={titulo} userId={userId} navigation={navigation} vista={vista} vistaVersion={vistaVersion} />

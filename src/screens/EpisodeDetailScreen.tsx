@@ -19,6 +19,7 @@ import { calificarEpisodio, promedioEpisodio, guardarPlataformaEpisodio } from "
 import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getTmdbLanguage } from "../lib/tmdb";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { marcarVariosEpisodios, desmarcarEpisodio, episodiosAnterioresNoVistos, obtenerEpisodiosAdyacentes } from "../lib/episodes";
+import { pedirReseñaSiCorresponde } from "../lib/storeReview";
 import {
   volverAVerEpisodio,
   establecerFechaPrimeraVistaEpisodio,
@@ -55,6 +56,11 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   const [overviewLocalizado, setOverviewLocalizado] = useState<string | null>(null);
   const [nombreSerieParaRecomendar, setNombreSerieParaRecomendar] = useState("esta serie");
   const [mostrarConfetti, setMostrarConfetti] = useState(false);
+
+  function celebrarSerieCompletada() {
+    setMostrarConfetti(true);
+    setTimeout(() => pedirReseñaSiCorresponde(), 2500);
+  }
   const [publishModalVisible, setPublishModalVisible] = useState(false);
   const [visto, setVisto] = useState(false);
   const [menuVistoVisible, setMenuVistoVisible] = useState(false);
@@ -188,7 +194,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       }
       await marcarVariosEpisodios(userId, seriesTmdbId, [{ season_number: seasonNumber, episode_number: episodeNumber }]);
       cargar();
-      if (await serieRecienCompletada(userId, seriesTmdbId)) setMostrarConfetti(true);
+      if (await serieRecienCompletada(userId, seriesTmdbId)) celebrarSerieCompletada();
     } catch (e: any) {
       Alert.alert("No se pudo guardar", e.message);
     }
@@ -201,7 +207,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       : [{ season_number: seasonNumber, episode_number: episodeNumber }];
     await marcarVariosEpisodios(userId, seriesTmdbId, lista);
     cargar();
-    if (await serieRecienCompletada(userId, seriesTmdbId)) setMostrarConfetti(true);
+    if (await serieRecienCompletada(userId, seriesTmdbId)) celebrarSerieCompletada();
   }
 
   async function marcarNoVisto() {

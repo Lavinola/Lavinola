@@ -2680,3 +2680,20 @@ create policy "saved_items_own" on saved_items for all using (auth.uid() = user_
 -- ============================================================
 alter table movies_cache add column if not exists synced_language text;
 alter table series_cache add column if not exists synced_language text;
+
+-- ============================================================
+-- Configuración remota simple, para cosas que se quieren poder cambiar
+-- sin publicar una versión nueva: por ahora, la versión mínima obligatoria
+-- de la app (ver src/lib/appVersionCheck.ts) y el link a la tienda. El
+-- valor por default de min_app_version es la versión actual del build, así
+-- que arranca sin bloquear a nadie hasta que se suba a mano.
+-- ============================================================
+create table if not exists app_config (
+  key text primary key,
+  value text
+);
+alter table app_config enable row level security;
+drop policy if exists "app_config_select_all" on app_config;
+create policy "app_config_select_all" on app_config for select using (true);
+insert into app_config (key, value) values ('min_app_version', '0.1.0') on conflict (key) do nothing;
+insert into app_config (key, value) values ('store_url', '') on conflict (key) do nothing;
