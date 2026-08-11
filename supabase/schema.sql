@@ -808,20 +808,27 @@ create or replace function crear_perfil_automatico() returns trigger as $$
 declare
   username_deseado text;
   es_placeholder boolean;
+  idioma_elegido text;
+  mostrar_en_propio boolean;
 begin
   es_placeholder := new.raw_user_meta_data->>'username' is null;
   username_deseado := coalesce(new.raw_user_meta_data->>'username', 'usuario_' || substr(new.id::text, 1, 8));
+  idioma_elegido := coalesce(new.raw_user_meta_data->>'content_language', 'es-419');
+  -- Mismo criterio que al cambiarlo después en Ajustes: español latino e
+  -- italiano arrancan con "mostrar en tu idioma" apagado (títulos en
+  -- inglés por defecto); español de España e inglés arrancan prendido.
+  mostrar_en_propio := idioma_elegido not in ('es-419', 'it-IT');
   begin
-    insert into public.profiles (id, username, country, content_language, username_placeholder)
-    values (new.id, username_deseado, new.raw_user_meta_data->>'country', coalesce(new.raw_user_meta_data->>'content_language', 'es-419'), es_placeholder)
+    insert into public.profiles (id, username, country, content_language, show_titles_in_own_language, username_placeholder)
+    values (new.id, username_deseado, new.raw_user_meta_data->>'country', idioma_elegido, mostrar_en_propio, es_placeholder)
     on conflict (id) do nothing;
   exception when unique_violation then
     -- El chequeo de disponibilidad del cliente es la primera barrera, pero
     -- por las dudas dos altas caigan justo al mismo tiempo con el mismo
     -- username, no dejamos que reviente el alta de la cuenta: le agregamos
     -- un sufijo random y seguimos. El usuario puede cambiarlo después.
-    insert into public.profiles (id, username, country, content_language, username_placeholder)
-    values (new.id, username_deseado || '_' || substr(new.id::text, 1, 4), new.raw_user_meta_data->>'country', coalesce(new.raw_user_meta_data->>'content_language', 'es-419'), es_placeholder)
+    insert into public.profiles (id, username, country, content_language, show_titles_in_own_language, username_placeholder)
+    values (new.id, username_deseado || '_' || substr(new.id::text, 1, 4), new.raw_user_meta_data->>'country', idioma_elegido, mostrar_en_propio, es_placeholder)
     on conflict (id) do nothing;
   end;
   return new;
@@ -2661,3 +2668,15 @@ create index if not exists idx_saved_items_user on saved_items(user_id, created_
 alter table saved_items enable row level security;
 drop policy if exists "saved_items_own" on saved_items;
 create policy "saved_items_own" on saved_items for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ============================================================
+-- La caché compartida de títulos (movies_cache/series_cache) guarda el
+-- título/sinopsis en UN solo idioma a la vez, y antes solo se
+-- refrescaba por antigüedad (cada 24hs) — si cambiabas el idioma de la
+-- app, seguías viendo los títulos en el idioma anterior hasta que
+-- pasaran esas 24hs, sin importar cuántas veces volvieras a entrar.
+-- Guardamos en qué idioma se sincronizó cada título para poder detectar
+-- ese desfasaje y forzar un refresco inmediato cuando no coincide.
+-- ============================================================
+alter table movies_cache add column if not exists synced_language text;
+alter table series_cache add column if not exists synced_language text;

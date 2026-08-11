@@ -364,7 +364,15 @@ function TabAplicacion({ navigation }: any) {
       <SelectField
         opciones={IDIOMAS.map((i) => ({ value: i.code, label: i.label }))}
         valor={p.content_language ?? "en-US"}
-        onCambiar={(v) => actualizar({ content_language: v })}
+        onCambiar={(v) =>
+          actualizar(
+            v === "es-ES" || v === "en-US"
+              ? { content_language: v, show_titles_in_own_language: true }
+              : v === "es-419" || v === "it-IT"
+              ? { content_language: v, show_titles_in_own_language: false }
+              : { content_language: v }
+          )
+        }
         titulo={t("Idioma de la aplicación")}
       />
 

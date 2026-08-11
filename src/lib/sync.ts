@@ -12,7 +12,7 @@
  * ese título (pantalla en blanco, o el "+" que no queda guardado).
  */
 import { supabase } from "./supabase";
-import { getSeriesDetails, getSeasonEpisodes, getMovieDetails, getMovieCredits, getSeriesCredits } from "./tmdb";
+import { getSeriesDetails, getSeasonEpisodes, getMovieDetails, getMovieCredits, getSeriesCredits, getTmdbLanguage } from "./tmdb";
 
 const STALE_AFTER_HOURS = 24;
 
@@ -24,12 +24,18 @@ function isStale(syncedAt: string | null) {
 
 /** Trae (o refresca) una serie + todos sus episodios en series_cache/episodes_cache. */
 export async function syncSeries(tmdbId: number): Promise<void> {
+  const idiomaActual = getTmdbLanguage();
   const { data: existing } = await supabase
     .from("series_cache")
-    .select("synced_at, total_seasons, first_air_date, total_episodes, cast_top")
+    .select("synced_at, total_seasons, first_air_date, total_episodes, cast_top, synced_language")
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
 
+  // Si el título en cache está en un idioma distinto al que tenés activo
+  // ahora, lo tratamos como vencido — si no, cambiar el idioma no se
+  // notaba hasta que pasaran las 24hs de rigor, aunque volvieras a entrar
+  // varias veces.
+  const idiomaDistinto = !!existing && !!(existing as any).synced_language && (existing as any).synced_language !== idiomaActual;
   // Si el cache es reciente PERO le faltan campos que agregamos en una
   // versión más nueva del schema (series cacheadas hace tiempo, antes de
   // trackear total_seasons/first_air_date/cast_top), lo tratamos como si
@@ -42,7 +48,7 @@ export async function syncSeries(tmdbId: number): Promise<void> {
   // la serie y cortarse justo antes de guardar sus episodios, dejando la
   // ficha "fresca" pero sin nada adentro para siempre.
   let leFaltanEpisodios = false;
-  if (existing && !isStale(existing.synced_at) && !leFaltanCamposNuevos) {
+  if (existing && !isStale(existing.synced_at) && !leFaltanCamposNuevos && !idiomaDistinto) {
     const { count } = await supabase.from("episodes_cache").select("*", { count: "exact", head: true }).eq("series_tmdb_id", tmdbId);
     // No solo "está vacío" — si quedó a medias (por ejemplo, una importación
     // vieja que se cortó justo después de guardar algunas temporadas pero no
@@ -52,7 +58,7 @@ export async function syncSeries(tmdbId: number): Promise<void> {
     const totalEsperado = (existing as any).total_episodes ?? 0;
     leFaltanEpisodios = !count || count === 0 || (totalEsperado > 0 && count < totalEsperado * 0.9);
   }
-  if (existing && !isStale(existing.synced_at) && !leFaltanCamposNuevos && !leFaltanEpisodios) return;
+  if (existing && !isStale(existing.synced_at) && !leFaltanCamposNuevos && !leFaltanEpisodios && !idiomaDistinto) return;
 
   const details = await getSeriesDetails(tmdbId);
 
@@ -81,6 +87,7 @@ export async function syncSeries(tmdbId: number): Promise<void> {
       .map((s: any) => ({ season_number: s.season_number, air_date: s.air_date || null, episode_count: s.episode_count ?? 0, name: s.name })),
     cast_top: castTop,
     synced_at: new Date().toISOString(),
+    synced_language: idiomaActual,
   });
   if (errorSerie) {
     console.error("syncSeries: error al guardar en series_cache:", errorSerie.message, errorSerie);
@@ -174,17 +181,21 @@ export async function refrescarMetaSerie(tmdbId: number): Promise<void> {
 
 /** Trae (o refresca) una película en movies_cache. */
 export async function syncMovie(tmdbId: number): Promise<void> {
+  const idiomaActual = getTmdbLanguage();
   const { data: existing } = await supabase
     .from("movies_cache")
-    .select("synced_at, director, cast_top")
+    .select("synced_at, director, cast_top, synced_language")
     .eq("tmdb_id", tmdbId)
     .maybeSingle();
 
   // Igual que en syncSeries: si el cache es reciente pero le falta el
   // director o el elenco (películas cacheadas antes de que existiera esto),
-  // se trata como vencido para que se autocomplete solo.
+  // se trata como vencido para que se autocomplete solo. Lo mismo si está
+  // en un idioma distinto al que tenés activo ahora — si no, cambiar el
+  // idioma no se notaba hasta que pasaran las 24hs de rigor.
   const leFaltanCamposNuevos = existing && (!existing.director || !existing.cast_top);
-  if (existing && !isStale(existing.synced_at) && !leFaltanCamposNuevos) return;
+  const idiomaDistinto = !!existing && !!(existing as any).synced_language && (existing as any).synced_language !== idiomaActual;
+  if (existing && !isStale(existing.synced_at) && !leFaltanCamposNuevos && !idiomaDistinto) return;
 
   const details = await getMovieDetails(tmdbId);
 
@@ -218,6 +229,7 @@ export async function syncMovie(tmdbId: number): Promise<void> {
     director_id: directorId,
     cast_top: castTop,
     synced_at: new Date().toISOString(),
+    synced_language: idiomaActual,
   });
   if (error) {
     console.error("syncMovie: error al guardar en movies_cache:", error.message, error);

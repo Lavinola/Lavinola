@@ -12,6 +12,9 @@ import { getMovieDetails, getSeriesDetails, getContentLanguageCruda, getMostrarE
  */
 export function idiomaSecundarioPara(contentLanguage: string, mostrarEnPropio: boolean): string | null {
   if (contentLanguage.toLowerCase().startsWith("en")) return null;
+  // Español de España + "mostrar en tu idioma" activado: se pidió que ahí
+  // se vea solo el título en español de España, sin el traducido al lado.
+  if (contentLanguage === "es-ES" && mostrarEnPropio) return null;
   return mostrarEnPropio ? "en-US" : contentLanguage;
 }
 

@@ -50,5 +50,5 @@ export default function TituloConTraduccion({
 }
 
 const styles = StyleSheet.create({
-  secundario: { color: theme.colors.textFaint, fontSize: 12, fontWeight: "400", lineHeight: 24 },
+  secundario: { color: theme.colors.textFaint, fontSize: 12, fontWeight: "400", lineHeight: 15 },
 });
