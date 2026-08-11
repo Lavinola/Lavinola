@@ -16,9 +16,31 @@ const TMDB_TOKEN = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
 // (elegido en Ajustes > Títulos), por default en inglés como trae TMDB de
 // fábrica. Ver setTmdbLanguage, llamado al iniciar sesión y al cambiarlo.
 let currentLanguage = "es-419";
+// El content_language "crudo" del usuario y si tiene activado "mostrar en tu
+// idioma" — se guardan aparte de currentLanguage (que ya viene resuelto,
+// mezclando los dos) porque el título traducido entre paréntesis necesita
+// saber CUÁL de los dos idiomas es el "principal" y cuál el "secundario"
+// para mostrar, no solo el resultado final ya combinado.
+let currentContentLanguage = "en-US";
+let currentMostrarEnPropio = true;
 
 export function setTmdbLanguage(lang: string) {
   currentLanguage = lang;
+}
+
+/** Guarda el idioma de títulos elegido por el usuario y si tiene activado "mostrar en tu idioma" — y resuelve currentLanguage a partir de los dos, como ya se hacía antes. */
+export function setIdiomaTitulos(contentLanguage: string, mostrarEnPropio: boolean) {
+  currentContentLanguage = contentLanguage;
+  currentMostrarEnPropio = mostrarEnPropio;
+  currentLanguage = mostrarEnPropio ? contentLanguage : "en-US";
+}
+
+export function getContentLanguageCruda() {
+  return currentContentLanguage;
+}
+
+export function getMostrarEnPropio() {
+  return currentMostrarEnPropio;
 }
 
 export function getTmdbLanguage() {

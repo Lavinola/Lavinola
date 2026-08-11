@@ -15,7 +15,7 @@ import { precargarUsuariosRecomendados, limpiarCacheUsuariosRecomendados } from 
 import { precargarPerfilPropio, limpiarCachePerfilPropio } from "../lib/profileDataCache";
 import { precargarListaPendiente, limpiarCacheListaPendiente } from "../lib/seriesListCache";
 import { precargarPeliculas, limpiarCachePeliculas } from "../lib/moviesListCache";
-import { setTmdbLanguage } from "../lib/tmdb";
+import { setIdiomaTitulos } from "../lib/tmdb";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -551,7 +551,7 @@ export default function RootNavigation() {
 
   async function aplicarIdioma(userId: string) {
     const { data } = await supabase.from("profiles").select("content_language, show_titles_in_own_language").eq("id", userId).single();
-    setTmdbLanguage(data?.show_titles_in_own_language === false ? "en-US" : data?.content_language ?? "en-US");
+    setIdiomaTitulos(data?.content_language ?? "en-US", data?.show_titles_in_own_language !== false);
   }
 
   if (loading) return null; // TODO: splash screen

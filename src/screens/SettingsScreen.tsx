@@ -8,7 +8,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import Toast from "../components/Toast";
 import { supabase } from "../lib/supabase";
 import { getPerfil, actualizarPerfil, PerfilCompleto } from "../lib/profile";
-import { setTmdbLanguage } from "../lib/tmdb";
+import { setIdiomaTitulos } from "../lib/tmdb";
 import { IDIOMAS } from "../lib/languages";
 import { exportarDatosZip } from "../lib/dataExport";
 import TopPills from "../components/TopPills";
@@ -337,7 +337,7 @@ function TabAplicacion({ navigation }: any) {
     if ("content_language" in cambios || "show_titles_in_own_language" in cambios) {
       const mostrarEnPropio = "show_titles_in_own_language" in cambios ? cambios.show_titles_in_own_language : (perfil as any)?.show_titles_in_own_language;
       const idioma = "content_language" in cambios ? cambios.content_language : (perfil as any)?.content_language;
-      setTmdbLanguage(mostrarEnPropio === false ? "en-US" : idioma ?? "en-US");
+      setIdiomaTitulos(idioma ?? "en-US", mostrarEnPropio !== false);
     }
     if ("content_language" in cambios) {
       setIdiomaDesdeCodigo(cambios.content_language ?? "en-US");

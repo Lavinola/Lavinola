@@ -131,6 +131,11 @@ function FeedDePosts({
   const [polls, setPolls] = useState<Encuesta[]>([]);
   const [loading, setLoading] = useState(true);
   const [cargandoMas, setCargandoMas] = useState(false);
+  // Ref (no estado) para el chequeo de "¿ya hay un pedido en curso?" — con
+  // scroll rápido, varios onEndReached pueden dispararse antes de que
+  // cargandoMas llegue a reflejarse en un render, terminando en pedidos
+  // duplicados del mismo tramo (mismo cursor de fecha) y posts repetidos.
+  const cargandoMasRef = useRef(false);
   const [hayMas, setHayMas] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -216,7 +221,8 @@ function FeedDePosts({
   }
 
   async function cargarMas() {
-    if (cargandoMas || !hayMas || modo === "mios" || items.length === 0) return;
+    if (cargandoMasRef.current || !hayMas || modo === "mios" || items.length === 0) return;
+    cargandoMasRef.current = true;
     setCargandoMas(true);
     try {
       const ultimaFecha = items[items.length - 1].createdAt;
@@ -225,9 +231,16 @@ function FeedDePosts({
           ? await Promise.all([listarPostsSiguiendo(userId!, ultimaFecha), listarEncuestasDeLobbySiguiendo(userId!, ultimaFecha)])
           : await Promise.all([listarPostsParaTi(userId, ultimaFecha), listarEncuestasDeLobbyParaTi(userId, ultimaFecha)]);
       if (nuevosPosts.length === 0 && nuevosPolls.length === 0) setHayMas(false);
-      setPosts((prev) => [...prev, ...nuevosPosts]);
-      setPolls((prev) => [...prev, ...nuevosPolls]);
+      setPosts((prev) => {
+        const vistos = new Set(prev.map((p) => p.id));
+        return [...prev, ...nuevosPosts.filter((p) => !vistos.has(p.id))];
+      });
+      setPolls((prev) => {
+        const vistos = new Set(prev.map((p) => p.id));
+        return [...prev, ...nuevosPolls.filter((p) => !vistos.has(p.id))];
+      });
     } finally {
+      cargandoMasRef.current = false;
       setCargandoMas(false);
     }
   }

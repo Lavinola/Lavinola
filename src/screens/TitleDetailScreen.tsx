@@ -13,6 +13,7 @@ import { traducirTexto } from "../lib/translate";
 import StarRating from "../components/StarRating";
 import WatchedPlatformPicker from "../components/WatchedPlatformPicker";
 import ActionSheetModal from "../components/ActionSheetModal";
+import TituloConTraduccion from "../components/TituloConTraduccion";
 import ConfirmModal from "../components/ConfirmModal";
 import TopPills from "../components/TopPills";
 import MoodPicker from "../components/MoodPicker";
@@ -308,7 +309,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       <>
         <View style={styles.headerConTilde}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.nombre}>{nombre}</Text>
+            <TituloConTraduccion tipo={tipo} id={tmdbId} titulo={nombre} style={styles.nombre} />
             {tipo === "series" ? (
               <>
                 <Text style={styles.subInfo}>{titulo.total_seasons ? `${titulo.total_seasons} ${titulo.total_seasons === 1 ? t("temporada") : t("temporadas")}` : ""}</Text>

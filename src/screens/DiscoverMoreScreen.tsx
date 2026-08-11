@@ -32,6 +32,17 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
   const [hayMas, setHayMas] = useState(true);
   const [loading, setLoading] = useState(true);
   const [cargandoMas, setCargandoMas] = useState(false);
+  // Refs (no estado) para el chequeo de "¿ya hay un pedido en curso?" — el
+  // estado de React puede tardar en reflejarse si el usuario scrollea muy
+  // rápido (varios onEndReached seguidos antes de que el primer render con
+  // cargandoMas=true llegue a pintarse), y ahí se terminaban disparando 2 o
+  // más pedidos de LA MISMA página en simultáneo — cuando volvían, esa
+  // página quedaba agregada varias veces a la lista (por eso se veían
+  // títulos repetidos, incluso muchas veces el mismo). Los refs, en cambio,
+  // se actualizan al instante, sin esperar al ciclo de render.
+  const cargandoRef = React.useRef(false);
+  const proximaPaginaRef = React.useRef(1);
+  const pedidoIdRef = React.useRef(0);
   const [filtroVisible, setFiltroVisible] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [abriendo, setAbriendo] = useState<number | null>(null);
@@ -63,6 +74,9 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
   }, [tipo, orden, generoId, estado, plataformas, userId]);
 
   async function cargar(paginaAPedir: number, reiniciar: boolean) {
+    if (cargandoRef.current && !reiniciar) return; // ya hay un pedido de "más" en curso, no dispares otro
+    cargandoRef.current = true;
+    const miPedido = ++pedidoIdRef.current; // si cambian los filtros mientras esto está en vuelo, esta respuesta queda vieja y se descarta
     if (reiniciar) setLoading(true);
     else setCargandoMas(true);
     try {
@@ -77,20 +91,29 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
         page: paginaAPedir,
         userId,
       });
-      setItems((prev) => (reiniciar ? nuevos : [...prev, ...nuevos]));
+      if (pedidoIdRef.current !== miPedido) return; // llegó tarde, ya hay un pedido más nuevo en curso o resuelto
+      setItems((prev) => {
+        if (reiniciar) return nuevos;
+        const vistos = new Set(prev.map((i) => `${i.tipo}-${i.id}`));
+        return [...prev, ...nuevos.filter((i) => !vistos.has(`${i.tipo}-${i.id}`))];
+      });
       setHayMas(masDisponibles);
       setPage(paginaAPedir);
+      proximaPaginaRef.current = paginaAPedir + 1;
     } catch (e: any) {
       console.error("Error al descubrir:", e);
     } finally {
-      setLoading(false);
-      setCargandoMas(false);
+      if (pedidoIdRef.current === miPedido) {
+        cargandoRef.current = false;
+        setLoading(false);
+        setCargandoMas(false);
+      }
     }
   }
 
   function cargarMas() {
-    if (cargandoMas || loading || !hayMas) return;
-    cargar(page + 1, false);
+    if (cargandoRef.current || !hayMas) return;
+    cargar(proximaPaginaRef.current, false);
   }
 
   function abrir(item: ItemDescubrir) {
