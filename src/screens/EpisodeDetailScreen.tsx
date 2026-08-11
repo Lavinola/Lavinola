@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
   comentariosBannerTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },
   comentariosBannerFlecha: { color: "#000000", fontWeight: "800", fontSize: 22 },
   container: { padding: 16 },
-  flechasRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 8, paddingTop: 8 },
+  flechasRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 8, paddingTop: 4, marginBottom: -16 },
   nombreSerie: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 2 },
   titulo: { fontSize: 19, fontWeight: "700" },
   fecha: { fontSize: 13, color: theme.colors.textMuted, marginTop: 4 },
