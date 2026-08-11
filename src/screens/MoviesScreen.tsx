@@ -2,6 +2,8 @@ import React, { useCallback, useState } from "react";
 import { View, FlatList, Image, StyleSheet, Pressable, ActivityIndicator } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
+import { SkeletonPosterGrid } from "../components/SkeletonShapes";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
@@ -188,7 +190,7 @@ export default function MoviesScreen({ navigation }: any) {
       )}
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 32 }} />
+        <SkeletonPosterGrid />
       ) : subTab === "pendiente" && vista === "grilla" ? (
         <FlatList
           key="grilla"
@@ -196,7 +198,7 @@ export default function MoviesScreen({ navigation }: any) {
           keyExtractor={(item) => String(item.tmdb_id)}
           numColumns={3}
           contentContainerStyle={{ padding: 8 }}
-          ListEmptyComponent={<Text style={styles.vacio}>{t("No tenés películas pendientes.")}</Text>}
+          ListEmptyComponent={<EstadoVacio icono="film-outline" titulo={t("No tenés películas pendientes.")} />}
           renderItem={({ item }) => (
             <Pressable
               style={styles.gridItem}
@@ -224,9 +226,7 @@ export default function MoviesScreen({ navigation }: any) {
           data={listado}
           keyExtractor={(item) => String(item.tmdb_id)}
           ListEmptyComponent={
-            <Text style={styles.vacio}>
-              {subTab === "pendiente" ? t("No tenés películas pendientes.") : t("No hay estrenos marcados todavía.")}
-            </Text>
+            <EstadoVacio icono="film-outline" titulo={subTab === "pendiente" ? t("No tenés películas pendientes.") : t("No hay estrenos marcados todavía.")} />
           }
           renderItem={({ item }) => (
             <Pressable

@@ -3,6 +3,7 @@ import { View, FlatList, Image, Pressable, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
 import { useFocusEffect } from "@react-navigation/native";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import { supabase } from "../lib/supabase";
 import { misComentarios, resolverLugares, ComentarioPropio } from "../lib/comments";
 import { listarMisPosts, Post } from "../lib/posts";
@@ -102,9 +103,10 @@ export default function MyCommentsScreen({ route, navigation }: Props) {
           setTimeout(() => listRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.2 }), 250);
         }}
         ListEmptyComponent={
-          <Text style={styles.vacio}>
-            {route.params?.userId ? "Todavía no escribió ningún comentario ni publicó nada." : "Todavía no escribiste ningún comentario ni publicaste nada."}
-          </Text>
+          <EstadoVacio
+            icono="chatbox-ellipses-outline"
+            titulo={route.params?.userId ? "Todavía no escribió ningún comentario ni publicó nada." : "Todavía no escribiste ningún comentario ni publicaste nada."}
+          />
         }
         renderItem={({ item }) =>
           item.tipo === "post" ? (

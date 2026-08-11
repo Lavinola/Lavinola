@@ -6,6 +6,10 @@ import RootNavigation from "./src/navigation";
 import { AppLanguageProvider } from "./src/i18n/i18n";
 import { theme } from "./src/theme";
 import GlobalAlertHost from "./src/components/GlobalAlertHost";
+import ErrorBoundary from "./src/components/ErrorBoundary";
+import { inicializarReporteDeErrores } from "./src/lib/errorReporting";
+
+inicializarReporteDeErrores();
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -36,11 +40,13 @@ export default function App() {
   }
 
   const contenido = (
-    <AppLanguageProvider>
-      <StatusBar style="auto" />
-      <RootNavigation />
-      <GlobalAlertHost />
-    </AppLanguageProvider>
+    <ErrorBoundary>
+      <AppLanguageProvider>
+        <StatusBar style="auto" />
+        <RootNavigation />
+        <GlobalAlertHost />
+      </AppLanguageProvider>
+    </ErrorBoundary>
   );
 
   // En la web, en pantallas anchas (compu), mostramos la app centrada con un

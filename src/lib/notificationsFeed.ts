@@ -16,6 +16,11 @@ export interface Notificacion {
   solicitud_status?: "pending" | "accepted" | "rejected" | null;
   ya_lo_sigo?: boolean;
   solicitudEnviada?: boolean;
+  // Si esta notificación representa VARIAS juntas (ej: 5 likes al mismo
+  // comentario) — acá van los demás actores, además del principal (que ya
+  // está en actor_username/actor_display_name). Ver agruparNotificaciones.
+  actoresAgrupados?: { id: string | null; nombre: string }[];
+  idsAgrupados?: string[];
 }
 
 export async function listarNotificaciones(userId: string): Promise<Notificacion[]> {
@@ -62,7 +67,58 @@ export async function listarNotificaciones(userId: string): Promise<Notificacion
     }
   }
 
-  return notis;
+  return agruparNotificaciones(notis);
+}
+
+/**
+ * Junta notificaciones de "like"/"follow" consecutivas (en el orden en que
+ * ya vienen, de la más nueva a la más vieja) que apunten a lo mismo — así
+ * "Juan reaccionó a tu comentario", "María reaccionó a tu comentario" y
+ * "Pedro reaccionó a tu comentario" (si pasaron una cerca de la otra) se
+ * ven como una sola fila: "Juan y 2 personas más reaccionaron a tu
+ * comentario", en vez de una línea por cada una — así se siente la app
+ * cuando tiene más uso real, en vez de sentirse "spameada".
+ *
+ * Deliberadamente NO se agrupan las respuestas ("reply") ni las
+ * recomendaciones — cada una tiene contenido propio que vale la pena ver
+ * por separado, a diferencia de un like o un follow, que es más "ruido"
+ * cuando se repiten.
+ */
+function agruparNotificaciones(notis: Notificacion[]): Notificacion[] {
+  const AGRUPABLES = new Set(["like", "follow"]);
+  const resultado: Notificacion[] = [];
+  let i = 0;
+  while (i < notis.length) {
+    const actual = notis[i];
+    if (!AGRUPABLES.has(actual.type)) {
+      resultado.push(actual);
+      i++;
+      continue;
+    }
+    let j = i + 1;
+    while (
+      j < notis.length &&
+      notis[j].type === actual.type &&
+      notis[j].target_type === actual.target_type &&
+      notis[j].target_id === actual.target_id &&
+      notis[j].comment_id === actual.comment_id
+    ) {
+      j++;
+    }
+    const grupo = notis.slice(i, j);
+    if (grupo.length === 1) {
+      resultado.push(actual);
+    } else {
+      resultado.push({
+        ...actual, // la más nueva del grupo (created_at, avatar del actor principal, etc.)
+        read: grupo.every((g) => g.read),
+        actoresAgrupados: grupo.slice(1).map((g) => ({ id: g.actor_id, nombre: g.actor_display_name?.trim() || g.actor_username || "Alguien" })),
+        idsAgrupados: grupo.map((g) => g.id),
+      });
+    }
+    i = j;
+  }
+  return resultado;
 }
 
 export async function contarNoLeidas(userId: string): Promise<number> {
@@ -99,14 +155,23 @@ export async function marcarNotificacionesDeGrupoComoLeidas(userId: string, grou
 
 export function textoNotificacion(n: Notificacion, t: (s: string) => string = (s) => s): string {
   const nombre = n.actor_display_name?.trim() || n.actor_username || t("Alguien");
+  const cantidadExtra = n.actoresAgrupados?.length ?? 0;
   switch (n.type) {
     case "like":
+      if (cantidadExtra > 0) {
+        return n.target_type === "post"
+          ? t("{nombre} y {n} más reaccionaron a tu publicación").replace("{nombre}", nombre).replace("{n}", String(cantidadExtra))
+          : t("{nombre} y {n} más reaccionaron a tu comentario").replace("{nombre}", nombre).replace("{n}", String(cantidadExtra));
+      }
       return n.target_type === "post"
         ? t("{nombre} reaccionó a tu publicación").replace("{nombre}", nombre)
         : t("{nombre} reaccionó a tu comentario").replace("{nombre}", nombre);
     case "reply":
       return t("{nombre} respondió tu comentario").replace("{nombre}", nombre);
     case "follow":
+      if (cantidadExtra > 0) {
+        return t("{nombre} y {n} personas más empezaron a seguirte").replace("{nombre}", nombre).replace("{n}", String(cantidadExtra));
+      }
       return t("{nombre} empezó a seguirte").replace("{nombre}", nombre);
     case "follow_request":
       return t("{nombre} quiere seguirte").replace("{nombre}", nombre);

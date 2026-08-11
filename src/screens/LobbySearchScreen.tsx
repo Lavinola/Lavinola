@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import { searchSeries, searchMovies, posterUrl } from "../lib/tmdb";
 import { listarPostsDeTitulo, Post } from "../lib/posts";
 import { supabase } from "../lib/supabase";
@@ -106,9 +107,10 @@ export default function LobbySearchScreen({ route, navigation }: Props) {
               keyExtractor={(p) => p.id}
               contentContainerStyle={{ padding: 12 }}
               ListEmptyComponent={
-                <Text style={styles.vacio}>
-                  {modo === "misPosts" ? "Todavía no publicaste nada sobre este título." : "Todavía no hay posts sobre este título."}
-                </Text>
+                <EstadoVacio
+                  icono="chatbubbles-outline"
+                  titulo={modo === "misPosts" ? "Todavía no publicaste nada sobre este título." : "Todavía no hay posts sobre este título."}
+                />
               }
               renderItem={({ item }) => <PostCard post={item} navigation={navigation} onCambio={() => elegirTitulo(tituloElegido)} />}
             />
@@ -122,7 +124,7 @@ export default function LobbySearchScreen({ route, navigation }: Props) {
           data={resultados}
           keyExtractor={(item) => `${item.tipo}-${item.id}`}
           contentContainerStyle={{ padding: 12 }}
-          ListEmptyComponent={query.trim().length >= 2 ? <Text style={styles.vacio}>No encontramos nada con ese nombre.</Text> : null}
+          ListEmptyComponent={query.trim().length >= 2 ? <EstadoVacio icono="search-outline" titulo="No encontramos nada con ese nombre." /> : null}
           renderItem={({ item }) => (
             <Pressable style={styles.card} onPress={() => elegirTitulo(item)}>
               {item.poster_path ? (

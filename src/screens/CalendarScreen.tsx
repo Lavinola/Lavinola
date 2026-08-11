@@ -4,6 +4,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import { useT } from "../i18n/i18n";
 import { Idioma } from "../i18n/translations";
 import { theme } from "../theme";
@@ -139,7 +140,7 @@ export default function CalendarScreen({ navigation }: any) {
           ref={listRef}
           sections={secciones}
           keyExtractor={(item, idx) => `${item.series_tmdb_id}-${item.season_number}-${item.episode_number}-${idx}`}
-          ListEmptyComponent={<Text style={styles.empty}>No hay estrenos próximos de tus series seguidas.</Text>}
+          ListEmptyComponent={<EstadoVacio icono="calendar-outline" titulo="No hay estrenos próximos de tus series seguidas." />}
           onContentSizeChange={() => {
             if (!yaScrolleoRef.current) scrollAHoy(2);
           }}

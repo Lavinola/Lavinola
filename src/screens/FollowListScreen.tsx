@@ -4,6 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import NombreUsuario from "../components/NombreUsuario";
+import EstadoVacio from "../components/EstadoVacio";
+import { SkeletonListRows } from "../components/SkeletonShapes";
 import { supabase } from "../lib/supabase";
 import { usuariosQueSigo, seguidoresDe, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
@@ -114,21 +116,25 @@ export default function FollowListScreen({ route, navigation }: Props) {
         )}
       </View>
 
+      {cargando ? (
+        <SkeletonListRows />
+      ) : (
       <FlatList
         data={listaFinal}
         keyExtractor={(u) => u.id}
         contentContainerStyle={{ padding: 12 }}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          !cargando ? (
-            <Text style={styles.vacio}>
-              {busqueda.trim().length > 0
+          <EstadoVacio
+            icono={busqueda.trim().length > 0 ? "search-outline" : "person-outline"}
+            titulo={
+              busqueda.trim().length > 0
                 ? t("No encontramos a nadie con ese nombre.")
                 : modo === "siguiendo"
                 ? t("Todavía no sigue a nadie.")
-                : t("Todavía no tiene seguidores.")}
-            </Text>
-          ) : null
+                : t("Todavía no tiene seguidores.")
+            }
+          />
         }
         renderItem={({ item }) => (
           <Pressable style={styles.card} onPress={() => navigation.push("PerfilAjeno", { userId: item.id })}>
@@ -152,7 +158,7 @@ export default function FollowListScreen({ route, navigation }: Props) {
           </Pressable>
         )}
       />
-
+      )}
       <ConfirmModal
         visible={!!aDejarDeSeguir}
         onCerrar={() => setADejarDeSeguir(null)}

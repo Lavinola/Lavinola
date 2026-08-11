@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { FlatList, Pressable, View, Image, StyleSheet } from "react-native";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
@@ -108,14 +109,23 @@ export default function NotificationsScreen({ navigation }: any) {
           )}
         </Pressable>
       }
-      ListEmptyComponent={<Text style={styles.vacio}>{t("No tenés notificaciones todavía.")}</Text>}
+      ListEmptyComponent={
+        <EstadoVacio icono="notifications-outline" titulo={t("No tenés notificaciones todavía.")} subtitulo={t("Cuando alguien interactúe con vos, lo vas a ver acá.")} />
+      }
       renderItem={({ item }) => (
         <Pressable style={[styles.card, !item.read && styles.cardNoLeida]} onPress={() => abrir(item)}>
-          {item.actor_avatar_url ? (
-            <Image source={{ uri: item.actor_avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]} />
-          )}
+          <View>
+            {item.actor_avatar_url ? (
+              <Image source={{ uri: item.actor_avatar_url }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]} />
+            )}
+            {!!item.actoresAgrupados?.length && (
+              <View style={styles.masBadge}>
+                <Text style={styles.masBadgeTexto}>+{item.actoresAgrupados.length}</Text>
+              </View>
+            )}
+          </View>
           <View style={{ flex: 1 }}>
             <View style={styles.textoConIcono}>
               {item.type === "like" && item.message && (
@@ -134,8 +144,22 @@ export default function NotificationsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  vacio: { textAlign: "center", color: theme.colors.textMuted, marginTop: 24 },
   card: { flexDirection: "row", alignItems: "center", padding: 12, borderRadius: theme.radius.md, backgroundColor: theme.colors.surface, marginBottom: 8 },
+  masBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: 6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: theme.colors.primary,
+    borderWidth: 2,
+    borderColor: theme.colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  masBadgeTexto: { fontSize: 9, fontWeight: "700", color: "#000000" },
   avatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10, backgroundColor: theme.colors.surfaceAlt },
   avatarPlaceholder: {},
   cardNoLeida: { borderWidth: 1, borderColor: theme.colors.primary },

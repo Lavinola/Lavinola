@@ -14,6 +14,7 @@ import StarRating from "../components/StarRating";
 import WatchedPlatformPicker from "../components/WatchedPlatformPicker";
 import ActionSheetModal from "../components/ActionSheetModal";
 import TituloConTraduccion from "../components/TituloConTraduccion";
+import { SkeletonTitleDetail } from "../components/SkeletonShapes";
 import ConfirmModal from "../components/ConfirmModal";
 import TopPills from "../components/TopPills";
 import MoodPicker from "../components/MoodPicker";
@@ -279,7 +280,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [scrollY, setScrollY] = useState(0);
 
-  if (loading) return <ActivityIndicator style={{ marginTop: 32 }} />;
+  if (loading) return <SkeletonTitleDetail />;
   if (!titulo) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center", padding: 24 }}>

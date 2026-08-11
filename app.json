@@ -34,7 +34,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#A63FE0"
         }
-      ]
+      ],
+      "@sentry/react-native/expo"
     ],
     "web": {
       "favicon": "./assets/favicon.png",

@@ -3,6 +3,8 @@ import { View, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from 
 import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
+import { SkeletonListRows } from "../components/SkeletonShapes";
 import TopPills from "../components/TopPills";
 import DiscoverFilterModal from "../components/DiscoverFilterModal";
 import { supabase } from "../lib/supabase";
@@ -168,7 +170,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 32 }} />
+        <SkeletonListRows />
       ) : (
         <FlatList
           data={items}
@@ -176,7 +178,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
           contentContainerStyle={{ padding: 12 }}
           onEndReachedThreshold={0.4}
           onEndReached={cargarMas}
-          ListEmptyComponent={<Text style={styles.vacio}>{t("No encontramos nada con estos filtros.")}</Text>}
+          ListEmptyComponent={<EstadoVacio icono="options-outline" titulo={t("No encontramos nada con estos filtros.")} />}
           ListFooterComponent={cargandoMas ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
           renderItem={({ item }) => {
             const clave = `${item.tipo}-${item.id}`;

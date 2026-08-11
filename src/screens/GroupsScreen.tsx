@@ -22,6 +22,7 @@ import {
   contarMisGruposConNoLeidos,
 } from "../lib/groups";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import GroupFiltersModal, { FiltroVisibilidad, FiltroCreador } from "../components/GroupFiltersModal";
 import ActionSheetModal from "../components/ActionSheetModal";
 import ReportModal from "../components/ReportModal";
@@ -253,7 +254,7 @@ export default function GroupsScreen({ navigation }: any) {
         data={gruposFiltrados}
         keyExtractor={(g) => g.id}
         ListEmptyComponent={
-          <Text style={styles.vacio}>{subTab === "todos" ? t("Todavía no hay grupos. ¡Creá el primero!") : t("Todavía no te uniste a ningún grupo.")}</Text>
+          <EstadoVacio icono="people-outline" titulo={subTab === "todos" ? t("Todavía no hay grupos. ¡Creá el primero!") : t("Todavía no te uniste a ningún grupo.")} />
         }
         renderItem={({ item }) => {
           const esPrivadoSinAcceso = item.visibility === "private" && !item.soyMiembro;

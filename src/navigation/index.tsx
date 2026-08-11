@@ -16,6 +16,7 @@ import { precargarPerfilPropio, limpiarCachePerfilPropio } from "../lib/profileD
 import { precargarListaPendiente, limpiarCacheListaPendiente } from "../lib/seriesListCache";
 import { precargarPeliculas, limpiarCachePeliculas } from "../lib/moviesListCache";
 import { setIdiomaTitulos } from "../lib/tmdb";
+import { identificarUsuarioEnReportes } from "../lib/errorReporting";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -467,6 +468,7 @@ export default function RootNavigation() {
       setSession(data.session);
       setLoading(false);
       if (data.session?.user) {
+        identificarUsuarioEnReportes(data.session.user.id);
         registrarPushToken(data.session.user.id);
         aplicarIdioma(data.session.user.id);
         precargarUsuariosRecomendados(data.session.user.id);
@@ -482,6 +484,7 @@ export default function RootNavigation() {
       setSession(s);
       if (event === "PASSWORD_RECOVERY") setModoRecuperacion(true);
       if (s?.user) {
+        identificarUsuarioEnReportes(s.user.id);
         registrarPushToken(s.user.id);
         aplicarIdioma(s.user.id);
         precargarUsuariosRecomendados(s.user.id);
@@ -489,6 +492,7 @@ export default function RootNavigation() {
         precargarListaPendiente(s.user.id);
         precargarPeliculas(s.user.id);
       } else {
+        identificarUsuarioEnReportes(null);
         limpiarCacheUsuariosRecomendados();
         limpiarCachePerfilPropio();
         limpiarCacheListaPendiente();

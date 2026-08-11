@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from "react";
 import { View, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text, AppButton } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import { Ionicons } from "@expo/vector-icons";
 import PublishActionModal from "../components/PublishActionModal";
 import { useFocusEffect } from "@react-navigation/native";
@@ -179,7 +180,7 @@ export default function ListDetailScreen({ route, navigation }: any) {
           keyExtractor={(i) => `${i.item_type}-${i.tmdb_id}`}
           numColumns={3}
           contentContainerStyle={{ padding: 8 }}
-          ListEmptyComponent={<Text style={styles.vacio}>{t("Esta lista todavía no tiene nada. Usá los botones de arriba para agregar.")}</Text>}
+          ListEmptyComponent={<EstadoVacio icono="albums-outline" titulo={t("Esta lista todavía no tiene nada. Usá los botones de arriba para agregar.")} />}
           renderItem={({ item }) => (
             <Pressable
               style={styles.item}
@@ -199,7 +200,7 @@ export default function ListDetailScreen({ route, navigation }: any) {
           data={items}
           keyExtractor={(i) => `${i.item_type}-${i.tmdb_id}`}
           contentContainerStyle={{ padding: 12 }}
-          ListEmptyComponent={<Text style={styles.vacio}>{t("Esta lista todavía no tiene nada. Usá los botones de arriba para agregar.")}</Text>}
+          ListEmptyComponent={<EstadoVacio icono="albums-outline" titulo={t("Esta lista todavía no tiene nada. Usá los botones de arriba para agregar.")} />}
           renderItem={({ item }) => (
             <Pressable
               style={styles.filaItem}

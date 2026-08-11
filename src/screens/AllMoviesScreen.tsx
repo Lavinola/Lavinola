@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { View, FlatList, SectionList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
+import { SkeletonPosterGrid } from "../components/SkeletonShapes";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
@@ -215,7 +217,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 32 }} />
+        <SkeletonPosterGrid />
       ) : modoReordenar ? (
         <DraggableReorderList
           key="lista-reordenar"
@@ -255,7 +257,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
           windowSize={7}
           updateCellsBatchingPeriod={50}
           initialNumToRender={12}
-          ListEmptyComponent={<Text style={styles.vacio}>{t("No hay películas acá todavía.")}</Text>}
+          ListEmptyComponent={<EstadoVacio icono="film-outline" titulo={t("No hay películas acá todavía.")} />}
           renderSectionHeader={({ section }) => (section.title ? <View style={styles.seccionTituloWrap}><Text style={styles.seccionTitulo}>{section.title}</Text></View> : null)}
           renderItem={({ item }) => (
             <Pressable style={styles.filaLista} onPress={() => navigation.navigate("DetalleTitulo", { tmdbId: item.tmdb_id, tipo: "movie" })}>
@@ -287,7 +289,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
           windowSize={7}
           updateCellsBatchingPeriod={50}
           initialNumToRender={12}
-          ListEmptyComponent={<Text style={styles.vacio}>{t("No hay películas acá todavía.")}</Text>}
+          ListEmptyComponent={<EstadoVacio icono="film-outline" titulo={t("No hay películas acá todavía.")} />}
           renderSectionHeader={({ section }) => (section.title ? <View style={styles.seccionTituloWrap}><Text style={styles.seccionTitulo}>{section.title}</Text></View> : null)}
           renderItem={({ item: fila }) => (
             <View style={{ flexDirection: "row" }}>

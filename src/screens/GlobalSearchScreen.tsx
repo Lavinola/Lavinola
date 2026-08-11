@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator, Platform } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";
 import { searchPerson, posterUrl } from "../lib/tmdb";
@@ -228,6 +229,9 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           data={titulos}
           keyExtractor={(i) => `${i.tipo}-${i.id}`}
           contentContainerStyle={{ padding: 12 }}
+          ListEmptyComponent={
+            !loading && query.trim().length >= 2 ? <EstadoVacio icono="film-outline" titulo={t("No encontramos nada con ese nombre.")} /> : null
+          }
           renderItem={({ item }) => {
             const yaAgregado = agregados.has(`${item.tipo}-${item.id}`);
             return (
@@ -265,6 +269,9 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           keyExtractor={(u) => u.id}
           contentContainerStyle={{ padding: 12 }}
           ListHeaderComponent={query.trim().length < 2 && usuarios.length > 0 ? <Text style={styles.sugerenciasTitulo}>{t("Sugerencias para ti:")}</Text> : null}
+          ListEmptyComponent={
+            !loading && query.trim().length >= 2 ? <EstadoVacio icono="person-outline" titulo={t("No encontramos a nadie con ese nombre.")} /> : null
+          }
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Pressable style={styles.cardInfo} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
@@ -296,6 +303,9 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           data={personas}
           keyExtractor={(p) => String(p.id)}
           contentContainerStyle={{ padding: 12 }}
+          ListEmptyComponent={
+            !loading && query.trim().length >= 2 ? <EstadoVacio icono="person-outline" titulo={t("No encontramos a nadie con ese nombre.")} /> : null
+          }
           renderItem={({ item }) => (
             <Pressable style={styles.card} onPress={() => navigation.navigate("Actor", { personId: item.id })}>
               {item.foto ? (

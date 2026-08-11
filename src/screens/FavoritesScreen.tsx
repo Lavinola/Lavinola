@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { listarFavoritos, Favorito } from "../lib/favorites";
 import { posterUrl } from "../lib/tmdb";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -49,9 +50,7 @@ export default function FavoritesScreen({ navigation }: any) {
         contentContainerStyle={{ padding: 6 }}
         ListEmptyComponent={
           !loading ? (
-            <Text style={styles.vacio}>
-              {t("Todavía no marcaste {tipo} como favoritas.").replace("{tipo}", tab === "series" ? t("series") : t("películas"))}
-            </Text>
+            <EstadoVacio icono="heart-outline" titulo={t("Todavía no marcaste {tipo} como favoritas.").replace("{tipo}", tab === "series" ? t("series") : t("películas"))} />
           ) : null
         }
         renderItem={({ item }) => (

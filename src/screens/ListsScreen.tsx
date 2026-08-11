@@ -23,6 +23,7 @@ import {
   actualizarDescripcionLista,
 } from "../lib/lists";
 import ListPreviewCard from "../components/ListPreviewCard";
+import EstadoVacio from "../components/EstadoVacio";
 import OrdenListasModal, { CriterioOrdenListas } from "../components/OrdenListasModal";
 import { nombreOUsuario } from "../components/NombreUsuario";
 import ReportModal from "../components/ReportModal";
@@ -207,9 +208,10 @@ export default function ListsScreen({ navigation }: any) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 12 }}
         ListEmptyComponent={
-          <Text style={styles.vacio}>
-            {subTab === "mias" ? t("Todavía no creaste ninguna lista.") : t("Todavía no seguís ninguna lista de otra persona.")}
-          </Text>
+          <EstadoVacio
+            icono="albums-outline"
+            titulo={subTab === "mias" ? t("Todavía no creaste ninguna lista.") : t("Todavía no seguís ninguna lista de otra persona.")}
+          />
         }
         renderItem={({ item }) => (
           <ListPreviewCard

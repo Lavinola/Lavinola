@@ -52,6 +52,21 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "{nombre} reagiu ao seu comentário",
     it: "{nombre} ha reagito al tuo commento",
   },
+  "{nombre} y {n} más reaccionaron a tu publicación": {
+    en: "{nombre} and {n} others reacted to your post",
+    pt: "{nombre} e mais {n} reagiram à sua publicação",
+    it: "{nombre} e altre {n} persone hanno reagito al tuo post",
+  },
+  "{nombre} y {n} más reaccionaron a tu comentario": {
+    en: "{nombre} and {n} others reacted to your comment",
+    pt: "{nombre} e mais {n} reagiram ao seu comentário",
+    it: "{nombre} e altre {n} persone hanno reagito al tuo commento",
+  },
+  "{nombre} y {n} personas más empezaron a seguirte": {
+    en: "{nombre} and {n} others started following you",
+    pt: "{nombre} e mais {n} pessoas começaram a te seguir",
+    it: "{nombre} e altre {n} persone hanno iniziato a seguirti",
+  },
   "{nombre} reaccionó con {emoji} a tu comentario": {
     en: "{nombre} reacted with {emoji} to your comment",
     pt: "{nombre} reagiu com {emoji} ao seu comentário",
@@ -337,6 +352,11 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Todavía no escribiste ningún comentario.": { en: "You haven't written any comments yet.", pt: "Você ainda não escreveu nenhum comentário.", it: "Non hai ancora scritto nessun commento." },
   Solicitudes: { en: "Requests", pt: "Pedidos", it: "Richieste" },
   "No tenés notificaciones todavía.": { en: "You don't have any notifications yet.", pt: "Você ainda não tem notificações.", it: "Non hai ancora notifiche." },
+  "Cuando alguien interactúe con vos, lo vas a ver acá.": {
+    en: "When someone interacts with you, you'll see it here.",
+    pt: "Quando alguém interagir com você, vai aparecer aqui.",
+    it: "Quando qualcuno interagisce con te, lo vedrai qui.",
+  },
   "Recomendaste un título": { en: "You recommended a title", pt: "Você recomendou um título", it: "Hai consigliato un titolo" },
   "Te recomendó un título": { en: "Recommended you a title", pt: "Recomendou um título para você", it: "Ti ha consigliato un titolo" },
   "Enviaste un mensaje": { en: "You sent a message", pt: "Você enviou uma mensagem", it: "Hai inviato un messaggio" },

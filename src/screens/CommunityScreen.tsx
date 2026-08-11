@@ -12,6 +12,7 @@ import PostCard from "../components/PostCard";
 import EncuestaCard from "../components/EncuestaCard";
 import TopPills from "../components/TopPills";
 import UnderlineTabs from "../components/UnderlineTabs";
+import { SkeletonPostCards } from "../components/SkeletonShapes";
 import GroupsScreen from "./GroupsScreen";
 import ActivityScreen from "./ActivityScreen";
 import PublicarFAB from "../components/PublicarFAB";
@@ -245,7 +246,7 @@ function FeedDePosts({
     }
   }
 
-  if (loading) return <ActivityIndicator style={{ marginTop: 32 }} color={theme.colors.primary} />;
+  if (loading) return <SkeletonPostCards />;
 
   return (
     <FlatList

@@ -7,6 +7,8 @@ import { idiomaCorto } from "../lib/translate";
 import PostCard from "../components/PostCard";
 import { NodoComentario } from "../components/CommentThread";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
+import { SkeletonListRows } from "../components/SkeletonShapes";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -56,13 +58,13 @@ export default function GuardadosScreen({ navigation }: any) {
         onChangeText={setBusqueda}
       />
       {loading ? (
-        <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 32 }} />
+        <SkeletonListRows />
       ) : (
         <FlatList
           data={filtrados}
           keyExtractor={(it) => it.savedId}
           contentContainerStyle={{ padding: 12 }}
-          ListEmptyComponent={<Text style={styles.vacio}>{t("Todavía no guardaste nada.")}</Text>}
+          ListEmptyComponent={<EstadoVacio icono="bookmark-outline" titulo={t("Todavía no guardaste nada.")} />}
           renderItem={({ item }) =>
             item.kind === "post" && item.post ? (
               <PostCard post={item.post} navigation={navigation} onCambio={cargar} />

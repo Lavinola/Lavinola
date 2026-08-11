@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { View, FlatList, Pressable, StyleSheet } from "react-native";
 import { Text, AppButton } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import {
@@ -80,7 +81,7 @@ export default function FollowRequestsScreen({ navigation }: any) {
       data={solicitudes}
       keyExtractor={(s) => s.id}
       contentContainerStyle={{ padding: 12 }}
-      ListEmptyComponent={<Text style={styles.vacio}>{t("No tenés solicitudes pendientes.")}</Text>}
+      ListEmptyComponent={<EstadoVacio icono="person-add-outline" titulo={t("No tenés solicitudes pendientes.")} />}
       renderItem={({ item }) => {
         const estado = estados[item.id] ?? "pendiente";
         return (

@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase";
 import { buscarUsuarios, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
 import { Text } from "../components/Themed";
+import EstadoVacio from "../components/EstadoVacio";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -68,7 +69,7 @@ export default function FindUsersScreen({ navigation }: any) {
         data={resultados}
         keyExtractor={(u) => u.id}
         ListEmptyComponent={
-          query.length >= 2 ? <Text style={styles.vacio}>{t("No encontramos a nadie con ese nombre.")}</Text> : null
+          query.length >= 2 ? <EstadoVacio icono="person-outline" titulo={t("No encontramos a nadie con ese nombre.")} /> : null
         }
         renderItem={({ item }) => (
           <View style={styles.card}>

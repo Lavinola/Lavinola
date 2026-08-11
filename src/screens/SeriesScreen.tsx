@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { View, FlatList, SectionList, Image, StyleSheet, Pressable, ActivityIndicator, ScrollView, Animated } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
+import { SkeletonListRows } from "../components/SkeletonShapes";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
@@ -200,7 +201,7 @@ function ListaPendiente({ navigation }: any) {
     resolver();
   }
 
-  if (loading) return <ActivityIndicator style={{ marginTop: 32 }} />;
+  if (loading) return <SkeletonListRows />;
 
   const viendoSinOrdenar = series.filter((s) => s.estado === "viendo" && s.next_episode_season != null);
   // Reordenamos según el orden congelado (ordenViendoRef). Lo que ya
