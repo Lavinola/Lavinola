@@ -1152,7 +1152,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   headerConTilde: { flexDirection: "row", alignItems: "center", paddingRight: 16, backgroundColor: theme.colors.background, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
-  nombre: { fontSize: 20, fontWeight: "700", padding: 16, paddingBottom: 0, lineHeight: 24 },
+  nombre: { fontSize: 20, fontWeight: "700", padding: 16, paddingBottom: 0, lineHeight: 22 },
   vistaRowHeader: { alignItems: "center", gap: 6 },
   vistaTextoHeader: { fontSize: 13, color: theme.colors.textMuted, fontWeight: "600" },
   subInfo: { fontSize: 13, color: theme.colors.textMuted, paddingHorizontal: 16, marginTop: 2 },

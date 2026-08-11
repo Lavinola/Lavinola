@@ -35,7 +35,7 @@ export async function syncSeries(tmdbId: number): Promise<void> {
   // ahora, lo tratamos como vencido — si no, cambiar el idioma no se
   // notaba hasta que pasaran las 24hs de rigor, aunque volvieras a entrar
   // varias veces.
-  const idiomaDistinto = !!existing && !!(existing as any).synced_language && (existing as any).synced_language !== idiomaActual;
+  const idiomaDistinto = !!existing && (existing as any).synced_language !== idiomaActual;
   // Si el cache es reciente PERO le faltan campos que agregamos en una
   // versión más nueva del schema (series cacheadas hace tiempo, antes de
   // trackear total_seasons/first_air_date/cast_top), lo tratamos como si
@@ -194,7 +194,7 @@ export async function syncMovie(tmdbId: number): Promise<void> {
   // en un idioma distinto al que tenés activo ahora — si no, cambiar el
   // idioma no se notaba hasta que pasaran las 24hs de rigor.
   const leFaltanCamposNuevos = existing && (!existing.director || !existing.cast_top);
-  const idiomaDistinto = !!existing && !!(existing as any).synced_language && (existing as any).synced_language !== idiomaActual;
+  const idiomaDistinto = !!existing && (existing as any).synced_language !== idiomaActual;
   if (existing && !isStale(existing.synced_at) && !leFaltanCamposNuevos && !idiomaDistinto) return;
 
   const details = await getMovieDetails(tmdbId);
