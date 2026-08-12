@@ -494,7 +494,7 @@ export function NodoComentario({
   if (eliminado) return null;
 
   return (
-    <View style={{ marginTop: 8, marginLeft: indentacion }}>
+    <View style={[{ marginTop: 8, marginLeft: indentacion }, nivel === 0 && targetType === "group" && styles.hiloRaizBox]}>
       {!!padrePreview && (
         <View style={styles.respondiendoARow}>
           <Text style={styles.respondiendoATexto} numberOfLines={1}>
@@ -686,6 +686,7 @@ export function NodoComentario({
 
 const styles = StyleSheet.create({
   container: { marginTop: 16 },
+  hiloRaizBox: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 10 },
   ordenRow: { flexDirection: "row", justifyContent: "center", marginBottom: 12 },
   ordenChip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, marginRight: 6 },
   ordenChipActive: { backgroundColor: theme.colors.primary },
