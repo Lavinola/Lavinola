@@ -28,7 +28,7 @@ function mapearResultados(data: any): GifResultado[] {
   }));
 }
 
-export async function buscarGifs(query: string, limite = 24): Promise<GifResultado[]> {
+export async function buscarGifs(query: string, limite = 24, offset = 0): Promise<GifResultado[]> {
   if (!GIPHY_API_KEY) {
     throw new Error("Falta configurar EXPO_PUBLIC_GIPHY_API_KEY en el .env — sin eso, la búsqueda de GIFs no funciona.");
   }
@@ -36,6 +36,7 @@ export async function buscarGifs(query: string, limite = 24): Promise<GifResulta
   url.searchParams.set("api_key", GIPHY_API_KEY);
   url.searchParams.set("q", query);
   url.searchParams.set("limit", String(limite));
+  url.searchParams.set("offset", String(offset));
   url.searchParams.set("lang", "es");
   url.searchParams.set("rating", "pg-13"); // filtro de contenido propio de Giphy (equivalente al "medium" de Tenor)
 
@@ -50,6 +51,6 @@ export async function buscarGifs(query: string, limite = 24): Promise<GifResulta
 }
 
 /** Sugerencias iniciales al abrir el picker, sesgadas a cine/series. */
-export function buscarGifsTendenciaCine(): Promise<GifResultado[]> {
-  return buscarGifs("movie reaction");
+export function buscarGifsTendenciaCine(offset = 0): Promise<GifResultado[]> {
+  return buscarGifs("movie reaction", 24, offset);
 }

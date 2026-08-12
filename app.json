@@ -13,9 +13,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#0A0A0A"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.lavinola.app",
@@ -49,14 +47,6 @@
       "bundler": "metro",
       "output": "single",
       "name": "Lavinola: Cine & Series"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "099ca863-7ba5-4dee-8092-6ae4da89713b"
-      }
-    },
-    "updates": {
-      "url": "https://u.expo.dev/099ca863-7ba5-4dee-8092-6ae4da89713b"
     }
   }
 }
