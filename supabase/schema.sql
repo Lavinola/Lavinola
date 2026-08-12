@@ -174,6 +174,31 @@ drop trigger if exists trg_bump_reply_count on comentarios;
 create trigger trg_bump_reply_count after insert on comentarios
   for each row execute function bump_reply_count();
 
+-- Faltaba el trigger simétrico para cuando se BORRA una respuesta — sin
+-- esto, reply_count solo sumaba y nunca restaba, así que una respuesta
+-- borrada dejaba el contador del padre inflado para siempre (por eso el
+-- orden por relevancia podía dar resultados que no coincidían con lo que
+-- se veía en pantalla en ese momento).
+create or replace function decrement_reply_count() returns trigger as $$
+begin
+  if old.parent_comment_id is not null then
+    update comentarios set reply_count = greatest(reply_count - 1, 0) where id = old.parent_comment_id;
+  end if;
+  return old;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_decrement_reply_count on comentarios;
+create trigger trg_decrement_reply_count after delete on comentarios
+  for each row execute function decrement_reply_count();
+
+-- Recalcula reply_count de una sola vez para lo que ya estaba mal contado
+-- de antes de este arreglo (respuestas borradas antes de hoy, que dejaron
+-- el contador de su padre inflado).
+update comentarios c
+set reply_count = (select count(*) from comentarios r where r.parent_comment_id = c.id)
+where reply_count <> (select count(*) from comentarios r where r.parent_comment_id = c.id);
+
 create table if not exists likes_comentario (
   user_id uuid references profiles(id) on delete cascade,
   comment_id uuid references comentarios(id) on delete cascade,
