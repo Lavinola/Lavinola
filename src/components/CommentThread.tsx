@@ -226,6 +226,23 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
           return b.createdAt.localeCompare(a.createdAt); // "nuevo", el criterio por defecto
         });
 
+        // DIAGNÓSTICO TEMPORAL — para ver qué "peso" calcula cada mensaje
+        // cuando está puesto "Más relevante", y confirmar si el problema
+        // está en el cálculo o en otro lado. Sacar después de diagnosticar.
+        if (orden === "relevante" && targetType === "group") {
+          console.log(
+            "[orden relevante - grupo]",
+            items.map((it) => ({
+              id: it.id.slice(0, 8),
+              esExtra: it.esExtra,
+              createdAt: it.createdAt,
+              peso: it.peso,
+              reply_count: it.esExtra ? "—" : it.comentario.reply_count,
+              likes_count: it.esExtra ? "—" : it.comentario.likes_count,
+            }))
+          );
+        }
+
         return items.map((item) =>
           item.esExtra ? (
             <React.Fragment key={item.id}>{item.render()}</React.Fragment>
