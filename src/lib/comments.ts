@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import { moderarTexto } from "./moderation";
 import { idsGuardadosDe } from "./savedItems";
 
-export type OrdenComentarios = "nuevo" | "viejo" | "mas_respuestas";
+export type OrdenComentarios = "nuevo" | "viejo" | "relevante";
 
 export interface Comentario {
   id: string;
@@ -57,7 +57,7 @@ export async function contarComentarios(
 export async function cargarComentariosRaiz(
   targetType: "series" | "movie" | "episode" | "group" | "post" | "poll",
   targetId: string,
-  orden: OrdenComentarios = "nuevo",
+  orden: OrdenComentarios = "viejo",
   userId?: string | null
 ): Promise<Comentario[]> {
   let query = supabase
@@ -67,14 +67,23 @@ export async function cargarComentariosRaiz(
     .eq("target_id", targetId)
     .is("parent_comment_id", null);
 
-  if (orden === "nuevo") query = query.order("created_at", { ascending: false });
-  else if (orden === "viejo") query = query.order("created_at", { ascending: true });
-  else query = query.order("reply_count", { ascending: false });
+  if (orden === "viejo") query = query.order("created_at", { ascending: true });
+  else query = query.order("created_at", { ascending: false }); // "nuevo" y "relevante" parten de esta base; "relevante" se reordena después
 
   const { data, error } = await query;
   if (error) throw error;
 
-  return await conLikes(data ?? [], userId);
+  const comentarios = await conLikes(data ?? [], userId);
+
+  if (orden === "relevante") {
+    // La relevancia depende de las reacciones, que recién se conocen
+    // DESPUÉS de traer los comentarios (vienen de una consulta aparte,
+    // conLikes) — por eso este orden se resuelve acá, no en la base. Ante
+    // empate, gana el más nuevo (ya vienen así de la consulta de arriba,
+    // así que un sort estable alcanza).
+    return [...comentarios].sort((a, b) => b.likes_count + b.reply_count - (a.likes_count + a.reply_count));
+  }
+  return comentarios;
 }
 
 /** Trae las respuestas directas de un comentario (para el "ver 12 respuestas más"). */

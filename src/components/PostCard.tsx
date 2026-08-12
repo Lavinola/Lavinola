@@ -110,7 +110,11 @@ export default function PostCard({
   async function cargarRespuestas() {
     setCargandoRespuestas(true);
     try {
-      const datos = await cargarComentariosRaiz("post", post.id, "nuevo", userId);
+      // Se trae en orden cronológico (más antiguo primero) y se reordena acá
+      // por relevancia — como el sort de JS es estable, los empates quedan
+      // con el más antiguo arriba (que es como ya venían), sin tener que
+      // duplicar la lógica de desempate en la librería compartida.
+      const datos = (await cargarComentariosRaiz("post", post.id, "viejo", userId)).sort((a, b) => b.reply_count + b.likes_count - (a.reply_count + a.likes_count));
       setRespuestas(datos);
       setCantidadComentarios(datos.length); // la burbujita cuenta respuestas directas — esto la mantiene sincronizada con lo que realmente hay
     } catch (e) {

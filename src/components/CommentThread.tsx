@@ -74,7 +74,7 @@ function extractoDeComentario(c: Comentario): string {
 
 export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra, onAbrirEncuesta, elementosExtra }: Props) {
   const { t } = useT();
-  const [orden, setOrden] = useState<OrdenComentarios>("nuevo");
+  const [orden, setOrden] = useState<OrdenComentarios>(targetType === "group" ? "nuevo" : "viejo");
   const [raiz, setRaiz] = useState<Comentario[]>([]);
   const [nuevoTexto, setNuevoTexto] = useState("");
   const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
@@ -163,10 +163,10 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
       )}
 
       <View style={styles.ordenRow}>
-        {(["nuevo", "viejo", "mas_respuestas"] as OrdenComentarios[]).map((o) => (
+        {(["nuevo", "viejo", "relevante"] as OrdenComentarios[]).map((o) => (
           <Pressable key={o} onPress={() => setOrden(o)} style={[styles.ordenChip, orden === o && styles.ordenChipActive]}>
             <Text style={orden === o ? styles.ordenTextActive : styles.ordenText}>
-              {o === "nuevo" ? t("Más nuevo") : o === "viejo" ? t("Más antiguo") : t("Más respuestas")}
+              {o === "nuevo" ? t("Más nuevo") : o === "viejo" ? t("Más antiguo") : t("Más relevante")}
             </Text>
           </Pressable>
         ))}
@@ -214,7 +214,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
           ...raiz
             .filter((c) => !soloSiguiendo || !siguiendoIds || siguiendoIds.has(c.user_id))
             .filter((c) => !soloAutorId || c.user_id === soloAutorId)
-            .map((c) => ({ esExtra: false as const, id: c.id, createdAt: c.created_at, peso: c.reply_count, comentario: c })),
+            .map((c) => ({ esExtra: false as const, id: c.id, createdAt: c.created_at, peso: c.reply_count + c.likes_count, comentario: c })),
           ...(elementosExtra ?? []).map((e) => ({ esExtra: true as const, id: e.id, createdAt: e.createdAt, peso: e.pesoRespuestas, render: e.render })),
         ];
 
@@ -222,7 +222,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
           if (a.id === raizDelResaltado) return -1;
           if (b.id === raizDelResaltado) return 1;
           if (orden === "viejo") return a.createdAt.localeCompare(b.createdAt);
-          if (orden === "mas_respuestas") return b.peso - a.peso;
+          if (orden === "relevante") return b.peso - a.peso || b.createdAt.localeCompare(a.createdAt); // empate: más nuevo primero
           return b.createdAt.localeCompare(a.createdAt); // "nuevo", el criterio por defecto
         });
 

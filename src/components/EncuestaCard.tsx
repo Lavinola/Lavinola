@@ -307,7 +307,8 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
   async function cargarRespuestas() {
     setCargandoRespuestas(true);
     try {
-      setRespuestas(await cargarComentariosRaiz("poll", encuesta.id, "nuevo", userId));
+      const datos = (await cargarComentariosRaiz("poll", encuesta.id, "viejo", userId)).sort((a, b) => b.reply_count + b.likes_count - (a.reply_count + a.likes_count));
+      setRespuestas(datos);
     } catch (e) {
       console.error("Error al cargar respuestas de la encuesta:", e);
     } finally {

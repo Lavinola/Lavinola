@@ -32,7 +32,7 @@ export default function CommentsScreen({ route, navigation }: any) {
   const [siguiendoIds, setSiguiendoIds] = useState<Set<string>>(new Set());
   const [miUserId, setMiUserId] = useState<string | null>(null);
   const [esPerfilPrivado, setEsPerfilPrivado] = useState(false);
-  const [ordenTitulo, setOrdenTitulo] = useState<OrdenComentarios>("nuevo");
+  const [ordenTitulo, setOrdenTitulo] = useState<OrdenComentarios>("relevante");
   const [nuevoTexto, setNuevoTexto] = useState("");
   const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
   const [preguntarLobbyVisible, setPreguntarLobbyVisible] = useState(false);
@@ -108,7 +108,12 @@ export default function CommentsScreen({ route, navigation }: any) {
   function ordenarPosts(lista: Post[], orden: OrdenComentarios): Post[] {
     const copia = [...lista];
     if (orden === "viejo") copia.sort((a, b) => a.created_at.localeCompare(b.created_at));
-    else if (orden === "mas_respuestas") copia.sort((a, b) => (b.cantidad_comentarios ?? 0) - (a.cantidad_comentarios ?? 0));
+    else if (orden === "relevante")
+      copia.sort((a, b) => {
+        const relevanciaA = (a.cantidad_comentarios ?? 0) + Object.values(a.reacciones ?? {}).reduce((x, y) => x + y, 0);
+        const relevanciaB = (b.cantidad_comentarios ?? 0) + Object.values(b.reacciones ?? {}).reduce((x, y) => x + y, 0);
+        return relevanciaB - relevanciaA || b.created_at.localeCompare(a.created_at); // empate: más nuevo primero
+      });
     else copia.sort((a, b) => b.created_at.localeCompare(a.created_at));
     return copia;
   }
@@ -340,10 +345,10 @@ export default function CommentsScreen({ route, navigation }: any) {
           </View>
 
           <View style={styles.ordenRow}>
-            {(["nuevo", "viejo", "mas_respuestas"] as OrdenComentarios[]).map((o) => (
+            {(["nuevo", "viejo", "relevante"] as OrdenComentarios[]).map((o) => (
               <Pressable key={o} onPress={() => setOrdenTitulo(o)} style={[styles.ordenChip, ordenTitulo === o && styles.ordenChipActive]}>
                 <Text style={ordenTitulo === o ? styles.ordenTextActive : styles.ordenText}>
-                  {o === "nuevo" ? t("Más nuevo") : o === "viejo" ? t("Más antiguo") : t("Más respuestas")}
+                  {o === "nuevo" ? t("Más nuevo") : o === "viejo" ? t("Más antiguo") : t("Más relevante")}
                 </Text>
               </Pressable>
             ))}
