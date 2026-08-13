@@ -94,14 +94,19 @@ export async function getActividadMensualPeliculas(userId: string): Promise<Acti
 export interface FavoritosDeElenco {
   actorFavorito: ConteoNombre | null; // combina elenco de películas y series vistas
   directorFavorito: ConteoNombre | null; // solo películas — las series no tienen un único director
+  pendientes: number; // cuántos títulos todavía no tienen el elenco completado (van a sumar en próximas visitas)
 }
 
 /** Actor/actriz y director que más se repiten entre lo que el usuario ya vio (usa el elenco guardado al sincronizar cada título — no pega contra TMDB acá). */
 // No tiene sentido backfillear miles de títulos de una sola vez (tardaría
 // una eternidad la primera vez) — con esto alcanza para ir completando de a
 // poco en cada visita a Estadísticas, sin demorar demasiado la pantalla.
-const TOPE_BACKFILL = 40;
-const CONCURRENCIA_BACKFILL = 8;
+// No tiene sentido backfillear miles de títulos de una sola vez (tardaría
+// una eternidad la primera vez) — con esto alcanza para ir completando en
+// pocas visitas incluso una biblioteca grande, sin demorar demasiado la
+// pantalla en cada una.
+const TOPE_BACKFILL = 200;
+const CONCURRENCIA_BACKFILL = 12;
 
 async function enLotes<T, R>(items: T[], concurrencia: number, tarea: (item: T) => Promise<R>): Promise<R[]> {
   const resultados: R[] = [];
@@ -148,8 +153,11 @@ export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeE
     // varias visitas se va completando todo). El resultado de cada backfill
     // se usa directo (sin volver a consultar la base), para tener menos
     // pasos donde algo se pueda romper.
-    const peliculasSinDatos = peliculas.filter((p: any) => !p.movies_cache?.director && !(p.movies_cache?.cast_top?.length > 0)).slice(0, TOPE_BACKFILL);
-    const seriesSinDatos = series.filter((s: any) => !(s.series_cache?.cast_top?.length > 0)).slice(0, TOPE_BACKFILL);
+    const peliculasSinDatosTodas = peliculas.filter((p: any) => !p.movies_cache?.director && !(p.movies_cache?.cast_top?.length > 0));
+    const seriesSinDatosTodas = series.filter((s: any) => !(s.series_cache?.cast_top?.length > 0));
+    const peliculasSinDatos = peliculasSinDatosTodas.slice(0, TOPE_BACKFILL);
+    const seriesSinDatos = seriesSinDatosTodas.slice(0, TOPE_BACKFILL);
+    const pendientesAntes = peliculasSinDatosTodas.length + seriesSinDatosTodas.length;
     console.log(`[favoritosDeElenco] les falta director/elenco: ${peliculasSinDatos.length} películas, ${seriesSinDatos.length} series (de un tope de ${TOPE_BACKFILL} por visita)`);
 
     const resultadosPeliculas = await enLotes(peliculasSinDatos, CONCURRENCIA_BACKFILL, async (p: any) => {
@@ -199,12 +207,13 @@ export async function getFavoritosDeElenco(userId: string): Promise<FavoritosDeE
     return {
       actorFavorito: actorTop && actorTop[1] >= 2 ? { nombre: actorTop[0], cantidad: actorTop[1] } : null,
       directorFavorito: directorTop && directorTop[1] >= 2 ? { nombre: directorTop[0], cantidad: directorTop[1] } : null,
+      pendientes: Math.max(0, pendientesAntes - (peliculasSinDatos.length + seriesSinDatos.length)),
     };
   } catch (e) {
     // Si algo se cae en el medio (una consulta, el backfill, lo que sea),
     // mejor devolver "no hay dato" que dejar la promesa colgada.
     console.error("Error al calcular actor/director favorito:", e);
-    return { actorFavorito: null, directorFavorito: null };
+    return { actorFavorito: null, directorFavorito: null, pendientes: 0 };
   }
 }
 

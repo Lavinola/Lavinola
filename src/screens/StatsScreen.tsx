@@ -192,7 +192,7 @@ function StatsPeliculasTab({ navigation }: any) {
           <Text style={styles.numeroGrande} numberOfLines={2} adjustsFontSizeToFit>
             {favoritos.actorFavorito.nombre}
           </Text>
-          <Text style={styles.subdato}>{t("Lo elegiste en {n} películas").replace("{n}", String(favoritos.actorFavorito.cantidad))}</Text>
+          <Text style={styles.subdato}>{t("Actuó en {n} películas que viste").replace("{n}", String(favoritos.actorFavorito.cantidad))}</Text>
         </Card>
       )}
 
@@ -203,6 +203,15 @@ function StatsPeliculasTab({ navigation }: any) {
           </Text>
           <Text style={styles.subdato}>{t("Dirigió {n} películas que viste").replace("{n}", String(favoritos.directorFavorito.cantidad))}</Text>
         </Card>
+      )}
+
+      {!!favoritos?.pendientes && (
+        <Text style={styles.avisoPendientes}>
+          {t("Todavía estamos terminando de completar los datos de {n} títulos — estos números van a subir en las próximas veces que entres acá.").replace(
+            "{n}",
+            String(favoritos.pendientes)
+          )}
+        </Text>
       )}
 
       <Card titulo={t("Géneros de películas populares")}>
@@ -317,6 +326,7 @@ const styles = StyleSheet.create({
   tiempoGrande: { fontSize: 26, fontWeight: "700" },
   numeroGrande: { fontSize: 30, fontWeight: "700" },
   subdato: { fontSize: 12, color: theme.colors.textMuted, marginTop: 4 },
+  avisoPendientes: { fontSize: 12, color: theme.colors.textFaint, textAlign: "center", marginTop: -8, marginBottom: 12, paddingHorizontal: 20 },
   link: { color: theme.colors.primaryLight, fontSize: 13, marginTop: 12 },
   filaTabla: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   tablaHeader: { fontSize: 11, color: theme.colors.textFaint, textTransform: "uppercase" },

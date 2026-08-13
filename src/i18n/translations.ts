@@ -279,6 +279,12 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "Actuó en {n} películas que viste": { en: "Acted in {n} movies you watched", pt: "Atuou em {n} filmes que você assistiu", it: "Ha recitato in {n} film che hai visto" },
+  "Todavía estamos terminando de completar los datos de {n} títulos — estos números van a subir en las próximas veces que entres acá.": {
+    en: "We're still finishing loading the data for {n} titles — these numbers will go up the next times you check this screen.",
+    pt: "Ainda estamos terminando de completar os dados de {n} títulos — esses números vão aumentar nas próximas vezes que você entrar aqui.",
+    it: "Stiamo ancora completando i dati di {n} titoli — questi numeri aumenteranno le prossime volte che apri questa schermata.",
+  },
   "Listas que tienen": { en: "Lists that include", pt: "Listas que têm", it: "Liste che includono" },
   "Ninguna lista incluye este título todavía.": {
     en: "No list includes this title yet.",
