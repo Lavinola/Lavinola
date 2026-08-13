@@ -4,7 +4,6 @@ import { View, Image, ScrollView, FlatList, Pressable, StyleSheet, ActivityIndic
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
-import * as WebBrowser from "expo-web-browser";
 import ConfettiOverlay from "../components/ConfettiOverlay";
 import PublishActionModal from "../components/PublishActionModal";
 import { serieRecienCompletada } from "../lib/celebration";
@@ -15,6 +14,7 @@ import WatchedPlatformPicker from "../components/WatchedPlatformPicker";
 import ActionSheetModal from "../components/ActionSheetModal";
 import { pedirReseñaSiCorresponde } from "../lib/storeReview";
 import TituloConTraduccion from "../components/TituloConTraduccion";
+import TrailerEmbed from "../components/TrailerEmbed";
 import { SkeletonTitleDetail } from "../components/SkeletonShapes";
 import ConfirmModal from "../components/ConfirmModal";
 import TopPills from "../components/TopPills";
@@ -845,13 +845,9 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       )}
 
       {trailer && (
-        <Pressable
-          style={styles.trailerBtn}
-          onPress={() => WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${trailer.key}`)}
-        >
-          <Ionicons name="play-circle" size={20} color="#000000" />
-          <Text style={styles.trailerBtnTexto}>{t("Ver tráiler")}</Text>
-        </Pressable>
+        <View style={{ marginTop: 12 }}>
+          <TrailerEmbed youtubeKey={trailer.key} />
+        </View>
       )}
 
       {reparto.length > 0 && (
@@ -1194,17 +1190,6 @@ const styles = StyleSheet.create({
   traducirSinopsisTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   directorTexto: { fontSize: 13, color: theme.colors.textMuted, marginTop: 10 },
   directorTappeable: { textDecorationLine: "underline", color: theme.colors.primaryLight },
-  trailerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.md,
-    paddingVertical: 12,
-    marginTop: 12,
-  },
-  trailerBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 14 },
   recomendadoCard: { width: 100 },
   recomendadoPoster: { width: 100, height: 150, borderRadius: 8, backgroundColor: theme.colors.surfaceAlt },
   recomendadoTitulo: { fontSize: 12, marginTop: 4 },
