@@ -45,12 +45,12 @@ export async function enriquecerListas(listas: Lista[]): Promise<Lista[]> {
     seguidoresPorLista[f.list_id] = (seguidoresPorLista[f.list_id] ?? 0) + 1;
   });
 
-  // Hasta 8 títulos por lista para la previsualización (ya vienen ordenados
+  // Hasta 7 títulos por lista para la previsualización (ya vienen ordenados
   // por más recientes primero).
   const itemsPorLista: Record<string, { item_type: string; tmdb_id: number }[]> = {};
   (items ?? []).forEach((it: any) => {
     if (!itemsPorLista[it.list_id]) itemsPorLista[it.list_id] = [];
-    if (itemsPorLista[it.list_id].length < 8) itemsPorLista[it.list_id].push(it);
+    if (itemsPorLista[it.list_id].length < 7) itemsPorLista[it.list_id].push(it);
   });
 
   const idsSeries = [...new Set(Object.values(itemsPorLista).flat().filter((i) => i.item_type === "series").map((i) => i.tmdb_id))];
@@ -280,6 +280,19 @@ export async function listarListasQueContienenTitulo(
     }));
 
   const enriquecidas = await enriquecerListas(listas);
+
+  // enriquecerListas no trae la cantidad TOTAL de títulos (solo las tapas
+  // de previsualización, con tope de 7) — para el subtítulo hace falta el
+  // número real completo.
+  if (enriquecidas.length > 0) {
+    const { data: conteos } = await supabase.from("list_items").select("list_id").in("list_id", enriquecidas.map((l) => l.id));
+    const cantidadPorLista: Record<string, number> = {};
+    (conteos ?? []).forEach((c: any) => {
+      cantidadPorLista[c.list_id] = (cantidadPorLista[c.list_id] ?? 0) + 1;
+    });
+    enriquecidas.forEach((l) => (l.cantidad = cantidadPorLista[l.id] ?? 0));
+  }
+
   if (!viewerId || enriquecidas.length === 0) return enriquecidas;
 
   const { data: siguiendo } = await supabase

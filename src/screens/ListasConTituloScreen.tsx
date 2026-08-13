@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { View, FlatList, Image, TextInput, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, FlatList, TextInput, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import ConfirmModal from "../components/ConfirmModal";
+import ListPreviewCard from "../components/ListPreviewCard";
 import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { supabase } from "../lib/supabase";
@@ -13,7 +14,7 @@ import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
 export default function ListasConTituloScreen({ route, navigation }: any) {
-  const { itemType, tmdbId } = route.params;
+  const { itemType, tmdbId, nombre } = route.params;
   const { t } = useT();
   const [userId, setUserId] = useState<string | null>(null);
   const [seguidosIds, setSeguidosIds] = useState<Set<string>>(new Set());
@@ -25,6 +26,10 @@ export default function ListasConTituloScreen({ route, navigation }: any) {
   const [orden, setOrden] = useState<CriterioOrdenListasTitulo>("popularidad");
   const [ordenAsc, setOrdenAsc] = useState(false);
   const [listaADejarDeSeguir, setListaADejarDeSeguir] = useState<Lista | null>(null);
+
+  useEffect(() => {
+    navigation.setOptions({ title: nombre ? `${t("Listas que tienen")} ${nombre}` : t("Listas") });
+  }, [nombre]);
 
   useEffect(() => {
     cargar();
@@ -114,31 +119,20 @@ export default function ListasConTituloScreen({ route, navigation }: any) {
           contentContainerStyle={{ padding: 12 }}
           ListEmptyComponent={<EstadoVacio icono="albums-outline" titulo={t("Ninguna lista incluye este título todavía.")} />}
           renderItem={({ item }) => (
-            <Pressable
-              style={styles.card}
+            <ListPreviewCard
+              lista={item}
               onPress={() => navigation.push("DetalleLista", { listId: item.id, listTitle: item.title, soloLectura: item.user_id !== userId })}
-            >
-              {item.portadas && item.portadas[0] ? (
-                <Image source={{ uri: `https://image.tmdb.org/t/p/w185${item.portadas[0]}` }} style={styles.portada} />
-              ) : (
-                <View style={[styles.portada, styles.portadaVacia]} />
-              )}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.tituloLista} numberOfLines={2} ellipsizeMode="tail">
-                  {item.title}
-                </Text>
-                <Text style={styles.autorLista} numberOfLines={1}>
-                  {nombreOUsuario(item.autor_display_name, item.autor_username)} · {item.seguidores ?? 0} {t("seguidores")}
-                </Text>
-              </View>
-              {userId && item.user_id !== userId && (
-                <Pressable style={[styles.seguirBtn, item.siguiendo && styles.seguirBtnActivo]} onPress={() => toggleSeguir(item)}>
-                  <Text style={[styles.seguirBtnTexto, item.siguiendo && styles.seguirBtnTextoActivo]}>
-                    {item.siguiendo ? t("Siguiendo") : t("Seguir")}
-                  </Text>
-                </Pressable>
-              )}
-            </Pressable>
+              subtitulo={`${nombreOUsuario(item.autor_display_name, item.autor_username)} · ${item.cantidad} ${t("títulos")} · ${item.seguidores ?? 0} ${t("seguidores")}`}
+              accionesDerecha={
+                userId && item.user_id !== userId ? (
+                  <Pressable style={[styles.seguirBtn, item.siguiendo && styles.seguirBtnActivo]} onPress={() => toggleSeguir(item)}>
+                    <Text style={[styles.seguirBtnTexto, item.siguiendo && styles.seguirBtnTextoActivo]}>
+                      {item.siguiendo ? t("Siguiendo") : t("Seguir")}
+                    </Text>
+                  </Pressable>
+                ) : undefined
+              }
+            />
           )}
         />
       )}
@@ -194,11 +188,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  card: { flexDirection: "row", alignItems: "center", paddingVertical: 10, gap: 10 },
-  portada: { width: 44, height: 66, borderRadius: 6, backgroundColor: theme.colors.surfaceAlt },
-  portadaVacia: {},
-  tituloLista: { fontSize: 15, fontWeight: "700" },
-  autorLista: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   seguirBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: theme.radius.pill, paddingVertical: 6, paddingHorizontal: 14 },
   seguirBtnActivo: { backgroundColor: theme.colors.primary },
   seguirBtnTexto: { color: theme.colors.primaryLight, fontWeight: "700", fontSize: 12 },

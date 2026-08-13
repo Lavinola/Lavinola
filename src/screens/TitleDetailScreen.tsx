@@ -892,7 +892,10 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
               <Text style={styles.favoritosBtnNumero}>{cantidadFavoritos}</Text>
             </View>
           </Pressable>
-          <Pressable style={styles.listasBtn} onPress={() => navigation.navigate("ListasConTitulo", { itemType: tipo, tmdbId })}>
+          <Pressable
+            style={styles.listasBtn}
+            onPress={() => navigation.navigate("ListasConTitulo", { itemType: tipo, tmdbId, nombre: tipo === "series" ? titulo.name : titulo.title })}
+          >
             <Text style={styles.listasBtnTexto}>{t("Listas")}</Text>
           </Pressable>
         </View>

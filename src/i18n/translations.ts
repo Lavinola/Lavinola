@@ -279,6 +279,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "Listas que tienen": { en: "Lists that include", pt: "Listas que têm", it: "Liste che includono" },
   "Ninguna lista incluye este título todavía.": {
     en: "No list includes this title yet.",
     pt: "Nenhuma lista inclui este título ainda.",
