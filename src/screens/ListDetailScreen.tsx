@@ -187,7 +187,7 @@ export default function ListDetailScreen({ route, navigation }: any) {
         </Pressable>
         {!esMiaLaLista && (
           <Pressable style={[styles.botonChicoTilde, siguiendo && styles.botonChico]} onPress={toggleSeguirLista} hitSlop={6}>
-            <Ionicons name={siguiendo ? "checkmark-circle" : "checkmark-circle-outline"} size={15} color={siguiendo ? "#000000" : theme.colors.primaryLight} />
+            <Ionicons name={siguiendo ? "checkmark-circle" : "checkmark-circle-outline"} size={22} color={siguiendo ? "#000000" : theme.colors.primaryLight} />
           </Pressable>
         )}
       </View>

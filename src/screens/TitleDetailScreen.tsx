@@ -887,8 +887,10 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
             style={styles.favoritosBtn}
             onPress={() => navigation.navigate("FavoritosDe", { itemType: tipo, tmdbId, nombre: tipo === "series" ? titulo.name : titulo.title })}
           >
-            <Ionicons name="heart" size={18} color="#000000" />
-            <Text style={styles.favoritosBtnNumero}>{cantidadFavoritos}</Text>
+            <View style={styles.favoritosBtnContenido}>
+              <Ionicons name="heart" size={18} color="#000000" />
+              <Text style={styles.favoritosBtnNumero}>{cantidadFavoritos}</Text>
+            </View>
           </Pressable>
           <Pressable style={styles.listasBtn} onPress={() => navigation.navigate("ListasConTitulo", { itemType: tipo, tmdbId })}>
             <Text style={styles.listasBtnTexto}>{t("Listas")}</Text>
@@ -1216,17 +1218,16 @@ const styles = StyleSheet.create({
   comentariosRow: { flexDirection: "row", alignItems: "stretch", gap: 8, marginTop: 24 },
   favoritosListasCol: { width: 58, gap: 6 },
   favoritosBtn: { flex: 2, backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, alignItems: "center", justifyContent: "center" },
-  favoritosBtnNumero: { color: "#000000", fontWeight: "800", fontSize: 13, marginTop: 2 },
+  favoritosBtnContenido: { alignItems: "center", justifyContent: "center", gap: 3 },
+  favoritosBtnNumero: { color: "#000000", fontWeight: "800", fontSize: 13 },
   listasBtn: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
-  listasBtnTexto: { color: theme.colors.primaryLight, fontWeight: "700", fontSize: 11 },
+  listasBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 11 },
   comentariosBanner: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 16, paddingHorizontal: 18 },
   comentariosBannerTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },
   comentariosBannerFlecha: { color: "#000000", fontWeight: "800", fontSize: 22 },

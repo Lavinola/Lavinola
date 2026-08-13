@@ -116,7 +116,7 @@ export default function ListasConTituloScreen({ route, navigation }: any) {
           renderItem={({ item }) => (
             <Pressable
               style={styles.card}
-              onPress={() => navigation.navigate("DetalleLista", { listId: item.id, listTitle: item.title, soloLectura: item.user_id !== userId })}
+              onPress={() => navigation.push("DetalleLista", { listId: item.id, listTitle: item.title, soloLectura: item.user_id !== userId })}
             >
               {item.portadas && item.portadas[0] ? (
                 <Image source={{ uri: `https://image.tmdb.org/t/p/w185${item.portadas[0]}` }} style={styles.portada} />
@@ -124,7 +124,7 @@ export default function ListasConTituloScreen({ route, navigation }: any) {
                 <View style={[styles.portada, styles.portadaVacia]} />
               )}
               <View style={{ flex: 1 }}>
-                <Text style={styles.tituloLista} numberOfLines={1}>
+                <Text style={styles.tituloLista} numberOfLines={2} ellipsizeMode="tail">
                   {item.title}
                 </Text>
                 <Text style={styles.autorLista} numberOfLines={1}>
