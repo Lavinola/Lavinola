@@ -24,6 +24,7 @@ export interface Lista {
   mute_new_followers?: boolean; // solo tiene sentido en "mis listas": si no te avisa cuando alguien te empieza a seguir
   created_at?: string; // fecha de creación de la lista — para ordenar "mis listas"
   followed_at?: string; // fecha en la que empezaste a seguirla — para ordenar "listas que sigo"
+  siguiendo?: boolean; // ¿el usuario que está mirando ya sigue esta lista?
 }
 
 /**
@@ -244,4 +245,48 @@ export async function obtenerPortadasDeLista(listId: string): Promise<(string | 
   const posterMovie: Record<number, string | null> = {};
   (movies ?? []).forEach((m: any) => (posterMovie[m.tmdb_id] = m.poster_path));
   return items.map((it) => (it.item_type === "series" ? posterSerie[it.tmdb_id] ?? null : posterMovie[it.tmdb_id] ?? null));
+}
+
+/**
+ * Todas las listas (de cualquier usuario) que incluyen este título — la
+ * visibilidad ya la resuelve sola la política de RLS de `list_items`
+ * (públicas, o de "solo seguidores" si vos seguís a quien la creó), así
+ * que acá no hace falta filtrar nada de eso a mano.
+ */
+export async function listarListasQueContienenTitulo(
+  itemType: "movie" | "series",
+  tmdbId: number,
+  viewerId: string | null
+): Promise<Lista[]> {
+  const { data, error } = await supabase
+    .from("list_items")
+    .select("lists!inner(id, title, description, visibility, user_id, created_at, profiles!lists_user_id_fkey(username, display_name))")
+    .eq("item_type", itemType)
+    .eq("tmdb_id", tmdbId);
+  if (error) throw error;
+
+  const listas: Lista[] = (data ?? [])
+    .filter((r: any) => r.lists)
+    .map((r: any) => ({
+      id: r.lists.id,
+      title: r.lists.title,
+      description: r.lists.description ?? null,
+      visibility: r.lists.visibility,
+      cantidad: 0,
+      user_id: r.lists.user_id,
+      autor_username: r.lists.profiles?.username ?? null,
+      autor_display_name: r.lists.profiles?.display_name ?? null,
+      created_at: r.lists.created_at,
+    }));
+
+  const enriquecidas = await enriquecerListas(listas);
+  if (!viewerId || enriquecidas.length === 0) return enriquecidas;
+
+  const { data: siguiendo } = await supabase
+    .from("list_follows")
+    .select("list_id")
+    .eq("user_id", viewerId)
+    .in("list_id", enriquecidas.map((l) => l.id));
+  const setSeguidas = new Set((siguiendo ?? []).map((s: any) => s.list_id));
+  return enriquecidas.map((l) => ({ ...l, siguiendo: setSeguidas.has(l.id) }));
 }

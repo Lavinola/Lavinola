@@ -70,6 +70,7 @@ import LobbySearchScreen from "../screens/LobbySearchScreen";
 import GuardadosScreen from "../screens/GuardadosScreen";
 import GroupMembersScreen from "../screens/GroupMembersScreen";
 import FavoritedByScreen from "../screens/FavoritedByScreen";
+import ListasConTituloScreen from "../screens/ListasConTituloScreen";
 import AnnouncementsScreen from "../screens/AnnouncementsScreen";
 import StatsScreen from "../screens/StatsScreen";
 import RankingScreen from "../screens/RankingScreen";
@@ -179,6 +180,7 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
       <Stack.Screen name="Guardados" component={GuardadosScreen} options={{ title: t("Guardados") }} />
       <Stack.Screen name="MiembrosGrupo" component={GroupMembersScreen} options={{ title: t("Miembros") }} />
       <Stack.Screen name="FavoritosDe" component={FavoritedByScreen} options={{ title: t("En Favoritos") }} />
+      <Stack.Screen name="ListasConTitulo" component={ListasConTituloScreen} options={{ title: t("Listas") }} />
       <Stack.Screen
         name="DetalleGrupo"
         component={GroupDetailScreen}

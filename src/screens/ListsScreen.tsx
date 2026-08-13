@@ -46,6 +46,7 @@ export default function ListsScreen({ navigation }: any) {
   const [publishModalVisible, setPublishModalVisible] = useState(false);
   const [menuSigoVisible, setMenuSigoVisible] = useState(false);
   const [listaAccionSigo, setListaAccionSigo] = useState<Lista | null>(null);
+  const [confirmDejarDeSeguirVisible, setConfirmDejarDeSeguirVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [editarDescVisible, setEditarDescVisible] = useState(false);
   const [descripcionEditada, setDescripcionEditada] = useState("");
@@ -306,7 +307,7 @@ export default function ListsScreen({ navigation }: any) {
             icono: "close-circle-outline",
             onPress: () => {
               setMenuSigoVisible(false);
-              if (listaAccionSigo) dejarDeSeguir(listaAccionSigo);
+              setConfirmDejarDeSeguirVisible(true);
             },
           },
           {
@@ -330,6 +331,23 @@ export default function ListsScreen({ navigation }: any) {
           targetId={listaAccionSigo.id}
         />
       )}
+
+      <ConfirmModal
+        visible={confirmDejarDeSeguirVisible}
+        onCerrar={() => setConfirmDejarDeSeguirVisible(false)}
+        titulo={t("Dejar de seguir")}
+        mensaje={t('¿Seguro que querés dejar de seguir "{nombre}"?').replace("{nombre}", listaAccionSigo?.title ?? "")}
+        botones={[
+          { label: t("Cancelar"), onPress: () => {} },
+          {
+            label: t("Dejar de seguir"),
+            destacado: true,
+            onPress: () => {
+              if (listaAccionSigo) dejarDeSeguir(listaAccionSigo);
+            },
+          },
+        ]}
+      />
 
       <ConfirmModal
         visible={confirmBorrarVisible}

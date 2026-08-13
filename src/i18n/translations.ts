@@ -279,6 +279,13 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "Ninguna lista incluye este título todavía.": {
+    en: "No list includes this title yet.",
+    pt: "Nenhuma lista inclui este título ainda.",
+    it: "Nessuna lista include ancora questo titolo.",
+  },
+  "No se pudo seguir la lista": { en: "Couldn't follow the list", pt: "Não foi possível seguir a lista", it: "Impossibile seguire la lista" },
+  "No se pudo dejar de seguir": { en: "Couldn't unfollow", pt: "Não foi possível deixar de seguir", it: "Impossibile smettere di seguire" },
   "Sin conexión a internet": { en: "No internet connection", pt: "Sem conexão com a internet", it: "Nessuna connessione a internet" },
   Guardados: { en: "Saved", pt: "Salvos", it: "Salvati" },
   "Buscar en tus guardados...": { en: "Search your saved items...", pt: "Buscar nos seus salvos...", it: "Cerca nei tuoi salvati..." },

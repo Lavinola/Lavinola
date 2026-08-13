@@ -2,6 +2,9 @@ import React, { useCallback, useRef, useState } from "react";
 import { View, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text, AppButton } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
+import ConfirmModal from "../components/ConfirmModal";
+import { Alert } from "../lib/alert";
+import { seguirLista, dejarDeSeguirLista } from "../lib/lists";
 import { Ionicons } from "@expo/vector-icons";
 import PublishActionModal from "../components/PublishActionModal";
 import { useFocusEffect } from "@react-navigation/native";
@@ -32,6 +35,10 @@ export default function ListDetailScreen({ route, navigation }: any) {
   const [publishModalVisible, setPublishModalVisible] = useState(false);
   const [modoVista, setModoVista] = useState<"grilla" | "lista">("grilla");
   const [orden, setOrden] = useState<OrdenLista>("reciente");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [siguiendo, setSiguiendo] = useState(false);
+  const [confirmDejarDeSeguirVisible, setConfirmDejarDeSeguirVisible] = useState(false);
   const yaCargoRef = useRef(false);
 
   useFocusEffect(
@@ -43,12 +50,20 @@ export default function ListDetailScreen({ route, navigation }: any) {
 
   async function cargar(silencioso = false) {
     if (!silencioso) setLoading(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id ?? null;
+    setUserId(uid);
     const [{ data: listaData }, { data }] = await Promise.all([
       supabase.from("lists").select("description, user_id").eq("id", listId).maybeSingle(),
       supabase.from("list_items").select("item_type, tmdb_id, added_at").eq("list_id", listId),
     ]);
     setDescripcion(listaData?.description ?? null);
     const ownerId = listaData?.user_id ?? null;
+    setOwnerId(ownerId);
+    if (uid && ownerId && uid !== ownerId) {
+      const { data: follow } = await supabase.from("list_follows").select("list_id").eq("user_id", uid).eq("list_id", listId).maybeSingle();
+      setSiguiendo(!!follow);
+    }
 
     // Antes esto traía cada título UNO POR UNO (una consulta aparte por
     // cada fila) — con listas grandes, eso se sentía lento. Ahora se trae
@@ -123,6 +138,35 @@ export default function ListDetailScreen({ route, navigation }: any) {
     setItems((prev) => ordenarItems(prev, nuevo));
   }
 
+  async function toggleSeguirLista() {
+    if (!userId) return;
+    if (siguiendo) {
+      setConfirmDejarDeSeguirVisible(true);
+      return;
+    }
+    setSiguiendo(true);
+    try {
+      await seguirLista(userId, listId);
+    } catch (e: any) {
+      setSiguiendo(false);
+      Alert.alert(t("No se pudo seguir la lista"), e.message);
+    }
+  }
+
+  async function confirmarDejarDeSeguir() {
+    if (!userId) return;
+    setConfirmDejarDeSeguirVisible(false);
+    setSiguiendo(false);
+    try {
+      await dejarDeSeguirLista(userId, listId);
+    } catch (e: any) {
+      setSiguiendo(true);
+      Alert.alert(t("No se pudo dejar de seguir"), e.message);
+    }
+  }
+
+  const esMiaLaLista = !!userId && !!ownerId && userId === ownerId;
+
   const botonesGrupo = (
     <View style={styles.columnaBotonesChicos}>
       <View style={styles.filaBotonesChicos}>
@@ -133,13 +177,20 @@ export default function ListDetailScreen({ route, navigation }: any) {
           <Ionicons name="paper-plane" size={15} color="#FFFFFF" />
         </Pressable>
       </View>
-      <Pressable style={styles.botonChico} onPress={cambiarOrden} hitSlop={6}>
-        {orden === "reciente" ? (
-          <Text style={styles.ordenBotonTexto}>Az</Text>
-        ) : (
-          <Ionicons name="time-outline" size={15} color="#FFFFFF" />
+      <View style={styles.filaBotonesChicos}>
+        <Pressable style={styles.botonChico} onPress={cambiarOrden} hitSlop={6}>
+          {orden === "reciente" ? (
+            <Text style={styles.ordenBotonTexto}>Az</Text>
+          ) : (
+            <Ionicons name="time-outline" size={15} color="#FFFFFF" />
+          )}
+        </Pressable>
+        {!esMiaLaLista && (
+          <Pressable style={[styles.botonChicoTilde, siguiendo && styles.botonChico]} onPress={toggleSeguirLista} hitSlop={6}>
+            <Ionicons name={siguiendo ? "checkmark-circle" : "checkmark-circle-outline"} size={15} color={siguiendo ? "#000000" : theme.colors.primaryLight} />
+          </Pressable>
         )}
-      </Pressable>
+      </View>
     </View>
   );
 
@@ -239,6 +290,16 @@ export default function ListDetailScreen({ route, navigation }: any) {
         recomendarParams={{ kind: "list", listId, nombre: listTitle, posterPath: items[0]?.poster_path ?? null }}
         publicarListaParams={!soloLectura ? { listId } : undefined}
       />
+      <ConfirmModal
+        visible={confirmDejarDeSeguirVisible}
+        onCerrar={() => setConfirmDejarDeSeguirVisible(false)}
+        titulo={t("Dejar de seguir")}
+        mensaje={t('¿Seguro que querés dejar de seguir "{nombre}"?').replace("{nombre}", listTitle ?? "")}
+        botones={[
+          { label: t("Cancelar"), onPress: () => {} },
+          { label: t("Dejar de seguir"), destacado: true, onPress: confirmarDejarDeSeguir },
+        ]}
+      />
     </View>
   );
 }
@@ -253,6 +314,16 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  botonChicoTilde: {
+    width: 40,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
