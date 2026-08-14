@@ -16,9 +16,10 @@ interface Props {
   orden: CriterioOrdenListasTitulo;
   ascendente: boolean;
   onCambiarOrden: (o: CriterioOrdenListasTitulo, asc: boolean) => void;
+  ocultarAlfabetico?: boolean;
 }
 
-export default function FiltroListasTituloModal({ visible, onCerrar, filtro, onCambiarFiltro, orden, ascendente, onCambiarOrden }: Props) {
+export default function FiltroListasTituloModal({ visible, onCerrar, filtro, onCambiarFiltro, orden, ascendente, onCambiarOrden, ocultarAlfabetico }: Props) {
   const { t } = useT();
 
   const opcionesFiltro: { key: FiltroQuienListas; label: string }[] = [
@@ -28,7 +29,7 @@ export default function FiltroListasTituloModal({ visible, onCerrar, filtro, onC
   const opcionesOrden: { key: CriterioOrdenListasTitulo; label: string }[] = [
     { key: "popularidad", label: t("Popularidad") },
     { key: "fecha", label: t("Fecha creación") },
-    { key: "alfabetico", label: t("Alfabético") },
+    ...(ocultarAlfabetico ? [] : [{ key: "alfabetico" as const, label: t("Alfabético") }]),
   ];
 
   return (

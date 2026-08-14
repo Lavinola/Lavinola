@@ -279,6 +279,20 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "Buscar por nombre": { en: "Search by name", pt: "Buscar por nome", it: "Cerca per nome" },
+  "Buscar por película/serie": { en: "Search by movie/series", pt: "Buscar por filme/série", it: "Cerca per film/serie" },
+  "Buscar lista por nombre...": { en: "Search list by name...", pt: "Buscar lista por nome...", it: "Cerca lista per nome..." },
+  "Buscar película o serie...": { en: "Search movie or series...", pt: "Buscar filme ou série...", it: "Cerca film o serie..." },
+  "No encontramos listas con ese nombre.": {
+    en: "We couldn't find lists with that name.",
+    pt: "Não encontramos listas com esse nome.",
+    it: "Non abbiamo trovato liste con quel nome.",
+  },
+  "Todavía no hay listas en tendencia.": {
+    en: "There are no trending lists yet.",
+    pt: "Ainda não há listas em tendência.",
+    it: "Non ci sono ancora liste di tendenza.",
+  },
   "Actuó en {n} películas que viste": { en: "Acted in {n} movies you watched", pt: "Atuou em {n} filmes que você assistiu", it: "Ha recitato in {n} film che hai visto" },
   "Todavía estamos terminando de completar los datos de {n} títulos — estos números van a subir en las próximas veces que entres acá.": {
     en: "We're still finishing loading the data for {n} titles — these numbers will go up the next times you check this screen.",

@@ -23,6 +23,7 @@ import {
   actualizarDescripcionLista,
 } from "../lib/lists";
 import ListPreviewCard from "../components/ListPreviewCard";
+import BuscarListasSection from "../components/BuscarListasSection";
 import EstadoVacio from "../components/EstadoVacio";
 import OrdenListasModal, { CriterioOrdenListas } from "../components/OrdenListasModal";
 import { nombreOUsuario } from "../components/NombreUsuario";
@@ -30,7 +31,7 @@ import ReportModal from "../components/ReportModal";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
-type SubTab = "mias" | "sigo";
+type SubTab = "mias" | "sigo" | "buscar";
 
 export default function ListsScreen({ navigation }: any) {
   const { t } = useT();
@@ -161,8 +162,15 @@ export default function ListsScreen({ navigation }: any) {
         <Pressable style={styles.tabBtn} onPress={() => navigation.navigate("CrearLista")}>
           <Text style={styles.tabTexto}>{t("Crear")}</Text>
         </Pressable>
+        <Pressable style={[styles.tabBtn, subTab === "buscar" && styles.tabBtnActivo]} onPress={() => setSubTab("buscar")}>
+          <Text style={styles.tabTexto}>{t("Buscar")}</Text>
+        </Pressable>
       </View>
 
+      {subTab === "buscar" && <BuscarListasSection navigation={navigation} />}
+
+      {subTab !== "buscar" && (
+        <>
       <View style={styles.buscadorRow}>
         <TextInput
           style={[styles.buscador, { flex: 1 }]}
@@ -273,6 +281,8 @@ export default function ListsScreen({ navigation }: any) {
           />
         )}
       />
+        </>
+      )}
 
       <ActionSheetModal
         visible={menuVisible}
@@ -408,8 +418,8 @@ export default function ListsScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  tabsRow: { flexDirection: "row", padding: 12, gap: 8 },
-  tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 6, alignItems: "center", backgroundColor: "#000000", borderWidth: 1, borderColor: "transparent" },
+  tabsRow: { flexDirection: "row", flexWrap: "wrap", padding: 12, gap: 8 },
+  tabBtn: { flexGrow: 1, minWidth: "45%", paddingVertical: 10, borderRadius: 6, alignItems: "center", backgroundColor: "#000000", borderWidth: 1, borderColor: "transparent" },
   tabBtnActivo: { borderColor: theme.colors.primary },
   tabTexto: { fontSize: 13, fontWeight: "700", color: theme.colors.primaryLight },
   buscadorRow: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8 },

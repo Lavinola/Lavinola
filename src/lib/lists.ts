@@ -303,3 +303,85 @@ export async function listarListasQueContienenTitulo(
   const setSeguidas = new Set((siguiendo ?? []).map((s: any) => s.list_id));
   return enriquecidas.map((l) => ({ ...l, siguiendo: setSeguidas.has(l.id) }));
 }
+
+/** Buscar listas por nombre — respeta la visibilidad sola (RLS de la tabla lists). */
+export async function buscarListasPorNombre(query: string, viewerId: string | null): Promise<Lista[]> {
+  if (!query.trim()) return [];
+  const { data, error } = await supabase
+    .from("lists")
+    .select("id, title, description, visibility, user_id, created_at, profiles!lists_user_id_fkey(username, display_name)")
+    .ilike("title", `%${query.trim()}%`)
+    .limit(50);
+  if (error) throw error;
+
+  const listas: Lista[] = (data ?? []).map((r: any) => ({
+    id: r.id,
+    title: r.title,
+    description: r.description ?? null,
+    visibility: r.visibility,
+    cantidad: 0,
+    user_id: r.user_id,
+    autor_username: r.profiles?.username ?? null,
+    autor_display_name: r.profiles?.display_name ?? null,
+    created_at: r.created_at,
+  }));
+
+  const enriquecidas = await enriquecerListas(listas);
+  if (!viewerId || enriquecidas.length === 0) return enriquecidas;
+
+  const { data: siguiendo } = await supabase
+    .from("list_follows")
+    .select("list_id")
+    .eq("user_id", viewerId)
+    .in("list_id", enriquecidas.map((l) => l.id));
+  const setSeguidas = new Set((siguiendo ?? []).map((s: any) => s.list_id));
+  return enriquecidas.map((l) => ({ ...l, siguiendo: setSeguidas.has(l.id) }));
+}
+
+/** Las 20 listas que más seguidores nuevos consiguieron en los últimos 30 días — respeta visibilidad vía RLS de list_follows/lists. */
+export async function listarListasTendencia(viewerId: string | null): Promise<Lista[]> {
+  const hace30dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: follows, error } = await supabase.from("list_follows").select("list_id").gte("created_at", hace30dias);
+  if (error) throw error;
+
+  const conteoPorLista: Record<string, number> = {};
+  (follows ?? []).forEach((f: any) => {
+    conteoPorLista[f.list_id] = (conteoPorLista[f.list_id] ?? 0) + 1;
+  });
+  const idsOrdenados = Object.entries(conteoPorLista)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([id]) => id);
+  if (idsOrdenados.length === 0) return [];
+
+  const { data: listasData } = await supabase
+    .from("lists")
+    .select("id, title, description, visibility, user_id, created_at, profiles!lists_user_id_fkey(username, display_name)")
+    .in("id", idsOrdenados);
+
+  const listas: Lista[] = (listasData ?? []).map((r: any) => ({
+    id: r.id,
+    title: r.title,
+    description: r.description ?? null,
+    visibility: r.visibility,
+    cantidad: 0,
+    user_id: r.user_id,
+    autor_username: r.profiles?.username ?? null,
+    autor_display_name: r.profiles?.display_name ?? null,
+    created_at: r.created_at,
+  }));
+
+  const enriquecidas = await enriquecerListas(listas);
+  // enriquecerListas no mantiene el orden de "más nuevos seguidores" — lo
+  // reordenamos acá según el conteo real que ya calculamos arriba.
+  const ordenFinal = [...enriquecidas].sort((a, b) => (conteoPorLista[b.id] ?? 0) - (conteoPorLista[a.id] ?? 0));
+
+  if (!viewerId || ordenFinal.length === 0) return ordenFinal;
+  const { data: siguiendo } = await supabase
+    .from("list_follows")
+    .select("list_id")
+    .eq("user_id", viewerId)
+    .in("list_id", ordenFinal.map((l) => l.id));
+  const setSeguidas = new Set((siguiendo ?? []).map((s: any) => s.list_id));
+  return ordenFinal.map((l) => ({ ...l, siguiendo: setSeguidas.has(l.id) }));
+}

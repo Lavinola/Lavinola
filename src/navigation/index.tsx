@@ -274,7 +274,7 @@ function ProfileStackNav() {
       <ProfileStack.Screen name="ProfileHome" component={ProfileScreenConFundido} options={{ header: ({ navigation }: any) => <AppHeader navigation={navigation} /> }} />
       <ProfileStack.Screen name="EditarPerfil" component={EditProfileScreen} options={{ title: t("Editar perfil") }} />
       <ProfileStack.Screen name="ElegirPortada" component={ChooseCoverPhotoScreen} options={{ title: t("Elegir foto de portada") }} />
-      <ProfileStack.Screen name="Listas" component={ListsScreen} options={{ title: t("Tus listas") }} />
+      <ProfileStack.Screen name="Listas" component={ListsScreen} options={{ title: t("Listas") }} />
       <ProfileStack.Screen name="Favoritos" component={FavoritesScreen} options={{ title: t("Favoritos") }} />
       <ProfileStack.Screen
         name="ImportarTVTime"
