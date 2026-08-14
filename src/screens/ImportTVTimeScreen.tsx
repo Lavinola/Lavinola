@@ -141,8 +141,11 @@ export default function ImportTVTimeScreen() {
 
         if (esSofaTime) {
           // Sofa Time ya trae el id de TMDB confirmado en cada título — no
-          // hace falta buscar ni matchear nada, así que esto se resuelve
-          // al toque acá mismo, sin pasarle nada al servidor.
+          // hace falta buscar ni matchear nada, así que nos saltamos toda la
+          // fase de búsqueda. Igual creamos el trabajo en la base ya
+          // "listo" (en vez de aplicar acá mismo en el celular), para que
+          // la fase de APLICAR corra en el servidor igual que TV Time —
+          // así también podés cerrar la app o mandarla a segundo plano.
           const archivosTexto: Record<string, string> = {};
           for (const nombre of nombresArchivos) archivosTexto[nombre] = strFromU8(archivos[nombre]);
           registros = parseSofaTimeArchivos(archivosTexto);
@@ -150,6 +153,26 @@ export default function ImportTVTimeScreen() {
             throw new Error("El ZIP de Sofa Time no tenía ningún título para importar.");
           }
           const resultadosSofa = agruparPorTmdbId(registros);
+
+          const { data: userData } = await supabase.auth.getUser();
+          const uid = userData.user?.id;
+          if (!uid) throw new Error("No se pudo identificar tu usuario.");
+
+          const { data: job, error: jobError } = await supabase
+            .from("tvtime_import_jobs")
+            .insert({
+              user_id: uid,
+              status: "listo",
+              grupos: [],
+              resultados: resultadosSofa,
+              procesados: resultadosSofa.length,
+              total: resultadosSofa.length,
+            })
+            .select("id")
+            .single();
+          if (jobError || !job) throw jobError ?? new Error("No se pudo crear el trabajo de importación.");
+
+          setJobId(job.id);
           setResultados(resultadosSofa);
           setProgreso({ procesados: resultadosSofa.length, total: resultadosSofa.length });
           setEtapa("revisar_dudosos");
