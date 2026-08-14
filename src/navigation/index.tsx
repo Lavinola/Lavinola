@@ -493,6 +493,23 @@ export default function RootNavigation() {
         precargarPerfilPropio(s.user.id);
         precargarListaPendiente(s.user.id);
         precargarPeliculas(s.user.id);
+        // Cubre el caso de Google (que no pasa por el signUp() explícito de
+        // AuthScreen) — si el avatar todavía es un link en vivo a DiceBear
+        // (recién puesto por el trigger de alta), lo convertimos a un
+        // archivo propio guardado. No hace nada si ya tiene uno guardado o
+        // una foto subida por la persona.
+        supabase
+          .from("profiles")
+          .select("username, avatar_url")
+          .eq("id", s.user.id)
+          .maybeSingle()
+          .then(({ data: perfil }) => {
+            if (perfil?.username && perfil.avatar_url?.startsWith("https://api.dicebear.com/")) {
+              supabase.functions.invoke("generate-default-avatar", { body: { userId: s.user.id, username: perfil.username } }).catch((e) => {
+                console.error("No se pudo generar el avatar por default:", e);
+              });
+            }
+          });
       } else {
         identificarUsuarioEnReportes(null);
         limpiarCacheUsuariosRecomendados();

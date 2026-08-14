@@ -187,6 +187,16 @@ export default function AuthScreen() {
         // trigger en auth.users — así funciona aunque todavía no haya
         // sesión activa (caso típico: falta confirmar el mail).
 
+        // Apenas se crea la cuenta, le generamos el avatar por default y lo
+        // guardamos como archivo propio (no bloqueamos el alta esperando
+        // esto — si falla, no pasa nada grave, el usuario simplemente no
+        // tiene foto todavía hasta que suba la suya).
+        if (data.user?.id) {
+          supabase.functions.invoke("generate-default-avatar", { body: { userId: data.user.id, username: usernameLimpio } }).catch((e) => {
+            console.error("No se pudo generar el avatar por default:", e);
+          });
+        }
+
         if (!data.session) {
           Alert.alert(
             "Cuenta creada",
