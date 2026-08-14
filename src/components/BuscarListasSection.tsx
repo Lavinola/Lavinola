@@ -12,6 +12,7 @@ import { buscarTitulosTolerante, ResultadoTitulo } from "../lib/tituloSearch";
 import { posterUrl } from "../lib/tmdb";
 import { nombreOUsuario } from "./NombreUsuario";
 import FiltroListasTituloModal, { FiltroQuienListas, CriterioOrdenListasTitulo } from "./FiltroListasTituloModal";
+import UnderlineTabs from "./UnderlineTabs";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -28,17 +29,16 @@ export default function BuscarListasSection({ navigation }: any) {
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={styles.modoRow}>
-        <Pressable style={[styles.modoBtn, modo === "tendencias" && styles.modoBtnActivo]} onPress={() => setModo("tendencias")}>
-          <Text style={[styles.modoTexto, modo === "tendencias" && styles.modoTextoActivo]}>{t("Tendencias")}</Text>
-        </Pressable>
-        <Pressable style={[styles.modoBtn, modo === "nombre" && styles.modoBtnActivo]} onPress={() => setModo("nombre")}>
-          <Text style={[styles.modoTexto, modo === "nombre" && styles.modoTextoActivo]}>{t("Buscar por nombre")}</Text>
-        </Pressable>
-        <Pressable style={[styles.modoBtn, modo === "titulo" && styles.modoBtnActivo]} onPress={() => setModo("titulo")}>
-          <Text style={[styles.modoTexto, modo === "titulo" && styles.modoTextoActivo]}>{t("Buscar por película/serie")}</Text>
-        </Pressable>
-      </View>
+      <UnderlineTabs
+        opciones={[
+          { key: "tendencias", label: t("Tendencias") },
+          { key: "nombre", label: t("Buscar por") + "\n" + t("nombre") },
+          { key: "titulo", label: t("Buscar por") + "\n" + t("película/serie") },
+        ]}
+        valor={modo}
+        onCambiar={setModo}
+        multilinea
+      />
 
       {modo === "tendencias" && <TendenciasListas navigation={navigation} userId={userId} />}
       {modo === "nombre" && <BuscarPorNombre navigation={navigation} userId={userId} />}
@@ -295,11 +295,6 @@ function BuscarPorTitulo({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  modoRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 12, paddingTop: 12 },
-  modoBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.border },
-  modoBtnActivo: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
-  modoTexto: { fontSize: 13, color: theme.colors.textMuted, fontWeight: "600" },
-  modoTextoActivo: { color: "#000000" },
   buscadorRow: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginTop: 12 },
   buscadorInput: {
     flex: 1,
