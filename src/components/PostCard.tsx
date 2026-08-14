@@ -4,6 +4,7 @@ import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
 import NombreUsuario from "./NombreUsuario";
+import Avatar from "./Avatar";
 import ActionSheetModal from "./ActionSheetModal";
 import ConfirmModal from "./ConfirmModal";
 import ReportModal from "./ReportModal";
@@ -269,7 +270,7 @@ export default function PostCard({
     <View style={styles.card}>
       <View style={styles.autorRow}>
         <Pressable style={{ flexDirection: "row", alignItems: "center", flex: 1 }} onPress={() => navigation.navigate("PerfilAjeno", { userId: post.user_id })}>
-          {post.avatar_url ? <Image source={{ uri: post.avatar_url }} style={styles.avatar} /> : <View style={[styles.avatar, styles.avatarPlaceholder]} />}
+          <Avatar uri={post.avatar_url} size={34} style={{ marginRight: 8 }} />
           <View style={{ flex: 1 }}>
             <NombreUsuario style={styles.username} displayName={post.display_name} username={post.username} numberOfLines={1} />
             <Text style={styles.fecha}>{formatearTiempoRelativo(post.created_at)}</Text>

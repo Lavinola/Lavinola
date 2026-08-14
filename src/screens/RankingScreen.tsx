@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FlatList, View, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { supabase } from "../lib/supabase";
 import { getRankingTiempoSeries, getRankingTiempoPeliculas, PuestoRanking } from "../lib/stats";
 import TiempoDedicadoTexto from "../components/TiempoDedicadoTexto";
@@ -48,11 +49,7 @@ export default function RankingScreen({ route, navigation }: Props) {
               onPress={() => navigation.navigate("PerfilAjeno", { userId: item.userId })}
             >
               <Text style={styles.puesto}>{index + 1}.</Text>
-              {item.avatar_url ? (
-                <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, { backgroundColor: theme.colors.surfaceAlt }]} />
-              )}
+              <Avatar uri={item.avatar_url} size={36} />
               <View style={{ flex: 1, marginLeft: 10 }}>
                 <Text style={styles.nombre}>{item.username ?? t("Usuario")}</Text>
                 {item.soyYo && <Text style={styles.tu}>{t("TU")}</Text>}

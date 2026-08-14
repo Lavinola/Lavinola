@@ -10,6 +10,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import ReportModal from "../components/ReportModal";
 import PublishActionModal from "../components/PublishActionModal";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
@@ -217,11 +218,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
               showsHorizontalScrollIndicator={false}
               renderItem={({ item }) => (
                 <Pressable style={styles.miembroCard} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
-                  {item.avatar_url ? (
-                    <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, { backgroundColor: theme.colors.surfaceAlt }]} />
-                  )}
+                  <Avatar uri={item.avatar_url} size={48} style={{ marginBottom: 4 }} />
                   <Text style={styles.miembroNombre} numberOfLines={1}>
                     {item.username ?? "Usuario"}
                   </Text>

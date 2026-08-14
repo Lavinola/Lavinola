@@ -3,6 +3,7 @@ import { View, FlatList, TextInput, Pressable, Image, StyleSheet, KeyboardAvoidi
 import * as Clipboard from "expo-clipboard";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import NombreUsuario from "../components/NombreUsuario";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
@@ -356,11 +357,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
           disabled={!otroUserId}
           onPress={() => otroUserId && navigation.navigate("PerfilAjeno", { userId: otroUserId })}
         >
-          {otroAvatarUrl ? (
-            <Image source={{ uri: otroAvatarUrl }} style={styles.tituloAvatar} />
-          ) : (
-            <View style={[styles.tituloAvatar, { backgroundColor: theme.colors.surfaceAlt }]} />
-          )}
+          <Avatar uri={otroAvatarUrl} size={36} style={styles.tituloAvatar} />
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             {otroUsername ? (
               <NombreUsuario style={styles.tituloNombre} displayName={otroDisplayName} username={otroUsername} numberOfLines={1} />

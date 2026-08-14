@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import { View, Image, FlatList, Pressable, StyleSheet, ScrollView, Modal, TextInput, Platform, ActivityIndicator } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
@@ -344,11 +345,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
       <View style={styles.headerRow}>
         <View style={styles.avatarNombreGrupo}>
           <Pressable disabled={!puedeVer} onPress={() => setAvatarAmpliado(true)}>
-            {perfil.avatar_url ? (
-              <Image source={{ uri: perfil.avatar_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]} />
-            )}
+            <Avatar uri={perfil.avatar_url} size={84} style={styles.avatar} />
           </Pressable>
           <View style={{ marginLeft: 12, flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>

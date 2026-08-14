@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, TextInput, FlatList, Image, Pressable, StyleSheet, Modal } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { supabase } from "../lib/supabase";
 import {
   listarMiembrosParaModerar,
@@ -90,11 +91,7 @@ export default function GroupModerateUsersScreen({ route, navigation }: Props) {
         ListEmptyComponent={<Text style={styles.vacio}>No hay miembros con ese nombre.</Text>}
         renderItem={({ item }) => (
           <Pressable style={styles.card} onPress={() => setElegido(item)}>
-            {item.avatar_url ? (
-              <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]} />
-            )}
+            <Avatar uri={item.avatar_url} size={40} style={{ marginRight: 10 }} />
             <View style={{ flex: 1 }}>
               <Text style={styles.nombre}>{item.username ?? t("Usuario")}</Text>
               {item.silenciado_hasta && <Text style={styles.silenciado}>{t("Silenciado hasta")} {formatearFecha(item.silenciado_hasta)}</Text>}

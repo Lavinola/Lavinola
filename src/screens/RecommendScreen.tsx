@@ -9,6 +9,7 @@ import { obtenerOCrearChat, enviarRecomendacionAUsuario, enviarRecomendacionDeGr
 import { recomendarEnGrupo } from "../lib/comments";
 import { posterUrl } from "../lib/tmdb";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import UnderlineTabs from "../components/UnderlineTabs";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -184,11 +185,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
           renderItem={({ item }) => (
             <View>
               <View style={styles.card}>
-                {item.avatar_url ? (
-                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, styles.avatarPlaceholder]} />
-                )}
+                <Avatar uri={item.avatar_url} size={40} style={{ marginRight: 10, borderRadius: 8 }} />
                 <Text style={styles.username}>{item.username ?? t("Usuario")}</Text>
                 <Pressable style={styles.recomendarBtn} onPress={() => abrirCompositor(item.id)} disabled={enviadoA.has(item.id)}>
                   <Text style={styles.recomendarBtnTexto}>{enviadoA.has(item.id) ? t("Enviado ✓") : t("Recomendar")}</Text>

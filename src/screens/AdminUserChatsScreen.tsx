@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, FlatList, Image, Pressable, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { supabase } from "../lib/supabase";
 import { listarChatsDeUsuarioParaAdmin, ChatResumenAdmin } from "../lib/chats";
 import { formatearFechaHora } from "../lib/dates";
@@ -81,11 +82,7 @@ export default function AdminUserChatsScreen({ route, navigation }: Props) {
               })
             }
           >
-            {item.otroAvatarUrl ? (
-              <Image source={{ uri: item.otroAvatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]} />
-            )}
+            <Avatar uri={item.otroAvatarUrl} size={42} />
             <View style={{ flex: 1 }}>
               <Text style={styles.nombre}>{t("Chat con")} @{item.otroUsername ?? "—"}</Text>
               <Text style={styles.detalle}>

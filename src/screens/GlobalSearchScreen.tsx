@@ -3,6 +3,7 @@ import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndica
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
+import Avatar from "../components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";
 import { searchPerson, posterUrl } from "../lib/tmdb";
@@ -275,11 +276,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Pressable style={styles.cardInfo} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
-                {item.avatar_url ? (
-                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, { backgroundColor: theme.colors.surfaceAlt }]} />
-                )}
+                <Avatar uri={item.avatar_url} size={40} style={{ marginRight: 12 }} />
                 <Text style={styles.nombre}>{item.username ?? "Usuario"}</Text>
               </Pressable>
               <Pressable

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, FlatList, Image, Pressable, TextInput, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { listarUsuariosQueFavoritearon, UsuarioFavoriteo } from "../lib/favorites";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -52,7 +53,7 @@ export default function FavoritedByScreen({ route, navigation }: any) {
         }
         renderItem={({ item }) => (
           <Pressable style={styles.card} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.user_id })}>
-            {item.avatar_url ? <Image source={{ uri: item.avatar_url }} style={styles.avatar} /> : <View style={[styles.avatar, styles.avatarPlaceholder]} />}
+            <Avatar uri={item.avatar_url} size={42} style={{ marginRight: 12 }} />
             <Text style={styles.nombre}>{item.username ?? "Usuario"}</Text>
           </Pressable>
         )}

@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import { FlatList, Pressable, View, Image, StyleSheet } from "react-native";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
+import Avatar from "../components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
@@ -115,11 +116,7 @@ export default function NotificationsScreen({ navigation }: any) {
       renderItem={({ item }) => (
         <Pressable style={[styles.card, !item.read && styles.cardNoLeida]} onPress={() => abrir(item)}>
           <View>
-            {item.actor_avatar_url ? (
-              <Image source={{ uri: item.actor_avatar_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]} />
-            )}
+            <Avatar uri={item.actor_avatar_url} size={36} style={styles.avatar} />
             {!!item.actoresAgrupados?.length && (
               <View style={styles.masBadge}>
                 <Text style={styles.masBadgeTexto}>+{item.actoresAgrupados.length}</Text>

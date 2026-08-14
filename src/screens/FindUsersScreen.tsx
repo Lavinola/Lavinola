@@ -7,6 +7,7 @@ import { buscarUsuarios, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
+import Avatar from "../components/Avatar";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -74,11 +75,7 @@ export default function FindUsersScreen({ navigation }: any) {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Pressable style={styles.cardInfo} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
-              {item.avatar_url ? (
-                <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]} />
-              )}
+              <Avatar uri={item.avatar_url} size={36} style={{ marginRight: 10 }} />
               <Text style={styles.username}>{item.username ?? "Usuario"}</Text>
             </Pressable>
             <Pressable

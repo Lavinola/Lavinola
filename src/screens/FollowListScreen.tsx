@@ -5,6 +5,7 @@ import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import NombreUsuario from "../components/NombreUsuario";
 import EstadoVacio from "../components/EstadoVacio";
+import Avatar from "../components/Avatar";
 import { SkeletonListRows } from "../components/SkeletonShapes";
 import { supabase } from "../lib/supabase";
 import { usuariosQueSigo, seguidoresDe, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
@@ -138,11 +139,7 @@ export default function FollowListScreen({ route, navigation }: Props) {
         }
         renderItem={({ item }) => (
           <Pressable style={styles.card} onPress={() => navigation.push("PerfilAjeno", { userId: item.id })}>
-            {item.avatar_url ? (
-              <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]} />
-            )}
+            <Avatar uri={item.avatar_url} size={40} style={{ marginRight: 10 }} />
             <NombreUsuario style={styles.username} displayName={item.display_name} username={item.username} numberOfLines={1} />
             {viewerId && viewerId !== item.id && (
               <Pressable

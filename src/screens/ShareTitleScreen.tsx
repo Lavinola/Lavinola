@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { usuariosQueSigo, UsuarioBasico } from "../lib/follows";
 import { compartirTitulo, LIMITE_NOTA } from "../lib/sharedTitles";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { theme } from "../theme";
 
 interface Props {
@@ -63,11 +64,7 @@ export default function ShareTitleScreen({ route, navigation }: Props) {
             ListEmptyComponent={<Text style={styles.vacio}>Todavía no seguís a nadie.</Text>}
             renderItem={({ item }) => (
               <Pressable style={styles.card} onPress={() => setDestinatario(item)}>
-                {item.avatar_url ? (
-                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, styles.avatarPlaceholder]} />
-                )}
+                <Avatar uri={item.avatar_url} size={36} style={{ marginRight: 10 }} />
                 <Text style={styles.username}>{item.username ?? "Usuario"}</Text>
               </Pressable>
             )}

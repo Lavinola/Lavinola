@@ -3,6 +3,7 @@ import { View, TextInput, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoi
 import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { decode } from "base64-arraybuffer";
@@ -134,11 +135,7 @@ export default function EditProfileScreen({ navigation }: any) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 110 : 24}>
     <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Pressable style={styles.avatarRow} onPress={elegirAvatar}>
-        {perfil?.avatar_url ? (
-          <Image source={{ uri: perfil.avatar_url }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]} />
-        )}
+        <Avatar uri={perfil?.avatar_url} size={56} style={styles.avatar} />
         <Text style={styles.link}>{t("Elegir foto de perfil")}</Text>
       </Pressable>
 

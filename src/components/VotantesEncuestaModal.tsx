@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Modal, ScrollView, Image, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Text } from "./Themed";
+import Avatar from "./Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { listarVotantesDeOpcion, VotanteDeOpcion } from "../lib/polls";
 import { useT } from "../i18n/i18n";
@@ -100,11 +101,7 @@ export default function VotantesEncuestaModal({ visible, onCerrar, navigation, o
                             navigation?.navigate("PerfilAjeno", { userId: v.user_id });
                           }}
                         >
-                          {v.avatar_url ? (
-                            <Image source={{ uri: v.avatar_url }} style={styles.avatar} />
-                          ) : (
-                            <View style={[styles.avatar, styles.avatarVacio]} />
-                          )}
+                          <Avatar uri={v.avatar_url} size={28} />
                           <Text style={styles.votanteTexto}>{v.username ?? t("Usuario")}</Text>
                         </Pressable>
                       ))}

@@ -3,6 +3,7 @@ import { View, FlatList, Image, Pressable, TextInput, StyleSheet } from "react-n
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import NombreUsuario from "../components/NombreUsuario";
 import { supabase } from "../lib/supabase";
 import { listarChats, ChatResumen } from "../lib/chats";
@@ -78,11 +79,7 @@ export default function ActivityScreen({ navigation }: any) {
                 <Text style={styles.noLeidosTexto}>{item.noLeidos > 99 ? "99+" : item.noLeidos}</Text>
               </View>
             )}
-            {item.otroAvatarUrl ? (
-              <Image source={{ uri: item.otroAvatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]} />
-            )}
+            <Avatar uri={item.otroAvatarUrl} size={46} style={{ marginRight: 12 }} />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: "row", alignItems: "baseline" }}>
                 <NombreUsuario style={styles.nombre} displayName={item.otroDisplayName} username={item.otroUsername} />

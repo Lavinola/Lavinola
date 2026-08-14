@@ -13,6 +13,7 @@ import { Favorito } from "../lib/favorites";
 import { Lista } from "../lib/lists";
 import ListPreviewCard from "../components/ListPreviewCard";
 import AdminBadge from "../components/AdminBadge";
+import Avatar from "../components/Avatar";
 import { ProgresoSerie } from "../lib/seriesList";
 import {
   DatosPerfilPropio,
@@ -183,11 +184,7 @@ export default function ProfileScreen({ navigation }: any) {
 
       <View style={styles.headerRow}>
         <View style={styles.avatarNombreGrupo}>
-          {perfil?.avatar_url ? (
-            <Image source={{ uri: perfil.avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]} />
-          )}
+          <Avatar uri={perfil?.avatar_url} size={84} style={styles.avatar} />
           <View style={{ marginLeft: 12, justifyContent: "center" }}>
             <Text style={styles.nombre} numberOfLines={1}>{perfil?.display_name || perfil?.username || t("Vos")}</Text>
             {perfil?.username && (

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, FlatList, Image, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/pagination";
 import { useT } from "../i18n/i18n";
@@ -89,11 +90,7 @@ export default function AdminUsersScreen({ navigation }: any) {
         ListEmptyComponent={!cargando ? <Text style={styles.vacio}>{t("No hay usuarios todavía.")}</Text> : null}
         renderItem={({ item }) => (
           <Pressable style={styles.fila} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
-            {item.avatar_url ? (
-              <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]} />
-            )}
+            <Avatar uri={item.avatar_url} size={42} />
             <Text style={styles.nombre}>{item.username ?? "—"}</Text>
           </Pressable>
         )}

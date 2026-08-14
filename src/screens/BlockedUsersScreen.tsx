@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, FlatList, Image, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { supabase } from "../lib/supabase";
 import { usuariosBloqueados, desbloquearUsuario } from "../lib/reports";
 import ConfirmModal from "../components/ConfirmModal";
@@ -76,11 +77,7 @@ export default function BlockedUsersScreen() {
         ListEmptyComponent={<Text style={styles.vacio}>{t("No bloqueaste a nadie todavía.")}</Text>}
         renderItem={({ item }) => (
           <View style={styles.fila}>
-            {item.avatar_url ? (
-              <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]} />
-            )}
+            <Avatar uri={item.avatar_url} size={42} />
             <Text style={styles.username} numberOfLines={1}>
               @{item.username ?? t("Usuario")}
             </Text>

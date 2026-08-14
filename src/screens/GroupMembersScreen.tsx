@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, FlatList, Image, Pressable, StyleSheet } from "react-native";
 import { Text } from "../components/Themed";
+import Avatar from "../components/Avatar";
 import { supabase } from "../lib/supabase";
 import { theme } from "../theme";
 
@@ -31,7 +32,7 @@ export default function GroupMembersScreen({ route, navigation }: any) {
       contentContainerStyle={{ padding: 12 }}
       renderItem={({ item }) => (
         <Pressable style={styles.card} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
-          {item.avatar_url ? <Image source={{ uri: item.avatar_url }} style={styles.avatar} /> : <View style={[styles.avatar, styles.avatarPlaceholder]} />}
+          <Avatar uri={item.avatar_url} size={42} style={{ marginRight: 12 }} />
           <Text style={styles.nombre}>{item.username ?? "Usuario"}</Text>
         </Pressable>
       )}

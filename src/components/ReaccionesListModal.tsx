@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, View, Pressable, FlatList, Image, StyleSheet } from "react-native";
 import { Text } from "./Themed";
+import Avatar from "./Avatar";
 import IconoReaccion from "./IconoReaccion";
 import { theme } from "../theme";
 import { useT } from "../i18n/i18n";
@@ -39,11 +40,7 @@ export default function ReaccionesListModal({ visible, onCerrar, reacciones, onV
                   onVerPerfil(item.user_id);
                 }}
               >
-                {item.avatar_url ? (
-                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, styles.avatarPlaceholder]} />
-                )}
+                <Avatar uri={item.avatar_url} size={36} />
                 <Text style={styles.username}>{item.username ?? t("Usuario")}</Text>
                 <IconoReaccion reaccionKey={item.emoji} size={22} />
               </Pressable>
