@@ -419,7 +419,7 @@ function TabAplicacion({ navigation }: any) {
 
       <SeccionTitulo texto={t("Importar Datos")} />
       <Pressable onPress={() => navigation.navigate("ImportarTVTime")}>
-        <Text style={styles.link}>{t("Importar mi historial de TV Time o Letterboxd")}</Text>
+        <Text style={styles.link}>{t("Importar mi historial de TV Time, Letterboxd o Sofa Time")}</Text>
       </Pressable>
 
       <SeccionTitulo texto={t("Tus datos")} />

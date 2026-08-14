@@ -4,8 +4,8 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { unzipSync, strFromU8 } from "fflate";
 import { Ionicons } from "@expo/vector-icons";
-import { parseArchivoTVTime, RegistroImportado } from "../lib/tvtimeImport";
-import { agruparPorTitulo, ResultadoMatch } from "../lib/matcher";
+import { parseArchivoTVTime, parseSofaTimeArchivos, ARCHIVOS_SOFA_TIME, RegistroImportado } from "../lib/tvtimeImport";
+import { agruparPorTitulo, agruparPorTmdbId, ResultadoMatch } from "../lib/matcher";
 import { posterUrl, searchSeries, searchMovies } from "../lib/tmdb";
 import { supabase } from "../lib/supabase";
 import { Text, AppButton } from "../components/Themed";
@@ -132,21 +132,41 @@ export default function ImportTVTimeScreen() {
       let registros: RegistroImportado[] = [];
 
       if (esZip) {
+        const bytes = await leerBytes(asset.uri);
+        const archivos = unzipSync(bytes);
+        const nombresArchivos = Object.keys(archivos);
+
+        const esSofaTime = nombresArchivos.some((n) => ARCHIVOS_SOFA_TIME.some((patron) => n.toLowerCase().includes(patron)));
+
+        if (esSofaTime) {
+          // Sofa Time ya trae el id de TMDB confirmado en cada título — no
+          // hace falta buscar ni matchear nada, así que esto se resuelve
+          // al toque acá mismo, sin pasarle nada al servidor.
+          const archivosTexto: Record<string, string> = {};
+          for (const nombre of nombresArchivos) archivosTexto[nombre] = strFromU8(archivos[nombre]);
+          registros = parseSofaTimeArchivos(archivosTexto);
+          if (registros.length === 0) {
+            throw new Error("El ZIP de Sofa Time no tenía ningún título para importar.");
+          }
+          const resultadosSofa = agruparPorTmdbId(registros);
+          setResultados(resultadosSofa);
+          setProgreso({ procesados: resultadosSofa.length, total: resultadosSofa.length });
+          setEtapa("revisar_dudosos");
+          return;
+        }
+
         // El ZIP completo de TV Time trae un montón de archivos que no nos
         // interesan (tokens, datos de dispositivo, etc.) — buscamos
         // puntualmente los dos que sí importan y juntamos todo en una sola
         // importación, para no tener que hacer el proceso dos veces.
-        const bytes = await leerBytes(asset.uri);
-        const archivos = unzipSync(bytes);
-
-        const nombreArchivo = (buscado: string) => Object.keys(archivos).find((n) => n.toLowerCase().endsWith(buscado.toLowerCase()));
+        const nombreArchivo = (buscado: string) => nombresArchivos.find((n) => n.toLowerCase().endsWith(buscado.toLowerCase()));
 
         const nombrePeliculas = nombreArchivo("tracking-prod-records.csv");
         const nombreSeries = nombreArchivo("tracking-prod-records-v2.csv");
 
         if (!nombrePeliculas && !nombreSeries) {
           throw new Error(
-            "No encontramos los archivos de TV Time (tracking-prod-records.csv / tracking-prod-records-v2.csv) adentro de este ZIP."
+            "No encontramos los archivos de TV Time (tracking-prod-records.csv / tracking-prod-records-v2.csv) ni de Sofa Time adentro de este ZIP."
           );
         }
         if (nombrePeliculas) {
@@ -394,7 +414,7 @@ export default function ImportTVTimeScreen() {
   if (etapa === "instrucciones") {
     return (
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.instruccionesContainer}>
-        <Text style={styles.titulo}>{t("Importar tu historial de TV Time o Letterboxd")}</Text>
+        <Text style={styles.titulo}>{t("Importar tu historial de TV Time, Letterboxd o Sofa Time")}</Text>
 
         <View style={styles.opcionBox}>
           <Text style={styles.opcionTitulo}>{t("TV Time")}</Text>
@@ -412,6 +432,13 @@ export default function ImportTVTimeScreen() {
           <Text style={styles.paso}>{t('2. Tocá "Export your data" — te descarga un ZIP.')}</Text>
           <Text style={styles.paso}>{t("3. Descomprimí el ZIP y buscá el archivo diary.csv (o watched.csv).")}</Text>
           <Text style={styles.paso}>{t("4. Pasate ese archivo a tu celu.")}</Text>
+        </View>
+
+        <View style={styles.opcionBox}>
+          <Text style={styles.opcionTitulo}>{t("Sofa Time")}</Text>
+          <Text style={styles.paso}>{t("1. Desde la app de Sofa Time, andá a Ajustes → Exportar datos.")}</Text>
+          <Text style={styles.paso}>{t("2. Te descarga un ZIP con tu historial completo (vistas, pendientes, y las que dejaste a medias).")}</Text>
+          <Text style={styles.paso}>{t("3. Ese mismo ZIP lo subís tal cual acá abajo, sin descomprimir nada — lo hacemos nosotros.")}</Text>
         </View>
 
         <Text style={styles.parrafo}>

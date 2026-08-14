@@ -83,6 +83,35 @@ export function agruparPorTitulo(registros: RegistroImportado[]): Map<string, Re
   return grupos;
 }
 
+/**
+ * Para fuentes que ya traen el id de TMDB confirmado (Sofa Time) — agrupa
+ * por (tipo, tmdbId) directo, sin buscar nada en TMDB ni puntuar
+ * similitud: el resultado siempre viene "confiado", porque el id ya es
+ * inequívoco. Mucho más rápido y sin ningún riesgo de confundir un título
+ * con otro parecido.
+ */
+export function agruparPorTmdbId(registros: RegistroImportado[]): ResultadoMatch[] {
+  const grupos = new Map<string, RegistroImportado[]>();
+  for (const r of registros) {
+    if (!r.tmdbId) continue;
+    const clave = `${r.tipo}::${r.tmdbId}`;
+    if (!grupos.has(clave)) grupos.set(clave, []);
+    grupos.get(clave)!.push(r);
+  }
+  return [...grupos.values()].map((registrosGrupo) => {
+    const primero = registrosGrupo[0];
+    const candidato: CandidatoMatch = { tmdb_id: primero.tmdbId!, titulo: primero.nombreOriginal, poster_path: null, score: 1 };
+    return {
+      nombreOriginal: primero.nombreOriginal,
+      tipo: primero.tipo,
+      registros: registrosGrupo,
+      mejorCandidato: candidato,
+      confiado: true,
+      candidatos: [candidato],
+    };
+  });
+}
+
 async function buscarCandidatos(nombre: string, tipo: "series" | "movie"): Promise<CandidatoMatch[]> {
   async function evaluar(query: string): Promise<CandidatoMatch[]> {
     const data = tipo === "series" ? await searchSeries(query) : await searchMovies(query);

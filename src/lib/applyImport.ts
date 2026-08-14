@@ -17,6 +17,12 @@ export async function aplicarMatch(
   resultado: ResultadoMatch,
   tmdbIdElegido: number
 ): Promise<{ episodiosOmitidos: number }> {
+  // Si TODOS los registros de este título vienen marcados como "solo
+  // pendiente" (watchlist de Sofa Time, por ejemplo), no se marca como
+  // vista — solo se agrega a la lista. Si aunque sea uno no lo está (por
+  // ej. tiene capítulos vistos), se trata como vista normal.
+  const esSoloPendiente = resultado.registros.length > 0 && resultado.registros.every((r) => r.soloPendiente);
+
   if (resultado.tipo === "series") {
     await syncSeries(tmdbIdElegido);
     await supabase.from("user_series").upsert({
@@ -67,11 +73,23 @@ export async function aplicarMatch(
     return { episodiosOmitidos };
   } else {
     await syncMovie(tmdbIdElegido);
+    if (esSoloPendiente) {
+      // No pisamos una película que ya esté marcada como vista (por
+      // ejemplo, a mano en la app, o por otra parte del mismo import) con
+      // un "pendiente" desactualizado que trajo el archivo.
+      const { data: existente } = await supabase
+        .from("user_movies")
+        .select("watched")
+        .eq("user_id", userId)
+        .eq("movie_tmdb_id", tmdbIdElegido)
+        .maybeSingle();
+      if (existente?.watched) return { episodiosOmitidos: 0 };
+    }
     const { error } = await supabase.from("user_movies").upsert({
       user_id: userId,
       movie_tmdb_id: tmdbIdElegido,
-      watched: true,
-      watched_at: resultado.registros[0]?.fechaVisto ?? new Date().toISOString(),
+      watched: !esSoloPendiente,
+      watched_at: esSoloPendiente ? null : resultado.registros[0]?.fechaVisto ?? new Date().toISOString(),
     });
     if (error) {
       console.error(`Error al guardar la película "${resultado.nombreOriginal}":`, error.message);

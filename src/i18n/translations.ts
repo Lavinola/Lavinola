@@ -279,6 +279,32 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "Importar tu historial de TV Time, Letterboxd o Sofa Time": {
+    en: "Import your history from TV Time, Letterboxd, or Sofa Time",
+    pt: "Importar seu histórico do TV Time, Letterboxd ou Sofa Time",
+    it: "Importa la tua cronologia da TV Time, Letterboxd o Sofa Time",
+  },
+  "Importar mi historial de TV Time, Letterboxd o Sofa Time": {
+    en: "Import my history from TV Time, Letterboxd, or Sofa Time",
+    pt: "Importar meu histórico do TV Time, Letterboxd ou Sofa Time",
+    it: "Importa la mia cronologia da TV Time, Letterboxd o Sofa Time",
+  },
+  "Sofa Time": { en: "Sofa Time", pt: "Sofa Time", it: "Sofa Time" },
+  "1. Desde la app de Sofa Time, andá a Ajustes → Exportar datos.": {
+    en: "1. In the Sofa Time app, go to Settings → Export data.",
+    pt: "1. No app do Sofa Time, vá em Ajustes → Exportar dados.",
+    it: "1. Nell'app Sofa Time, vai su Impostazioni → Esporta dati.",
+  },
+  "2. Te descarga un ZIP con tu historial completo (vistas, pendientes, y las que dejaste a medias).": {
+    en: "2. It downloads a ZIP with your full history (watched, pending, and the ones you left halfway).",
+    pt: "2. Baixa um ZIP com seu histórico completo (assistidos, pendentes, e os que você deixou pela metade).",
+    it: "2. Scarica uno ZIP con la tua cronologia completa (visti, in sospeso, e quelli lasciati a metà).",
+  },
+  "3. Ese mismo ZIP lo subís tal cual acá abajo, sin descomprimir nada — lo hacemos nosotros.": {
+    en: "3. Upload that same ZIP as-is down below, no need to unzip it — we take care of that.",
+    pt: "3. Suba esse mesmo ZIP tal como está aqui embaixo, sem descompactar nada — nós cuidamos disso.",
+    it: "3. Carica quello stesso ZIP così com'è qui sotto, senza decomprimerlo — ci pensiamo noi.",
+  },
   "Buscar por nombre": { en: "Search by name", pt: "Buscar por nome", it: "Cerca per nome" },
   "Buscar por": { en: "Search by", pt: "Buscar por", it: "Cerca per" },
   nombre: { en: "name", pt: "nome", it: "nome" },
