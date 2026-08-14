@@ -837,6 +837,7 @@ declare
   idioma_elegido text;
   mostrar_en_propio boolean;
   avatar_generado text;
+  estilo_avatar text;
 begin
   es_placeholder := new.raw_user_meta_data->>'username' is null;
 
@@ -861,10 +862,11 @@ begin
   mostrar_en_propio := idioma_elegido not in ('es-419', 'it-IT');
 
   -- Avatar de arranque: mientras no suba una foto propia, en vez de
-  -- quedar en negro/vacío, se le pone un avatar con sus iniciales sobre un
-  -- color random (servicio gratis, sin necesidad de subir ni guardar nada
-  -- nuestro — la imagen se genera sola a partir del nombre de usuario).
-  avatar_generado := 'https://api.dicebear.com/9.x/initials/png?seed=' || username_deseado;
+  -- quedar en negro/vacío, se le pone un avatar random (colores/formas,
+  -- sin fotos de gente ni nada por el estilo) — servicio gratis, sin
+  -- necesidad de subir ni guardar nada nuestro, se genera solo.
+  estilo_avatar := (array['bottts-neutral', 'critters', 'sprouts', 'moods'])[1 + floor(random() * 4)::int];
+  avatar_generado := 'https://api.dicebear.com/9.x/' || estilo_avatar || '/png?seed=' || username_deseado;
 
   begin
     insert into public.profiles (id, username, country, content_language, show_titles_in_own_language, username_placeholder, avatar_url)
@@ -876,7 +878,7 @@ begin
     -- username, no dejamos que reviente el alta de la cuenta: le agregamos
     -- un sufijo random y seguimos. El usuario puede cambiarlo después.
     username_deseado := username_deseado || '_' || substr(new.id::text, 1, 4);
-    avatar_generado := 'https://api.dicebear.com/9.x/initials/png?seed=' || username_deseado;
+    avatar_generado := 'https://api.dicebear.com/9.x/' || estilo_avatar || '/png?seed=' || username_deseado;
     insert into public.profiles (id, username, country, content_language, show_titles_in_own_language, username_placeholder, avatar_url)
     values (new.id, username_deseado, new.raw_user_meta_data->>'country', idioma_elegido, mostrar_en_propio, es_placeholder, avatar_generado)
     on conflict (id) do nothing;
@@ -2792,5 +2794,5 @@ begin
 end $$;
 
 update public.profiles
-set avatar_url = 'https://api.dicebear.com/9.x/initials/png?seed=' || username
-where avatar_url is null or avatar_url = '';
+set avatar_url = 'https://api.dicebear.com/9.x/' || (array['bottts-neutral', 'critters', 'sprouts', 'moods'])[1 + floor(random() * 4)::int] || '/png?seed=' || username
+where avatar_url is null or avatar_url = '' or avatar_url like 'https://api.dicebear.com/%';
