@@ -832,28 +832,53 @@ alter table user_episodes_watched add column if not exists watched_platform text
 create or replace function crear_perfil_automatico() returns trigger as $$
 declare
   username_deseado text;
+  username_de_email text;
   es_placeholder boolean;
   idioma_elegido text;
   mostrar_en_propio boolean;
+  avatar_generado text;
 begin
   es_placeholder := new.raw_user_meta_data->>'username' is null;
-  username_deseado := coalesce(new.raw_user_meta_data->>'username', 'usuario_' || substr(new.id::text, 1, 8));
+
+  -- Si no vino un username elegido a mano (típicamente porque entró con
+  -- Google, que no pasa por la pantalla de "elegí tu usuario"), usamos lo
+  -- que esté antes de la arroba de su email como punto de partida — así
+  -- "mauro123@gmail.com" arranca como "@mauro123" en vez de un
+  -- "@usuario_a1b2c3d4" random. Se limpia para que respete las mismas
+  -- reglas que ya se validan del lado del cliente (minúsculas, números,
+  -- puntos y guiones bajos).
+  username_de_email := lower(regexp_replace(coalesce(split_part(new.email, '@', 1), ''), '[^a-z0-9._]', '', 'g'));
+  username_deseado := coalesce(
+    new.raw_user_meta_data->>'username',
+    nullif(username_de_email, ''),
+    'usuario_' || substr(new.id::text, 1, 8)
+  );
+
   idioma_elegido := coalesce(new.raw_user_meta_data->>'content_language', 'es-419');
   -- Mismo criterio que al cambiarlo después en Ajustes: español latino e
   -- italiano arrancan con "mostrar en tu idioma" apagado (títulos en
   -- inglés por defecto); español de España e inglés arrancan prendido.
   mostrar_en_propio := idioma_elegido not in ('es-419', 'it-IT');
+
+  -- Avatar de arranque: mientras no suba una foto propia, en vez de
+  -- quedar en negro/vacío, se le pone un avatar con sus iniciales sobre un
+  -- color random (servicio gratis, sin necesidad de subir ni guardar nada
+  -- nuestro — la imagen se genera sola a partir del nombre de usuario).
+  avatar_generado := 'https://api.dicebear.com/9.x/initials/png?seed=' || username_deseado;
+
   begin
-    insert into public.profiles (id, username, country, content_language, show_titles_in_own_language, username_placeholder)
-    values (new.id, username_deseado, new.raw_user_meta_data->>'country', idioma_elegido, mostrar_en_propio, es_placeholder)
+    insert into public.profiles (id, username, country, content_language, show_titles_in_own_language, username_placeholder, avatar_url)
+    values (new.id, username_deseado, new.raw_user_meta_data->>'country', idioma_elegido, mostrar_en_propio, es_placeholder, avatar_generado)
     on conflict (id) do nothing;
   exception when unique_violation then
     -- El chequeo de disponibilidad del cliente es la primera barrera, pero
     -- por las dudas dos altas caigan justo al mismo tiempo con el mismo
     -- username, no dejamos que reviente el alta de la cuenta: le agregamos
     -- un sufijo random y seguimos. El usuario puede cambiarlo después.
-    insert into public.profiles (id, username, country, content_language, show_titles_in_own_language, username_placeholder)
-    values (new.id, username_deseado || '_' || substr(new.id::text, 1, 4), new.raw_user_meta_data->>'country', idioma_elegido, mostrar_en_propio, es_placeholder)
+    username_deseado := username_deseado || '_' || substr(new.id::text, 1, 4);
+    avatar_generado := 'https://api.dicebear.com/9.x/initials/png?seed=' || username_deseado;
+    insert into public.profiles (id, username, country, content_language, show_titles_in_own_language, username_placeholder, avatar_url)
+    values (new.id, username_deseado, new.raw_user_meta_data->>'country', idioma_elegido, mostrar_en_propio, es_placeholder, avatar_generado)
     on conflict (id) do nothing;
   end;
   return new;
@@ -2722,3 +2747,50 @@ drop policy if exists "app_config_select_all" on app_config;
 create policy "app_config_select_all" on app_config for select using (true);
 insert into app_config (key, value) values ('min_app_version', '0.1.0') on conflict (key) do nothing;
 insert into app_config (key, value) values ('store_url', '') on conflict (key) do nothing;
+
+-- ============================================================
+-- Aplica lo mismo de arriba (usuario derivado del mail, avatar de
+-- colores por defecto) a cuentas que YA EXISTÍAN antes de este cambio —
+-- pero solo toca lo que nunca se tocó:
+--   · Usuario: solo si todavía tiene el random viejo "usuario_xxxxxxxx"
+--     (a quien ya haya elegido/cambiado el suyo no le toca nada).
+--   · Foto: solo si todavía no subió ninguna (avatar_url vacío).
+-- Se puede correr de nuevo sin problema — la segunda vez no encuentra
+-- nada para tocar, porque ya quedó todo actualizado.
+-- ============================================================
+do $$
+declare
+  r record;
+  username_de_email text;
+  nuevo_username text;
+begin
+  for r in
+    select p.id, u.email
+    from public.profiles p
+    join auth.users u on u.id = p.id
+    where p.username like 'usuario\_%' escape '\'
+  loop
+    username_de_email := lower(regexp_replace(coalesce(split_part(r.email, '@', 1), ''), '[^a-z0-9._]', '', 'g'));
+    if username_de_email = '' then
+      continue; -- el mail no da para armar nada mejor, se deja el random como estaba
+    end if;
+
+    nuevo_username := username_de_email;
+    begin
+      update public.profiles set username = nuevo_username where id = r.id;
+    exception when unique_violation then
+      nuevo_username := username_de_email || '_' || substr(r.id::text, 1, 4);
+      begin
+        update public.profiles set username = nuevo_username where id = r.id;
+      exception when unique_violation then
+        -- no hubo forma ni con el sufijo (rarísimo) — se deja como estaba,
+        -- no vale la pena romper nada por esto.
+        null;
+      end;
+    end;
+  end loop;
+end $$;
+
+update public.profiles
+set avatar_url = 'https://api.dicebear.com/9.x/initials/png?seed=' || username
+where avatar_url is null or avatar_url = '';
