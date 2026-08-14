@@ -718,7 +718,21 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
     setTrailer(elegirTrailer(videos));
 
     const recs = tipo === "series" ? await getSeriesRecommendations(tmdbId) : await getMovieRecommendations(tmdbId);
-    setRecomendados((recs?.results ?? []).slice(0, 15));
+    const crudos: any[] = recs?.results ?? [];
+    if (userId && crudos.length > 0) {
+      const ids = crudos.map((r: any) => r.id);
+      if (tipo === "series") {
+        const { data: vistas } = await supabase.from("user_episodes_watched").select("series_tmdb_id").eq("user_id", userId).in("series_tmdb_id", ids);
+        const idsVistas = new Set((vistas ?? []).map((v: any) => v.series_tmdb_id));
+        setRecomendados(crudos.filter((r: any) => !idsVistas.has(r.id)).slice(0, 15));
+      } else {
+        const { data: vistas } = await supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", userId).eq("watched", true).in("movie_tmdb_id", ids);
+        const idsVistas = new Set((vistas ?? []).map((v: any) => v.movie_tmdb_id));
+        setRecomendados(crudos.filter((r: any) => !idsVistas.has(r.id)).slice(0, 15));
+      }
+    } else {
+      setRecomendados(crudos.slice(0, 15));
+    }
   }
 
   async function calificar(valor: number) {

@@ -3,6 +3,7 @@ import { View, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from 
 import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Themed";
+import { useFocusEffect } from "@react-navigation/native";
 import EstadoVacio from "../components/EstadoVacio";
 import { SkeletonListRows } from "../components/SkeletonShapes";
 import TopPills from "../components/TopPills";
@@ -61,11 +62,18 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
     });
   }, []);
 
-  useEffect(() => {
-    idsYaAgregados(userId, tipo).then((ids) => {
-      setAgregados(new Set([...ids].map((id) => `${tipo}-${id}`)));
-    });
-  }, [tipo, userId]);
+  // Se recarga al entrar Y cada vez que la pantalla recupera el foco (por
+  // ejemplo, al volver del detalle de un título después de agregarlo) —
+  // así "ya agregado" se ve reflejado al instante, sin tener que navegar a
+  // otro lado y volver de nuevo.
+  useFocusEffect(
+    useCallback(() => {
+      idsYaAgregados(userId, tipo).then((ids) => {
+        setAgregados(new Set([...ids].map((id) => `${tipo}-${id}`)));
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tipo, userId])
+  );
 
   useEffect(() => {
     getWatchProvidersDisponibles(tipo, watchRegion).then(setTodasLasPlataformas);
