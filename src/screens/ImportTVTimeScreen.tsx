@@ -6,6 +6,7 @@ import { unzipSync, strFromU8 } from "fflate";
 import { Ionicons } from "@expo/vector-icons";
 import { parseArchivoTVTime, parseSofaTimeArchivos, ARCHIVOS_SOFA_TIME, RegistroImportado } from "../lib/tvtimeImport";
 import { agruparPorTitulo, agruparPorTmdbId, ResultadoMatch } from "../lib/matcher";
+import { aplicarMatchesConfiados } from "../lib/applyImport";
 import { posterUrl, searchSeries, searchMovies } from "../lib/tmdb";
 import { supabase } from "../lib/supabase";
 import { Text, AppButton } from "../components/Themed";
@@ -346,7 +347,32 @@ export default function ImportTVTimeScreen() {
   }
 
   async function confirmarImportacionFinal() {
-    if (!jobId) return;
+    // Sofa Time no pasa por el servidor (no hace falta buscar nada, el id ya
+    // viene confirmado) — así que no tiene jobId. Se aplica todo acá mismo,
+    // en el celular, reportando progreso en vivo igual que el resto.
+    if (!jobId) {
+      setEtapa("importando");
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) return;
+      try {
+        const { episodiosOmitidosTotal } = await aplicarMatchesConfiados(uid, resultados, (p) =>
+          setProgreso({ procesados: p.procesados, total: p.total })
+        );
+        setEpisodiosOmitidosTotal(episodiosOmitidosTotal);
+        setEpisodiosOmitidosDetalle([]);
+        setEtapa("listo");
+        chequearSubidaDeNivel(uid)
+          .then((nivel) => nivel && setNivelSubido(nivel))
+          .catch((e) => console.error("Error al chequear el nivel de insignias:", e));
+      } catch (e: any) {
+        console.error("Error al aplicar la importación de Sofa Time:", e);
+        setErrorModal({ titulo: t("No se pudo terminar la importación"), mensaje: e?.message ?? "" });
+        setEtapa("revisar_dudosos");
+      }
+      return;
+    }
+
     setEtapa("importando");
     setProgreso({ procesados: 0, total: 0 });
 
@@ -599,7 +625,9 @@ export default function ImportTVTimeScreen() {
           {t("Importando")}{progreso.total > 0 ? ` (${progreso.procesados}/${progreso.total})` : "..."}
         </Text>
         <Text style={styles.parrafoChico}>
-          {t("Esto corre en el servidor — podés salir de la app o mandarla a segundo plano tranquilo, sigue avanzando solo.")}
+          {jobId
+            ? t("Esto corre en el servidor — podés salir de la app o mandarla a segundo plano tranquilo, sigue avanzando solo.")
+            : t("No cierres la app ni la mandes a segundo plano hasta que termine.")}
         </Text>
       </View>
     );

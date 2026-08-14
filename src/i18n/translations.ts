@@ -279,6 +279,11 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "No cierres la app ni la mandes a segundo plano hasta que termine.": {
+    en: "Don't close the app or send it to the background until it finishes.",
+    pt: "Não feche o app nem o mande para segundo plano até terminar.",
+    it: "Non chiudere l'app né mandarla in background finché non finisce.",
+  },
   "Importar tu historial de TV Time, Letterboxd o Sofa Time": {
     en: "Import your history from TV Time, Letterboxd, or Sofa Time",
     pt: "Importar seu histórico do TV Time, Letterboxd ou Sofa Time",
