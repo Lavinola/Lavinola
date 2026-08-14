@@ -27,7 +27,7 @@ const TOPE_BACKFILL_POR_LLAMADA = 150; // margen para no pasarse del tiempo máx
 
 async function generarYSubir(supabase: any, userId: string, username: string): Promise<string | null> {
   const estilo = ESTILOS[Math.floor(Math.random() * ESTILOS.length)];
-  const url = `https://api.dicebear.com/9.x/${estilo}/png?seed=${encodeURIComponent(username)}`;
+  const url = `https://api.dicebear.com/10.x/${estilo}/png?seed=${encodeURIComponent(username)}`;
 
   const resp = await fetch(url);
   if (!resp.ok) {
