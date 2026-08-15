@@ -9,6 +9,7 @@ export interface PeliculaPerfilItem {
   title: string;
   poster_path: string | null;
   release_date: string | null;
+  runtime_minutes: number | null;
   watched_at: string | null;
   rating: number | null;
 }
@@ -21,6 +22,8 @@ export interface SeriePerfilItem {
   last_watched_at: string | null;
   rating: number | null;
   estado: SeriesStatusFilter;
+  porcentaje: number;
+  total_seasons: number;
 }
 
 function ordenar<T extends { rating: number | null }>(
@@ -52,7 +55,7 @@ export async function listarPeliculasVistasDeUsuario(
   const rows = await fetchAllRows((desde, hasta) =>
     supabase
       .from("user_movies")
-      .select("movie_tmdb_id, watched_at, rating, movies_cache(title, poster_path, release_date)")
+      .select("movie_tmdb_id, watched_at, rating, movies_cache(title, poster_path, release_date, runtime_minutes)")
       .eq("user_id", targetUserId)
       .eq("watched", true)
       .range(desde, hasta)
@@ -62,6 +65,7 @@ export async function listarPeliculasVistasDeUsuario(
     title: r.movies_cache?.title ?? "—",
     poster_path: r.movies_cache?.poster_path ?? null,
     release_date: r.movies_cache?.release_date ?? null,
+    runtime_minutes: r.movies_cache?.runtime_minutes ?? null,
     watched_at: r.watched_at,
     rating: r.rating,
   }));
@@ -89,7 +93,7 @@ export async function listarSeriesEnCursoDeUsuario(
   const rows = await fetchAllRows((desde, hasta) =>
     supabase
       .from("user_series")
-      .select("series_tmdb_id, rating, series_cache(name, poster_path, first_air_date, status, total_episodes)")
+      .select("series_tmdb_id, rating, series_cache(name, poster_path, first_air_date, status, total_episodes, total_seasons)")
       .eq("user_id", targetUserId)
       .range(desde, hasta)
   );
@@ -126,6 +130,8 @@ export async function listarSeriesEnCursoDeUsuario(
       last_watched_at: ultimaVistaPorSerie[row.series_tmdb_id] ?? null,
       rating: (row as any).rating,
       estado,
+      porcentaje: cache?.total_episodes > 0 ? Math.round((episodesWatched / cache.total_episodes) * 100) : 0,
+      total_seasons: cache?.total_seasons ?? 0,
     });
   }
 

@@ -279,6 +279,8 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "Películas de": { en: "Movies watched by", pt: "Filmes de", it: "Film di" },
+  "Series de": { en: "Series watched by", pt: "Séries de", it: "Serie di" },
   Su: { en: "Their", pt: "Sua", it: "Suo" },
   "Lo último que ha visto": { en: "Last watched", pt: "Último assistido", it: "Ultimo visto" },
   "Todavía no vio ninguna película.": {

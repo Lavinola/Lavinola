@@ -319,7 +319,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       <>
         <View style={styles.headerConTilde}>
           <View style={{ flex: 1 }}>
-            <TituloConTraduccion tipo={tipo} id={tmdbId} titulo={nombre} style={styles.nombre} />
+            <TituloConTraduccion tipo={tipo} id={tmdbId} titulo={nombre} style={styles.nombre} styleSecundario={{ paddingLeft: 16 }} />
             {tipo === "series" ? (
               <>
                 <Text style={styles.subInfo}>{titulo.total_seasons ? `${titulo.total_seasons} ${titulo.total_seasons === 1 ? t("temporada") : t("temporadas")}` : ""}</Text>
