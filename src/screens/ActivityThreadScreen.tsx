@@ -362,7 +362,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
             {otroUsername ? (
               <NombreUsuario style={styles.tituloNombre} displayName={otroDisplayName} username={otroUsername} numberOfLines={1} />
             ) : (
-              <Text style={styles.tituloNombre} numberOfLines={1}>
+              <Text style={[styles.tituloNombre, { color: "#FFFFFF" }]} numberOfLines={1}>
                 {t("Conversación")}
               </Text>
             )}
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
   queVemosBtn: { backgroundColor: "#000000", borderWidth: 1, borderColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 7, paddingHorizontal: 10, marginRight: 4 },
   queVemosBtnTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 12 },
   tituloMenuBtnTexto: { fontSize: 22, color: theme.colors.textMuted },
-  tituloNombre: { fontSize: 16, fontWeight: "700", flex: 1 },
+  tituloNombre: { fontSize: 15, fontWeight: "700", flex: 1, color: theme.colors.textMuted },
   tituloCompatibilidad: { fontSize: 13, fontWeight: "400", color: theme.colors.textMuted },
   // Ahora al revés de como estaba: mis mensajes en gris/negro, los del otro en violeta.
   burbuja: { padding: 10, borderRadius: theme.radius.md, marginBottom: 8, maxWidth: "80%" },

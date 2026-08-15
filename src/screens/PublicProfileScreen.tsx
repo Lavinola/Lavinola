@@ -12,6 +12,7 @@ import { getPerfilPublico, getCoverPosterPath, getStatsSociales, PerfilCompleto,
 import { seguirRespetandoPrivacidad, tengoSolicitudPendiente } from "../lib/followRequests";
 import { progresoDeSeries, ProgresoSerie } from "../lib/seriesList";
 import FilaMiniTitulos, { ItemMiniTitulo } from "../components/FilaMiniTitulos";
+import { listarPeliculasVistasDeUsuario, listarSeriesEnCursoDeUsuario } from "../lib/perfilTitulos";
 import ActionSheetModal from "../components/ActionSheetModal";
 import AdminBadge from "../components/AdminBadge";
 import ConfirmModal from "../components/ConfirmModal";
@@ -62,6 +63,8 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
   const [social, setSocial] = useState<StatsSociales | null>(null);
   const [favSeries, setFavSeries] = useState<ItemMiniTitulo[]>([]);
   const [favPeliculas, setFavPeliculas] = useState<ItemMiniTitulo[]>([]);
+  const [peliculasVistas, setPeliculasVistas] = useState<ItemMiniTitulo[]>([]);
+  const [seriesEnCurso, setSeriesEnCurso] = useState<ItemMiniTitulo[]>([]);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [listas, setListas] = useState<Lista[]>([]);
   const [listasSeguidas, setListasSeguidas] = useState<Set<string>>(new Set());
@@ -115,6 +118,8 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
       favoritos,
       gruposPublicos,
       listasVisibles,
+      peliculasVistasPreview,
+      seriesEnCursoPreview,
     ] = await Promise.all([
       obtenerPuntosInsignias(targetId).catch((e) => {
         console.error("Error al calcular el nivel de insignias:", e);
@@ -158,6 +163,16 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
         ? listarMisGrupos(targetId).then((todos) => todos.filter((g) => g.visibility === "public"))
         : Promise.resolve<Grupo[]>([]),
       resultado.puedeVerActividad ? listarListasDeUsuarioOrdenadasPorSeguidores(targetId) : Promise.resolve<Lista[]>([]),
+      resultado.puedeVerActividad && p.show_watched_movies
+        ? listarPeliculasVistasDeUsuario(targetId, "ultima_vista", false).then((items) =>
+            items.slice(0, 15).map((i) => ({ tmdb_id: i.tmdb_id, nombre: i.title, poster_path: i.poster_path } as ItemMiniTitulo))
+          )
+        : Promise.resolve<ItemMiniTitulo[]>([]),
+      resultado.puedeVerActividad && p.show_watched_series
+        ? listarSeriesEnCursoDeUsuario(targetId, "ultima_vista", false).then((items) =>
+            items.slice(0, 15).map((i) => ({ tmdb_id: i.tmdb_id, nombre: i.name, poster_path: i.poster_path } as ItemMiniTitulo))
+          )
+        : Promise.resolve<ItemMiniTitulo[]>([]),
     ]);
 
     // Depende de listasVisibles (recién resuelto arriba), así que va después.
@@ -186,6 +201,8 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
     setStatsTiempo(statsTiempo);
     setFavSeries(p.show_favorite_series ? favoritos.filter((f) => f.tipo === "series").map((f) => f.item) : []);
     setFavPeliculas(p.show_favorite_movies ? favoritos.filter((f) => f.tipo === "movie").map((f) => f.item) : []);
+    setPeliculasVistas(peliculasVistasPreview);
+    setSeriesEnCurso(seriesEnCursoPreview);
     setGrupos(gruposPublicos);
     setListas(listasVisibles);
     setListasSeguidas(listasSeguidasIds);
@@ -446,6 +463,16 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
             </View>
           )}
 
+          {perfil.show_watched_movies && peliculasVistas.length > 0 && (
+            <FilaMiniTitulos
+              titulo={t("Películas")}
+              items={peliculasVistas}
+              tipo="movie"
+              navigation={navigation}
+              onVerTodo={() => navigation.navigate("PeliculasVistasPerfil", { targetUserId: targetId })}
+            />
+          )}
+
           {perfil.show_favorite_movies && favPeliculas.length > 0 && (
             <FilaMiniTitulos
               titulo={t("Películas favoritas")}
@@ -454,6 +481,15 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
               navigation={navigation}
               favoritas
               onVerTodo={() => navigation.navigate("TodasLasPeliculas", { targetUserId: targetId })}
+            />
+          )}
+          {perfil.show_watched_series && seriesEnCurso.length > 0 && (
+            <FilaMiniTitulos
+              titulo={t("Series")}
+              items={seriesEnCurso}
+              tipo="series"
+              navigation={navigation}
+              onVerTodo={() => navigation.navigate("SeriesEnCursoPerfil", { targetUserId: targetId })}
             />
           )}
           {perfil.show_favorite_series && favSeries.length > 0 && (

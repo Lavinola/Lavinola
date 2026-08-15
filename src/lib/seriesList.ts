@@ -87,7 +87,7 @@ export async function progresoDeSeries(userId: string): Promise<Record<number, P
       episodesWatched,
       totalEpisodes,
       tmdbStatus: cache?.status ?? "",
-      lastWatchedAt: ultimaVistaPorSerie[row.series_tmdb_id] ?? row.last_watched_at,
+      lastWatchedAt: ultimaVistaPorSerie[row.series_tmdb_id] ?? null,
     });
 
     resultado[row.series_tmdb_id] = {
@@ -204,7 +204,7 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
       episodesWatched: count,
       totalEpisodes: cache?.total_episodes ?? 0,
       tmdbStatus: cache?.status ?? "",
-      lastWatchedAt: ultimaVistaPorSerie.get(row.series_tmdb_id) ?? row.last_watched_at,
+      lastWatchedAt: ultimaVistaPorSerie.get(row.series_tmdb_id) ?? null,
     });
 
     let nextLabel: string | null = null;
@@ -269,7 +269,7 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
       next_episode_name: nextName,
       next_episode_season: nextSeason,
       next_episode_number: nextNumber,
-      last_watched_at: ultimaVistaPorSerie.get(row.series_tmdb_id) ?? row.last_watched_at,
+      last_watched_at: ultimaVistaPorSerie.get(row.series_tmdb_id) ?? null,
       episodios_restantes: Math.max(0, (cache?.total_episodes ?? 0) - count),
       temporada_nueva: temporadaNueva,
       total_seasons: cache?.total_seasons ?? 0,

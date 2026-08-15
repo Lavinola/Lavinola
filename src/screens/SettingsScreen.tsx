@@ -412,7 +412,9 @@ function TabAplicacion({ navigation }: any) {
       <SwitchLinea etiqueta={t("Mensajes en grupos públicos")} valor={p.notify_group_messages_public !== false} onCambiar={(v) => actualizar({ notify_group_messages_public: v })} />
 
       <SeccionTitulo texto={t("Qué ven las personas que te siguen")} />
+      <SwitchLinea etiqueta={t("Películas vistas")} valor={p.show_watched_movies} onCambiar={(v) => actualizar({ show_watched_movies: v })} />
       <SwitchLinea etiqueta={t("Películas favoritas")} valor={p.show_favorite_movies} onCambiar={(v) => actualizar({ show_favorite_movies: v })} />
+      <SwitchLinea etiqueta={t("Series vistas/viendo")} valor={p.show_watched_series} onCambiar={(v) => actualizar({ show_watched_series: v })} />
       <SwitchLinea etiqueta={t("Series favoritas")} valor={p.show_favorite_series} onCambiar={(v) => actualizar({ show_favorite_series: v })} />
       <SwitchLinea etiqueta={t("Grupos en los que estás")} valor={p.show_groups} onCambiar={(v) => actualizar({ show_groups: v })} />
       <SwitchLinea etiqueta={t("Reseñas")} valor={p.show_comments} onCambiar={(v) => actualizar({ show_comments: v })} />

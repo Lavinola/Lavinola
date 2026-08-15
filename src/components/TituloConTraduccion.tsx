@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { StyleProp, TextStyle, StyleSheet } from "react-native";
+import { View, StyleProp, TextStyle, StyleSheet } from "react-native";
 import { Text } from "./Themed";
 import { obtenerTituloSecundario } from "../lib/titleTranslation";
 import { theme } from "../theme";
 
 /**
  * Título principal + (entre paréntesis, en gris y más chico) el mismo
- * título en el otro idioma — inglés si estás viendo todo en tu idioma,
- * o tu idioma si estás viendo todo en inglés. No muestra nada extra si
- * tenés la app en inglés (ahí no hay "segundo idioma" que mostrar), o si
- * el título es igual en los dos idiomas (no vale la pena repetirlo).
+ * título en el otro idioma, en el renglón de abajo, bien pegado al
+ * principal — inglés si estás viendo todo en tu idioma, o tu idioma si
+ * estás viendo todo en inglés. No muestra nada extra si tenés la app en
+ * inglés (ahí no hay "segundo idioma" que mostrar), o si el título es
+ * igual en los dos idiomas (no vale la pena repetirlo).
  */
 export default function TituloConTraduccion({
   tipo,
@@ -42,13 +43,19 @@ export default function TituloConTraduccion({
   const mostrarSecundario = !!secundario && secundario.trim().toLowerCase() !== titulo.trim().toLowerCase();
 
   return (
-    <Text style={style} numberOfLines={numberOfLines}>
-      {titulo}
-      {mostrarSecundario && <Text style={[styles.secundario, styleSecundario]}> ({secundario})</Text>}
-    </Text>
+    <View>
+      <Text style={style} numberOfLines={numberOfLines}>
+        {titulo}
+      </Text>
+      {mostrarSecundario && (
+        <Text style={[styles.secundario, styleSecundario]} numberOfLines={numberOfLines}>
+          ({secundario})
+        </Text>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  secundario: { color: theme.colors.textFaint, fontSize: 12, fontWeight: "400", lineHeight: 12 },
+  secundario: { color: theme.colors.textFaint, fontSize: 12, fontWeight: "400", lineHeight: 13, marginTop: 0 },
 });

@@ -467,11 +467,13 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
             <>
               <Text style={styles.seccionTitulo}>{t("Sinopsis")}</Text>
               <Text style={styles.overview}>{traduccionSinopsis ?? overviewLocalizado ?? episodio.overview}</Text>
-              <Pressable onPress={traducirSinopsis} disabled={traduciendoSinopsis} style={styles.traducirSinopsisBtn}>
-                <Text style={styles.traducirSinopsisTexto}>
-                  {traduciendoSinopsis ? t("Traduciendo...") : traduccionSinopsis ? t("Ver original") : t("Traducir")}
-                </Text>
-              </Pressable>
+              {!overviewLocalizado && (
+                <Pressable onPress={traducirSinopsis} disabled={traduciendoSinopsis} style={styles.traducirSinopsisBtn}>
+                  <Text style={styles.traducirSinopsisTexto}>
+                    {traduciendoSinopsis ? t("Traduciendo...") : traduccionSinopsis ? t("Ver original") : t("Traducir")}
+                  </Text>
+                </Pressable>
+              )}
             </>
           )}
 

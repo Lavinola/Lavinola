@@ -874,11 +874,13 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
         <>
           <Text style={styles.seccionTitulo}>{t("Sinopsis")}</Text>
           <Text style={styles.overview}>{traduccionSinopsis ?? overviewLocalizado ?? titulo.overview}</Text>
-          <Pressable onPress={traducirSinopsis} disabled={traduciendoSinopsis} style={styles.traducirSinopsisBtn}>
-            <Text style={styles.traducirSinopsisTexto}>
-              {traduciendoSinopsis ? t("Traduciendo...") : traduccionSinopsis ? t("Ver original") : t("Traducir")}
-            </Text>
-          </Pressable>
+          {!overviewLocalizado && (
+            <Pressable onPress={traducirSinopsis} disabled={traduciendoSinopsis} style={styles.traducirSinopsisBtn}>
+              <Text style={styles.traducirSinopsisTexto}>
+                {traduciendoSinopsis ? t("Traduciendo...") : traduccionSinopsis ? t("Ver original") : t("Traducir")}
+              </Text>
+            </Pressable>
+          )}
         </>
       )}
 
@@ -1269,7 +1271,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  listasBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 11, lineHeight: 13, includeFontPadding: false },
+  listasBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 13, lineHeight: 15, includeFontPadding: false },
   listasBtnNumero: { color: "#000000", fontWeight: "800", fontSize: 13, lineHeight: 15, includeFontPadding: false, marginTop: 2 },
   comentariosBanner: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 16, paddingHorizontal: 18 },
   comentariosBannerTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },

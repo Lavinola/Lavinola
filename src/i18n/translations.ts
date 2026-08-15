@@ -279,6 +279,19 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  Su: { en: "Their", pt: "Sua", it: "Suo" },
+  "Lo último que ha visto": { en: "Last watched", pt: "Último assistido", it: "Ultimo visto" },
+  "Todavía no vio ninguna película.": {
+    en: "Hasn't watched any movies yet.",
+    pt: "Ainda não assistiu a nenhum filme.",
+    it: "Non ha ancora visto nessun film.",
+  },
+  "Todavía no empezó ninguna serie.": {
+    en: "Hasn't started any series yet.",
+    pt: "Ainda não começou nenhuma série.",
+    it: "Non ha ancora iniziato nessuna serie.",
+  },
+  "Series vistas/viendo": { en: "Series watched/watching", pt: "Séries assistidas/assistindo", it: "Serie viste/in visione" },
   RESEÑAS: { en: "REVIEWS", pt: "AVALIAÇÕES", it: "RECENSIONI" },
   Reseñas: { en: "Reviews", pt: "Avaliações", it: "Recensioni" },
   "No cierres la app ni la mandes a segundo plano hasta que termine.": {
