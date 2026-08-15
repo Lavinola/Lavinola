@@ -631,7 +631,22 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
     setTraduccionSinopsis(null);
     setOverviewLocalizado(null);
     obtenerOverviewLocalizado(targetType, tmdbId, getTmdbLanguage())
-      .then(setOverviewLocalizado)
+      .then((overview) => {
+        setOverviewLocalizado(overview);
+        // Si "overview" viene null, es porque no se encontró la sinopsis en
+        // tu idioma (ni con el fallback de español) — lo que se va a
+        // mostrar es el texto original, probablemente en otro idioma, así
+        // que ahí sí vale la pena traducirlo solo. Si SÍ se encontró en tu
+        // idioma, no hay nada que traducir.
+        if (overview) return;
+        const base = titulo.overview;
+        if (!base) return;
+        setTraduciendoSinopsis(true);
+        traducirTexto(base, idioma)
+          .then(setTraduccionSinopsis)
+          .catch((e) => console.error("No se pudo traducir la sinopsis automáticamente:", e))
+          .finally(() => setTraduciendoSinopsis(false));
+      })
       .catch((e) => console.error("No se pudo pedir la sinopsis en el idioma configurado:", e));
   }, [tmdbId]);
 

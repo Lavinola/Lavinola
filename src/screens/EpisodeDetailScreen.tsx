@@ -93,13 +93,35 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
     cargar();
   }, []);
 
+  const [localizadaEncontrada, setLocalizadaEncontrada] = useState(false);
+
   useEffect(() => {
     setTraduccionSinopsis(null);
     setOverviewLocalizado(null);
+    setLocalizadaEncontrada(false);
     obtenerOverviewLocalizado("episode", seriesTmdbId, getTmdbLanguage(), seasonNumber, episodeNumber)
-      .then(setOverviewLocalizado)
+      .then((overview) => {
+        setOverviewLocalizado(overview);
+        setLocalizadaEncontrada(!!overview);
+      })
       .catch((e) => console.error("No se pudo pedir la sinopsis del capítulo en el idioma configurado:", e));
   }, [seriesTmdbId, seasonNumber, episodeNumber]);
+
+  // Se traduce sola solo cuando no se encontró la sinopsis en tu idioma
+  // (localizadaEncontrada en false) y hay que mostrar el texto original,
+  // que en ese caso probablemente esté en otro idioma. Si ya está en tu
+  // idioma, no hace falta traducir nada.
+  useEffect(() => {
+    if (localizadaEncontrada) return;
+    const base = episodio?.overview;
+    if (!base || traduccionSinopsis || traduciendoSinopsis) return;
+    setTraduciendoSinopsis(true);
+    traducirTexto(base, idioma)
+      .then(setTraduccionSinopsis)
+      .catch((e) => console.error("No se pudo traducir la sinopsis del capítulo automáticamente:", e))
+      .finally(() => setTraduciendoSinopsis(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [episodio, localizadaEncontrada]);
 
   async function traducirSinopsis() {
     if (traduccionSinopsis) {
