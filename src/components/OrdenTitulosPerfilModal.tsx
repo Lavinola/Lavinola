@@ -18,11 +18,11 @@ interface Props {
 export default function OrdenTitulosPerfilModal({ visible, onCerrar, orden, ascendente, onCambiar, labelUltimaVista }: Props) {
   const { t } = useT();
 
-  const opciones: { key: OrdenTitulosPerfil; label: string }[] = [
+  const opciones: { key: OrdenTitulosPerfil; label: string; conEstrella?: boolean }[] = [
     { key: "ultima_vista", label: labelUltimaVista },
     { key: "alfabetico", label: t("Alfabético") },
     { key: "fecha_lanzamiento", label: t("Fecha de lanzamiento") },
-    { key: "puntuacion", label: `${t("Su")} ⭐` },
+    { key: "puntuacion", label: t("Su"), conEstrella: true },
   ];
 
   return (
@@ -34,7 +34,10 @@ export default function OrdenTitulosPerfilModal({ visible, onCerrar, orden, asce
             const activo = orden === o.key;
             return (
               <Pressable key={o.key} style={styles.fila} onPress={() => onCambiar(o.key, activo ? !ascendente : false)}>
-                <Text style={[styles.filaTexto, activo && styles.filaTextoActiva]}>{o.label}</Text>
+                <View style={styles.filaTextoRow}>
+                  <Text style={[styles.filaTexto, activo && styles.filaTextoActiva]}>{o.label}</Text>
+                  {o.conEstrella && <Ionicons name="star" size={14} color={theme.colors.primary} style={{ marginLeft: 4 }} />}
+                </View>
                 {activo && <Ionicons name={ascendente ? "arrow-up" : "arrow-down"} size={16} color={theme.colors.primary} />}
               </Pressable>
             );
@@ -59,5 +62,6 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
   },
   filaTexto: { fontSize: 14, color: theme.colors.textMuted },
+  filaTextoRow: { flexDirection: "row", alignItems: "center" },
   filaTextoActiva: { color: theme.colors.text, fontWeight: "700" },
 });

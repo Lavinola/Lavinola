@@ -72,6 +72,13 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
           keyExtractor={(s) => String(s.tmdb_id)}
           contentContainerStyle={{ padding: 12 }}
           ListEmptyComponent={<EstadoVacio icono="tv-outline" titulo={t("Todavía no empezó ninguna serie.")} />}
+          ListHeaderComponent={
+            items.length > 0 ? (
+              <View style={styles.seccionTituloWrap}>
+                <Text style={styles.seccionTitulo}>{t("Vistas/Viendo")}</Text>
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
             <Pressable style={styles.filaLista} onPress={() => navigation.navigate("DetalleTitulo", { tmdbId: item.tmdb_id, tipo: "series" })}>
               {item.poster_path ? (
@@ -100,6 +107,13 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
           keyExtractor={(fila) => fila.map((s) => s.tmdb_id).join("-")}
           contentContainerStyle={{ padding: 8 }}
           ListEmptyComponent={<EstadoVacio icono="tv-outline" titulo={t("Todavía no empezó ninguna serie.")} />}
+          ListHeaderComponent={
+            items.length > 0 ? (
+              <View style={styles.seccionTituloWrap}>
+                <Text style={styles.seccionTitulo}>{t("Vistas/Viendo")}</Text>
+              </View>
+            ) : null
+          }
           renderItem={({ item: fila }) => (
             <View style={{ flexDirection: "row" }}>
               {fila.map((item) => (
@@ -160,4 +174,15 @@ const styles = StyleSheet.create({
   filaLista: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   filaListaTitulo: { fontSize: 15, fontWeight: "600" },
   filaListaSub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
+  seccionTituloWrap: { width: "100%", alignItems: "center" },
+  seccionTitulo: {
+    backgroundColor: theme.colors.surfaceAlt,
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: theme.radius.pill,
+    marginVertical: 10,
+  },
 });
