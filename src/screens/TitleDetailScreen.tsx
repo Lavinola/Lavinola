@@ -37,7 +37,7 @@ import {
   getMovieCertification,
   normalizarClasificacion,
   obtenerOverviewLocalizado,
-  getTmdbLanguage,
+  getContentLanguageCruda,
 } from "../lib/tmdb";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMisSeries, eliminarPeliculaDeMisPeliculas } from "../lib/sync";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
@@ -630,7 +630,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   useEffect(() => {
     setTraduccionSinopsis(null);
     setOverviewLocalizado(null);
-    obtenerOverviewLocalizado(targetType, tmdbId, getTmdbLanguage())
+    obtenerOverviewLocalizado(targetType, tmdbId, getContentLanguageCruda())
       .then((overview) => {
         setOverviewLocalizado(overview);
         // Si "overview" viene null, es porque no se encontró la sinopsis en

@@ -16,7 +16,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import CastVotePicker from "../components/CastVotePicker";
 import { supabase } from "../lib/supabase";
 import { calificarEpisodio, promedioEpisodio, guardarPlataformaEpisodio } from "../lib/ratings";
-import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getTmdbLanguage } from "../lib/tmdb";
+import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getContentLanguageCruda } from "../lib/tmdb";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { marcarVariosEpisodios, desmarcarEpisodio, episodiosAnterioresNoVistos, obtenerEpisodiosAdyacentes } from "../lib/episodes";
 import { pedirReseñaSiCorresponde } from "../lib/storeReview";
@@ -99,7 +99,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
     setTraduccionSinopsis(null);
     setOverviewLocalizado(null);
     setLocalizadaEncontrada(false);
-    obtenerOverviewLocalizado("episode", seriesTmdbId, getTmdbLanguage(), seasonNumber, episodeNumber)
+    obtenerOverviewLocalizado("episode", seriesTmdbId, getContentLanguageCruda(), seasonNumber, episodeNumber)
       .then((overview) => {
         setOverviewLocalizado(overview);
         setLocalizadaEncontrada(!!overview);
