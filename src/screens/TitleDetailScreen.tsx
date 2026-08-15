@@ -615,6 +615,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   const [reparto, setReparto] = useState<any[]>([]);
   const [imdb, setImdb] = useState<NotaImdb | null>(null);
   const [cantidadFavoritos, setCantidadFavoritos] = useState(0);
+  const [cantidadListas, setCantidadListas] = useState(0);
   const [trailer, setTrailer] = useState<{ key: string; name: string } | null>(null);
   const [director, setDirector] = useState<string | null>(null);
   const [directorId, setDirectorId] = useState<number | null>(null);
@@ -713,6 +714,12 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
     setDirector(directorCredit?.name ?? null);
     setDirectorId(directorCredit?.id ?? null);
     setCantidadFavoritos(await contarFavoritosDeTitulo(tipo, tmdbId));
+    supabase
+      .from("list_items")
+      .select("lists!inner(id)", { count: "exact", head: true })
+      .eq("item_type", tipo)
+      .eq("tmdb_id", tmdbId)
+      .then(({ count }) => setCantidadListas(count ?? 0));
 
     const videos = tipo === "series" ? await getSeriesVideos(tmdbId) : await getMovieVideos(tmdbId);
     setTrailer(elegirTrailer(videos));
@@ -896,23 +903,20 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       )}
 
       <View style={styles.comentariosRow}>
-        <View style={styles.favoritosListasCol}>
-          <Pressable
-            style={styles.favoritosBtn}
-            onPress={() => navigation.navigate("FavoritosDe", { itemType: tipo, tmdbId, nombre: tipo === "series" ? titulo.name : titulo.title })}
-          >
-            <View style={styles.favoritosBtnContenido}>
-              <Ionicons name="heart" size={18} color="#000000" />
-              <Text style={styles.favoritosBtnNumero}>{cantidadFavoritos}</Text>
-            </View>
-          </Pressable>
-          <Pressable
-            style={styles.listasBtn}
-            onPress={() => navigation.navigate("ListasConTitulo", { itemType: tipo, tmdbId, nombre: tipo === "series" ? titulo.name : titulo.title })}
-          >
-            <Text style={styles.listasBtnTexto}>{t("Listas")}</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          style={styles.favoritosBtn}
+          onPress={() => navigation.navigate("FavoritosDe", { itemType: tipo, tmdbId, nombre: tipo === "series" ? titulo.name : titulo.title })}
+        >
+          <Ionicons name="heart" size={18} color="#000000" />
+          <Text style={styles.favoritosBtnNumero}>{cantidadFavoritos}</Text>
+        </Pressable>
+        <Pressable
+          style={styles.listasBtn}
+          onPress={() => navigation.navigate("ListasConTitulo", { itemType: tipo, tmdbId, nombre: tipo === "series" ? titulo.name : titulo.title })}
+        >
+          <Text style={styles.listasBtnTexto}>{t("Listas")}</Text>
+          <Text style={styles.listasBtnNumero}>{cantidadListas}</Text>
+        </Pressable>
         <Pressable
           style={styles.comentariosBanner}
           onPress={() => navigation.navigate("Comentarios", { targetType: tipo, targetId: String(tmdbId) })}
@@ -1234,25 +1238,24 @@ const styles = StyleSheet.create({
   atribucion: { fontSize: 10, color: theme.colors.textFaint, marginTop: 24, textAlign: "center" },
   comentariosRow: { flexDirection: "row", alignItems: "stretch", gap: 8, marginTop: 24 },
   favoritosBtn: {
-    flex: 2,
+    width: 58,
+    height: 58,
     backgroundColor: theme.colors.primary,
-    borderTopLeftRadius: theme.radius.md,
-    borderTopRightRadius: theme.radius.md,
+    borderRadius: theme.radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
-  favoritosBtnContenido: { alignItems: "center", justifyContent: "center" },
-  favoritosBtnNumero: { color: "#000000", fontWeight: "800", fontSize: 13, lineHeight: 15, includeFontPadding: false },
-  favoritosListasCol: { width: 58, gap: 2 },
+  favoritosBtnNumero: { color: "#000000", fontWeight: "800", fontSize: 13, lineHeight: 15, includeFontPadding: false, marginTop: 2 },
   listasBtn: {
-    flex: 1,
+    width: 58,
+    height: 58,
     backgroundColor: theme.colors.primary,
-    borderBottomLeftRadius: theme.radius.md,
-    borderBottomRightRadius: theme.radius.md,
+    borderRadius: theme.radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
   listasBtnTexto: { color: "#000000", fontWeight: "800", fontSize: 11, lineHeight: 13, includeFontPadding: false },
+  listasBtnNumero: { color: "#000000", fontWeight: "800", fontSize: 13, lineHeight: 15, includeFontPadding: false, marginTop: 2 },
   comentariosBanner: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 16, paddingHorizontal: 18 },
   comentariosBannerTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },
   comentariosBannerFlecha: { color: "#000000", fontWeight: "800", fontSize: 22 },
