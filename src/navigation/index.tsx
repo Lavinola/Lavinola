@@ -205,13 +205,13 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
       />
       <Stack.Screen name="AdminChatsUsuario" component={AdminUserChatsScreen} />
       <Stack.Screen name="AdminVerChat" component={AdminVerChatScreen} />
-      <Stack.Screen name="Comentarios" component={CommentsScreen} options={{ title: t("Comentarios/Posts") }} />
+      <Stack.Screen name="Comentarios" component={CommentsScreen} options={{ title: t("Reseñas") }} />
       <Stack.Screen name="Actor" component={ActorDetailScreen} options={{ title: t("Actor/Actriz") }} />
       <Stack.Screen name="PersonalizarCaratula" component={CustomizeArtworkScreen} options={{ title: t("Personalizar") }} />
       <Stack.Screen name="EpisodioDetalle" component={EpisodeDetailScreen} options={{ title: t("Episodio") }} />
       <Stack.Screen name="ElegirGif" component={GifPickerScreen} options={{ title: t("Elegir GIF"), presentation: "modal" }} />
       <Stack.Screen name="ListaSeguidores" component={FollowListScreen} />
-      <Stack.Screen name="MisComentarios" component={MyCommentsScreen} options={{ title: t("Posts/Comentarios") }} />
+      <Stack.Screen name="MisComentarios" component={MyCommentsScreen} options={{ title: t("Reseñas") }} />
       <Stack.Screen name="DescubrirMas" component={DiscoverMoreScreen} options={{ title: t("Descubre más") }} />
       <Stack.Screen name="CrearLista" component={CreateListScreen} options={{ title: t("Nueva lista") }} />
       <Stack.Screen name="ElegirImagenTmdb" component={ChooseTmdbImageScreen} options={{ title: t("Elegir imagen") }} />

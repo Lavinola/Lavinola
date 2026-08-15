@@ -415,7 +415,7 @@ function TabAplicacion({ navigation }: any) {
       <SwitchLinea etiqueta={t("Películas favoritas")} valor={p.show_favorite_movies} onCambiar={(v) => actualizar({ show_favorite_movies: v })} />
       <SwitchLinea etiqueta={t("Series favoritas")} valor={p.show_favorite_series} onCambiar={(v) => actualizar({ show_favorite_series: v })} />
       <SwitchLinea etiqueta={t("Grupos en los que estás")} valor={p.show_groups} onCambiar={(v) => actualizar({ show_groups: v })} />
-      <SwitchLinea etiqueta={t("Posts/Comentarios")} valor={p.show_comments} onCambiar={(v) => actualizar({ show_comments: v })} />
+      <SwitchLinea etiqueta={t("Reseñas")} valor={p.show_comments} onCambiar={(v) => actualizar({ show_comments: v })} />
 
       <SeccionTitulo texto={t("Importar Datos")} />
       <Pressable onPress={() => navigation.navigate("ImportarTVTime")}>

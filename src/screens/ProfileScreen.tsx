@@ -221,7 +221,7 @@ export default function ProfileScreen({ navigation }: any) {
             <SocialStat label={t("Seguidores")} valor={social.seguidores} />
           </Pressable>
           <Pressable style={styles.socialStat} onPress={() => navigation.navigate("MisComentarios", { userId: perfil.id })}>
-            <SocialStat label={`${t("Posts")}\n${t("Comentarios")}`} valor={social.comentarios} />
+            <SocialStat label={t("Reseñas")} valor={social.comentarios} />
           </Pressable>
         </View>
       )}

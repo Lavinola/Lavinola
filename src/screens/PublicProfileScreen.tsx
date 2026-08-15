@@ -413,7 +413,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
             onPress={() => navigation.navigate("MisComentarios", { userId: targetId })}
           >
             <Text style={styles.socialValor}>{social.comentarios}</Text>
-            <Text style={styles.socialLabel}>{`${t("Posts")}\n${t("Comentarios")}`}</Text>
+            <Text style={styles.socialLabel}>{t("Reseñas")}</Text>
           </Pressable>
         </View>
       )}

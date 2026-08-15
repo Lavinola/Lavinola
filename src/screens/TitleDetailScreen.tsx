@@ -917,7 +917,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
           style={styles.comentariosBanner}
           onPress={() => navigation.navigate("Comentarios", { targetType: tipo, targetId: String(tmdbId) })}
         >
-          <Text style={styles.comentariosBannerTexto}>{t("COMENTARIOS/POSTS")}</Text>
+          <Text style={styles.comentariosBannerTexto}>{t("RESEÑAS")}</Text>
           <Text style={styles.comentariosBannerFlecha}>›</Text>
         </Pressable>
       </View>

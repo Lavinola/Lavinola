@@ -279,6 +279,8 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  RESEÑAS: { en: "REVIEWS", pt: "AVALIAÇÕES", it: "RECENSIONI" },
+  Reseñas: { en: "Reviews", pt: "Avaliações", it: "Recensioni" },
   "No cierres la app ni la mandes a segundo plano hasta que termine.": {
     en: "Don't close the app or send it to the background until it finishes.",
     pt: "Não feche o app nem o mande para segundo plano até terminar.",
