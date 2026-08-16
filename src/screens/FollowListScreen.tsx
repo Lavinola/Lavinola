@@ -6,6 +6,7 @@ import { Text } from "../components/Themed";
 import NombreUsuario from "../components/NombreUsuario";
 import EstadoVacio from "../components/EstadoVacio";
 import Avatar from "../components/Avatar";
+import { seleccion } from "../lib/haptics";
 import { SkeletonListRows } from "../components/SkeletonShapes";
 import { supabase } from "../lib/supabase";
 import { usuariosQueSigo, seguidoresDe, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
@@ -80,6 +81,7 @@ export default function FollowListScreen({ route, navigation }: Props) {
       return;
     }
     try {
+      seleccion();
       await seguirRespetandoPrivacidad(viewerId, u.id);
       cargar();
     } catch (e: any) {

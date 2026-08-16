@@ -19,6 +19,7 @@ import { calificarEpisodio, promedioEpisodio, guardarPlataformaEpisodio } from "
 import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getContentLanguageCruda } from "../lib/tmdb";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { marcarVariosEpisodios, desmarcarEpisodio, episodiosAnterioresNoVistos, obtenerEpisodiosAdyacentes } from "../lib/episodes";
+import { impactoLiviano } from "../lib/haptics";
 import { pedirReseñaSiCorresponde } from "../lib/storeReview";
 import {
   volverAVerEpisodio,
@@ -207,6 +208,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
 
   async function marcarComoVisto() {
     if (!userId) return;
+    impactoLiviano();
     try {
       const previos = await episodiosAnterioresNoVistos(userId, seriesTmdbId, seasonNumber, episodeNumber);
       if (previos.length > 0) {

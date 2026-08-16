@@ -26,6 +26,7 @@ import ActionSheetModal from "./ActionSheetModal";
 import ExpandableText from "./ExpandableText";
 import NombreUsuario from "./NombreUsuario";
 import Avatar from "./Avatar";
+import { impactoLiviano } from "../lib/haptics";
 import { MOODS } from "../lib/moods";
 import IconoReaccion, { REACCIONES_ICONO } from "./IconoReaccion";
 import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
@@ -419,6 +420,7 @@ export function NodoComentario({
 
   async function elegirReaccion(emoji: string) {
     if (!userId) return;
+    impactoLiviano();
     setReaccionesPickerVisible(false);
     const nuevasReacciones = { ...reacciones };
     if (miReaccion) nuevasReacciones[miReaccion] = Math.max(0, (nuevasReacciones[miReaccion] ?? 1) - 1);

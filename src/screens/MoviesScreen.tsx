@@ -3,6 +3,7 @@ import { View, FlatList, Image, StyleSheet, Pressable, ActivityIndicator } from 
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
+import { impactoLiviano } from "../lib/haptics";
 import { SkeletonPosterGrid } from "../components/SkeletonShapes";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -107,6 +108,7 @@ export default function MoviesScreen({ navigation }: any) {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
     if (!userId) return;
+    if (watched) impactoLiviano();
     await toggleVistaPelicula(userId, tmdbId, watched);
     cargar();
   }

@@ -12,6 +12,7 @@ import { traducirTexto } from "../lib/translate";
 import StarRating from "../components/StarRating";
 import WatchedPlatformPicker from "../components/WatchedPlatformPicker";
 import ActionSheetModal from "../components/ActionSheetModal";
+import { impactoLiviano, seleccion } from "../lib/haptics";
 import { pedirReseñaSiCorresponde } from "../lib/storeReview";
 import TituloConTraduccion from "../components/TituloConTraduccion";
 import TrailerEmbed from "../components/TrailerEmbed";
@@ -186,6 +187,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
   function toqueVista() {
     if (!userId || tipo !== "movie") return;
     if (!vista && titulo?.release_date && titulo.release_date > new Date().toISOString().slice(0, 10)) return; // todavía no se estrenó
+    impactoLiviano();
     if (vista) {
       // Ya está vista: en vez de destildarla directo, preguntamos qué quiso decir
       // (por ahí se equivocó, o por ahí la volvió a ver).
@@ -1043,6 +1045,7 @@ function EpisodiosTab({
     if (!userId) return;
     const hoy = new Date().toISOString().slice(0, 10);
     if (!ep.visto && (!ep.air_date || ep.air_date > hoy)) return; // todavía no salió, no se puede marcar
+    impactoLiviano();
 
     if (ep.visto) {
       setMenuVistoEpisodio(ep);

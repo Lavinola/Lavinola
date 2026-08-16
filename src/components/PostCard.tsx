@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
 import NombreUsuario from "./NombreUsuario";
 import Avatar from "./Avatar";
+import { impactoLiviano } from "../lib/haptics";
 import ActionSheetModal from "./ActionSheetModal";
 import ConfirmModal from "./ConfirmModal";
 import ReportModal from "./ReportModal";
@@ -168,6 +169,7 @@ export default function PostCard({
 
   function elegirReaccion(key: string) {
     if (!userId) return;
+    impactoLiviano();
     setPickerVisible(false);
     const anteriorEmoji = miReaccion;
     const anteriorConteo = reaccionesConteo;

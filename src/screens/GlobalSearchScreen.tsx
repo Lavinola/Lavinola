@@ -4,6 +4,7 @@ import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import Avatar from "../components/Avatar";
+import { seleccion } from "../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import UnderlineTabs from "../components/UnderlineTabs";
 import { searchPerson, posterUrl } from "../lib/tmdb";
@@ -178,6 +179,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
 
   async function toggleFollow(u: UsuarioBasico) {
     if (!userId || u.solicitudPendiente) return;
+    seleccion();
     try {
       if (u.siguiendo) {
         await dejarDeSeguir(userId, u.id);

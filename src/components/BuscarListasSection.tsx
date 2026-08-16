@@ -4,6 +4,7 @@ import { Text } from "./Themed";
 import EstadoVacio from "./EstadoVacio";
 import ListPreviewCard from "./ListPreviewCard";
 import ConfirmModal from "../components/ConfirmModal";
+import { seleccion } from "../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { supabase } from "../lib/supabase";
@@ -59,6 +60,7 @@ function ListaConSeguir({ item, userId, navigation, onCambio }: { item: Lista; u
     }
     onCambio({ ...item, siguiendo: true, seguidores: (item.seguidores ?? 0) + 1 });
     try {
+      seleccion();
       await seguirLista(userId, item.id);
     } catch (e: any) {
       onCambio({ ...item, siguiendo: false, seguidores: item.seguidores });

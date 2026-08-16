@@ -8,6 +8,7 @@ import { seguirRespetandoPrivacidad } from "../lib/followRequests";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import Avatar from "../components/Avatar";
+import { seleccion } from "../lib/haptics";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -50,6 +51,7 @@ export default function FindUsersScreen({ navigation }: any) {
 
   async function toggleFollow(u: UsuarioBasico) {
     if (!userId || u.solicitudPendiente) return;
+    seleccion();
     try {
       if (u.siguiendo) {
         await dejarDeSeguir(userId, u.id);

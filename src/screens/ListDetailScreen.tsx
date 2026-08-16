@@ -3,6 +3,7 @@ import { View, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from 
 import { Text, AppButton } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import ConfirmModal from "../components/ConfirmModal";
+import { seleccion } from "../lib/haptics";
 import { Alert } from "../lib/alert";
 import { seguirLista, dejarDeSeguirLista } from "../lib/lists";
 import { Ionicons } from "@expo/vector-icons";
@@ -146,6 +147,7 @@ export default function ListDetailScreen({ route, navigation }: any) {
     }
     setSiguiendo(true);
     try {
+      seleccion();
       await seguirLista(userId, listId);
     } catch (e: any) {
       setSiguiendo(false);

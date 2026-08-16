@@ -3,6 +3,7 @@ import { View, FlatList, TextInput, Pressable, StyleSheet, ActivityIndicator } f
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import ConfirmModal from "../components/ConfirmModal";
+import { seleccion } from "../lib/haptics";
 import ListPreviewCard from "../components/ListPreviewCard";
 import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
@@ -61,6 +62,7 @@ export default function ListasConTituloScreen({ route, navigation }: any) {
     }
     setListas((prev) => prev.map((l) => (l.id === lista.id ? { ...l, siguiendo: true, seguidores: (l.seguidores ?? 0) + 1 } : l)));
     try {
+      seleccion();
       await seguirLista(userId, lista.id);
     } catch (e: any) {
       setListas((prev) => prev.map((l) => (l.id === lista.id ? { ...l, siguiendo: false, seguidores: (l.seguidores ?? 1) - 1 } : l)));

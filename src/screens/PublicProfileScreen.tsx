@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import { View, Image, FlatList, Pressable, StyleSheet, ScrollView, Modal, TextInput, Platform, ActivityIndicator } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
+import { seleccion } from "../lib/haptics";
 import Avatar from "../components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -215,6 +216,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
       setConfirmDejarDeSeguirVisible(true);
       return;
     }
+    seleccion();
     const resultado = await seguirRespetandoPrivacidad(viewerId, targetId);
     if (resultado === "solicitado") setSolicitudPendiente(true);
     else setLoSigo(true);
@@ -254,6 +256,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
     if (!viewerId) return;
     const yaSigo = listasSeguidas.has(lista.id);
     try {
+      seleccion();
       if (yaSigo) await dejarDeSeguirLista(viewerId, lista.id);
       else await seguirLista(viewerId, lista.id);
       setListasSeguidas((prev) => {

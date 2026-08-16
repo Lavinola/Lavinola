@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { Text } from "../components/Themed";
+import { seleccion } from "../lib/haptics";
 import { supabase } from "../lib/supabase";
 import { listarListasDeUsuarioOrdenadasPorSeguidores, seguirLista, dejarDeSeguirLista, sigoLista, Lista } from "../lib/lists";
 import ListPreviewCard from "../components/ListPreviewCard";
@@ -37,6 +38,7 @@ export default function UserListsScreen({ route, navigation }: any) {
   async function toggleSeguir(lista: Lista) {
     if (!viewerId) return;
     const yaSigo = listasSeguidas.has(lista.id);
+    seleccion();
     if (yaSigo) {
       await dejarDeSeguirLista(viewerId, lista.id);
       setListasSeguidas((prev) => {

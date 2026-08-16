@@ -8,6 +8,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
 import { marcarEpisodioVisto, episodiosAnterioresNoVistos, marcarVariosEpisodios, getProximoEpisodio } from "../lib/episodes";
+import { impactoLiviano } from "../lib/haptics";
 import ConfirmModal from "../components/ConfirmModal";
 import AgregarButton from "../components/AgregarButton";
 import CalificarModal from "../components/CalificarModal";
@@ -163,6 +164,7 @@ function ListaPendiente({ navigation }: any) {
 
   async function tocarSiguienteCapitulo(item: SerieListado) {
     if (item.next_episode_season == null || item.next_episode_number == null) return;
+    impactoLiviano();
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
     if (!userId) return;
