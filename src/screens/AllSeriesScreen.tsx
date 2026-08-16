@@ -116,7 +116,7 @@ export default function AllSeriesScreen({ route, navigation }: any) {
         return ascendente ? cmp : -cmp;
       });
     }
-    return lista; // "añadido": ya viene ordenado así
+    return [...lista].sort((a, b) => (b.added_at ?? "").localeCompare(a.added_at ?? "")); // "añadido"
   }
 
   let listado: SerieListado[];
