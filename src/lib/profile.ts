@@ -6,6 +6,7 @@ export interface PerfilCompleto {
   display_name: string | null;
   avatar_url: string | null;
   country: string | null;
+  timezone: string | null;
   birth_year: number | null;
   gender: string | null;
   cover_type: "series" | "movie" | null;
@@ -30,6 +31,7 @@ export interface PerfilCompleto {
   content_language: string;
   show_titles_in_own_language: boolean;
   notify_episode_timing: "none" | "10min" | "1hora" | "1dia";
+  notify_new_releases: boolean;
   notify_likes: boolean;
   notify_replies: boolean;
   notify_follow_requests: boolean;

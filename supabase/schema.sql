@@ -532,6 +532,18 @@ alter table profiles add column if not exists show_titles_in_spanish boolean def
 -- Preferencias de notificación
 alter table profiles add column if not exists notify_episode_timing text default 'none'
   check (notify_episode_timing in ('none','10min','1hora','1dia'));
+-- Se reemplazó el selector de "cuánto antes avisar" (10min/1hora/1dia) por
+-- este interruptor simple — no tenemos forma de saber la hora exacta en
+-- que se estrena un capítulo (ver notas en episode-reminders), así que no
+-- tenía sentido prometer un aviso "10 minutos antes". La columna vieja
+-- queda sin usar, no hace falta borrarla.
+alter table profiles add column if not exists notify_new_releases boolean default true;
+-- Zona horaria (identificador IANA, ej "America/Argentina/Buenos_Aires")
+-- — se pone sola según el país elegido, pero se puede cambiar a mano
+-- (útil para países con varias zonas horarias). La usa
+-- episode-reminders para avisar los estrenos a las 10am de CADA usuario,
+-- no a una hora fija para todo el mundo.
+alter table profiles add column if not exists timezone text;
 alter table profiles add column if not exists notify_likes boolean default true;
 alter table profiles add column if not exists notify_replies boolean default true;
 alter table profiles add column if not exists notify_follow_requests boolean default true;

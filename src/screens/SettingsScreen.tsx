@@ -4,6 +4,8 @@ import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import SelectField from "../components/SelectField";
 import CountryPickerField from "../components/CountryPickerField";
+import TimezonePickerField from "../components/TimezonePickerField";
+import { zonaHorariaPorDefectoDePais } from "../lib/timezones";
 import ConfirmModal from "../components/ConfirmModal";
 import Toast from "../components/Toast";
 import { supabase } from "../lib/supabase";
@@ -285,12 +287,6 @@ function TabCuenta({ navigation }: any) {
 
 function TabAplicacion({ navigation }: any) {
   const { t, setIdiomaDesdeCodigo } = useT();
-  const OPCIONES_NOTIFY_EPISODIO = [
-    { value: "none", label: t("No notificar") },
-    { value: "10min", label: t("10 minutos antes") },
-    { value: "1hora", label: t("1 hora antes") },
-    { value: "1dia", label: t("1 día antes") },
-  ];
   const [perfil, setPerfil] = useState<PerfilCompleto | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -380,7 +376,19 @@ function TabAplicacion({ navigation }: any) {
       <Text style={styles.switchHint}>
         {t("Se usa para mostrarte dónde ver cada título en tu país. Si te mudaste, cambialo acá y se actualiza solo.")}
       </Text>
-      <CountryPickerField valor={p.country ?? "AR"} onCambiar={(v) => actualizar({ country: v })} />
+      <CountryPickerField
+        valor={p.country ?? "AR"}
+        onCambiar={(v) => actualizar({ country: v, timezone: zonaHorariaPorDefectoDePais(v) })}
+      />
+
+      <Text style={[styles.label, { marginTop: 12 }]}>{t("Zona horaria")}</Text>
+      <Text style={styles.switchHint}>
+        {t("Se usa para avisarte los estrenos a la hora correcta de tu zona. Si tu país tiene varias, elegí la tuya.")}
+      </Text>
+      <TimezonePickerField
+        valor={p.timezone ?? zonaHorariaPorDefectoDePais(p.country ?? "AR")}
+        onCambiar={(v) => actualizar({ timezone: v })}
+      />
 
       <SeccionTitulo texto={t("Títulos")} />
       <View style={styles.switchRow}>
@@ -395,12 +403,10 @@ function TabAplicacion({ navigation }: any) {
       </View>
 
       <SeccionTitulo texto={t("Notificaciones")} />
-      <Text style={styles.label}>{t("Cuando sale un episodio nuevo")}</Text>
-      <SelectField
-        opciones={OPCIONES_NOTIFY_EPISODIO}
-        valor={p.notify_episode_timing ?? "none"}
-        onCambiar={(v) => actualizar({ notify_episode_timing: v })}
-        titulo={t("¿Cuándo avisar?")}
+      <SwitchLinea
+        etiqueta={t("Estrenos de películas y episodios de tu lista de pendientes")}
+        valor={p.notify_new_releases !== false}
+        onCambiar={(v) => actualizar({ notify_new_releases: v })}
       />
 
       <Text style={styles.label}>{t("Actividad")}</Text>
