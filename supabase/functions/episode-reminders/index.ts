@@ -1,11 +1,17 @@
 // supabase/functions/episode-reminders/index.ts
 //
-// A diferencia de antes, esta versión corre CADA HORA (no una vez al
-// día) — y en cada corrida, para cada usuario, chequea si en ESE
-// momento son las 10am en SU zona horaria (la de su perfil, o la que le
-// corresponde por default a su país si no la cambió a mano). Así, en vez
-// de un horario fijo para todo el mundo, cada persona recibe el aviso a
-// las 10am de su propio país.
+// Corre CADA HORA (no una vez al día) — y en cada corrida, para cada
+// usuario, chequea si en ESE momento son las 10am en SU zona horaria (la
+// de su perfil, o la que le corresponde por default a su país si no la
+// cambió a mano). Así, en vez de un horario fijo para todo el mundo,
+// cada persona recibe el aviso a las 10am de su propio país.
+//
+// Si varios capítulos de la MISMA temporada de una serie salen el mismo
+// día (típico de estrenos "temporada completa" de streaming), se manda
+// UN solo aviso de temporada en vez de uno por capítulo — se detecta
+// comparando cuántos capítulos de esa temporada salen hoy contra el
+// total de capítulos que tiene esa temporada (guardado en
+// series_cache.seasons_meta).
 //
 // IMPORTANTE — sobre la hora del estreno en sí: ni TMDB ni ninguna fuente
 // gratuita nos dan la hora exacta en que se estrena algo (solo el día) —
@@ -85,6 +91,15 @@ async function mandarPushSiCorresponde(supabase: any, userId: string, titulo: st
   return true;
 }
 
+/** [5] -> "5" | [5,6] -> "5 y 6" | [5,6,7] -> "5, 6 y 7" */
+function listarNumerosNatural(numeros: number[]): string {
+  const ordenados = [...numeros].sort((a, b) => a - b);
+  if (ordenados.length === 1) return String(ordenados[0]);
+  const todosMenosUltimo = ordenados.slice(0, -1).join(", ");
+  const ultimo = ordenados[ordenados.length - 1];
+  return `${todosMenosUltimo} y ${ultimo}`;
+}
+
 serve(async (_req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const hoy = new Date().toISOString().slice(0, 10);
@@ -93,22 +108,69 @@ serve(async (_req) => {
   // ---------- Episodios que se estrenan hoy ----------
   const { data: episodiosHoy } = await supabase
     .from("episodes_cache")
-    .select("series_tmdb_id, name, season_number, episode_number, series_cache(name)")
+    .select("series_tmdb_id, name, season_number, episode_number, series_cache(name, seasons_meta)")
     .eq("air_date", hoy);
 
+  // Agrupamos por (serie, temporada) para poder detectar "sale la
+  // temporada completa hoy" en vez de mandar un aviso por cada capítulo.
+  const grupos = new Map<string, { seriesTmdbId: number; season: number; nombreSerie: string; episodios: number[]; totalTemporada: number }>();
   for (const ep of episodiosHoy ?? []) {
-    const { data: seguidores } = await supabase.from("user_series").select("user_id").eq("series_tmdb_id", ep.series_tmdb_id).eq("in_watchlist", true);
+    const clave = `${ep.series_tmdb_id}-${ep.season_number}`;
+    if (!grupos.has(clave)) {
+      const seasonsMeta = (ep as any).series_cache?.seasons_meta ?? [];
+      const metaTemporada = seasonsMeta.find((s: any) => s.season_number === ep.season_number);
+      grupos.set(clave, {
+        seriesTmdbId: ep.series_tmdb_id,
+        season: ep.season_number,
+        nombreSerie: (ep as any).series_cache?.name ?? "tu serie",
+        episodios: [],
+        totalTemporada: metaTemporada?.episode_count ?? 0,
+      });
+    }
+    grupos.get(clave)!.episodios.push(ep.episode_number);
+  }
+
+  for (const grupo of grupos.values()) {
+    const { data: seguidores } = await supabase.from("user_series").select("user_id").eq("series_tmdb_id", grupo.seriesTmdbId).eq("in_watchlist", true);
+
+    // Solo se manda el aviso de "temporada completa" cuando de verdad salen
+    // TODOS los capítulos de esa temporada hoy — no alcanza con que salgan
+    // varios. Si salen 2 o más pero no son todos, se juntan en un solo
+    // aviso listando qué capítulos son. Si sale uno solo, el aviso de
+    // siempre con ese capítulo puntual.
+    const esTemporadaCompleta = grupo.totalTemporada > 0 && grupo.episodios.length >= grupo.totalTemporada;
 
     for (const s of seguidores ?? []) {
-      const nombreSerie = (ep as any).series_cache?.name ?? "tu serie";
-      const enviado = await mandarPushSiCorresponde(
-        supabase,
-        s.user_id,
-        "Nuevo episodio hoy",
-        `Hoy se estrena T${ep.season_number}E${ep.episode_number} de ${nombreSerie}`,
-        { type: "episode_today", seriesTmdbId: ep.series_tmdb_id, season: ep.season_number, episode: ep.episode_number }
-      );
-      if (enviado) enviados++;
+      if (esTemporadaCompleta) {
+        const enviado = await mandarPushSiCorresponde(
+          supabase,
+          s.user_id,
+          "Nueva temporada hoy",
+          `Hoy se estrena la temporada ${grupo.season} de ${grupo.nombreSerie}`,
+          { type: "season_today", seriesTmdbId: grupo.seriesTmdbId, season: grupo.season }
+        );
+        if (enviado) enviados++;
+      } else if (grupo.episodios.length > 1) {
+        const enviado = await mandarPushSiCorresponde(
+          supabase,
+          s.user_id,
+          "Nuevos episodios hoy",
+          `Hoy se estrenan los capítulos ${listarNumerosNatural(grupo.episodios)} de ${grupo.nombreSerie}`,
+          { type: "episodes_today", seriesTmdbId: grupo.seriesTmdbId, season: grupo.season, episodes: grupo.episodios }
+        );
+        if (enviado) enviados++;
+      } else {
+        for (const numEp of grupo.episodios) {
+          const enviado = await mandarPushSiCorresponde(
+            supabase,
+            s.user_id,
+            "Nuevo episodio hoy",
+            `Hoy se estrena T${grupo.season} - E${numEp} de ${grupo.nombreSerie}`,
+            { type: "episode_today", seriesTmdbId: grupo.seriesTmdbId, season: grupo.season, episode: numEp }
+          );
+          if (enviado) enviados++;
+        }
+      }
     }
   }
 
