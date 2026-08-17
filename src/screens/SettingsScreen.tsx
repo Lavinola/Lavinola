@@ -374,7 +374,7 @@ function TabAplicacion({ navigation }: any) {
 
       <SeccionTitulo texto={t("País de residencia")} />
       <Text style={styles.switchHint}>
-        {t("Se usa para mostrarte dónde ver cada título en tu país. Si te mudaste, cambialo acá y se actualiza solo.")}
+        {t("Se usa para avisarte los estrenos y mostrarte dónde ver cada título en tu país. Si te mudaste, cambialo acá y se actualiza solo.")}
       </Text>
       <CountryPickerField
         valor={p.country ?? "AR"}
@@ -382,9 +382,6 @@ function TabAplicacion({ navigation }: any) {
       />
 
       <Text style={[styles.label, { marginTop: 12 }]}>{t("Zona horaria")}</Text>
-      <Text style={styles.switchHint}>
-        {t("Se usa para avisarte los estrenos a la hora correcta de tu zona. Si tu país tiene varias, elegí la tuya.")}
-      </Text>
       <TimezonePickerField
         valor={p.timezone ?? zonaHorariaPorDefectoDePais(p.country ?? "AR")}
         onCambiar={(v) => actualizar({ timezone: v })}

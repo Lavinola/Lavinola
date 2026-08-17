@@ -287,11 +287,6 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Non abbiamo trovato nessun fuso orario con quel nome.",
   },
   "Elegir zona horaria...": { en: "Choose time zone...", pt: "Escolher fuso horário...", it: "Scegli fuso orario..." },
-  "Se usa para avisarte los estrenos a la hora correcta de tu zona. Si tu país tiene varias, elegí la tuya.": {
-    en: "Used to notify you about new releases at the right time for your zone. If your country has several, pick yours.",
-    pt: "Usado para avisar sobre lançamentos no horário certo do seu fuso. Se o seu país tem vários, escolha o seu.",
-    it: "Serve per avvisarti delle novità all'ora giusta del tuo fuso. Se il tuo paese ne ha diversi, scegli il tuo.",
-  },
   "Estrenos de películas y episodios de tu lista de pendientes": {
     en: "New releases of movies and episodes from your pending list",
     pt: "Estreias de filmes e episódios da sua lista de pendentes",
@@ -1893,10 +1888,10 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   plataforma: { en: "platform", pt: "plataforma", it: "piattaforma" },
   plataformas: { en: "platforms", pt: "plataformas", it: "piattaforme" },
   "País de residencia": { en: "Country of residence", pt: "País de residência", it: "Paese di residenza" },
-  "Se usa para mostrarte dónde ver cada título en tu país. Si te mudaste, cambialo acá y se actualiza solo.": {
-    en: "Used to show you where to watch each title in your country. If you moved, change it here and it updates on its own.",
-    pt: "Usado para mostrar onde assistir cada título no seu país. Se você se mudou, mude aqui e atualiza sozinho.",
-    it: "Usato per mostrarti dove vedere ogni titolo nel tuo paese. Se ti sei trasferito, cambialo qui e si aggiorna da solo.",
+  "Se usa para avisarte los estrenos y mostrarte dónde ver cada título en tu país. Si te mudaste, cambialo acá y se actualiza solo.": {
+    en: "Used to notify you about new releases and show you where to watch each title in your country. If you moved, change it here and it updates on its own.",
+    pt: "Usado para avisar sobre lançamentos e mostrar onde assistir cada título no seu país. Se você se mudou, mude aqui e atualiza sozinho.",
+    it: "Serve per avvisarti delle novità e mostrarti dove vedere ogni titolo nel tuo paese. Se ti sei trasferito, cambialo qui e si aggiorna da solo.",
   },
   "3. Guardá ese ZIP en tu celu tal cual llega, sin descomprimir — lo subís entero.": {
     en: "3. Save that ZIP on your phone just as it is, without unzipping — you upload it whole.",
