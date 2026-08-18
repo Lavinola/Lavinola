@@ -381,6 +381,38 @@ export function elegirTrailer(videos: any, idioma?: string): { key: string; name
   return { key: oficial.key, name: oficial.name };
 }
 
+export interface TrailerIdioma {
+  idioma: "en" | "es" | "it" | "pt";
+  key: string;
+  name: string;
+}
+
+/**
+ * De todos los tráilers/teasers que tiene cargados TMDB para el título,
+ * arma un tráiler por cada uno de los 4 idiomas que nos interesan (los
+ * que efectivamente tenga disponibles — no todos los títulos tienen los
+ * 4). Para cada idioma, prioriza: oficial + tipo "Trailer" (por sobre
+ * "Teaser") + el más nuevo si hay varios.
+ */
+export function agruparTrailersPorIdioma(videos: any): TrailerIdioma[] {
+  const IDIOMAS: TrailerIdioma["idioma"][] = ["en", "es", "it", "pt"];
+  const lista: any[] = videos?.results ?? [];
+  const deYoutube = lista.filter((v) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
+
+  const resultado: TrailerIdioma[] = [];
+  for (const idioma of IDIOMAS) {
+    const candidatos = deYoutube.filter((v) => v.iso_639_1 === idioma);
+    if (candidatos.length === 0) continue;
+    const ordenados = [...candidatos].sort((a, b) => {
+      if (!!a.official !== !!b.official) return a.official ? -1 : 1;
+      if ((a.type === "Trailer") !== (b.type === "Trailer")) return a.type === "Trailer" ? -1 : 1;
+      return (b.published_at ?? "").localeCompare(a.published_at ?? "");
+    });
+    resultado.push({ idioma, key: ordenados[0].key, name: ordenados[0].name });
+  }
+  return resultado;
+}
+
 // ---------- Recomendados / similares ----------
 export function getSeriesRecommendations(tmdbId: number) {
   return tmdbFetch<any>(`/tv/${tmdbId}/recommendations`);

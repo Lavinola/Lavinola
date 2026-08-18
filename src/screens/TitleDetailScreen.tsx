@@ -31,7 +31,8 @@ import {
   posterUrl,
   getSeriesVideos,
   getMovieVideos,
-  elegirTrailer,
+  agruparTrailersPorIdioma,
+  TrailerIdioma,
   getSeriesRecommendations,
   getMovieRecommendations,
   getSeriesCertification,
@@ -618,7 +619,8 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   const [imdb, setImdb] = useState<NotaImdb | null>(null);
   const [cantidadFavoritos, setCantidadFavoritos] = useState(0);
   const [cantidadListas, setCantidadListas] = useState(0);
-  const [trailer, setTrailer] = useState<{ key: string; name: string } | null>(null);
+  const [trailersDisponibles, setTrailersDisponibles] = useState<TrailerIdioma[]>([]);
+  const [idiomaTrailerElegido, setIdiomaTrailerElegido] = useState<TrailerIdioma["idioma"] | null>(null);
   const [director, setDirector] = useState<string | null>(null);
   const [directorId, setDirectorId] = useState<number | null>(null);
   const [recomendados, setRecomendados] = useState<any[]>([]);
@@ -739,7 +741,10 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       .then(({ count }) => setCantidadListas(count ?? 0));
 
     const videos = tipo === "series" ? await getSeriesVideos(tmdbId) : await getMovieVideos(tmdbId);
-    setTrailer(elegirTrailer(videos));
+    const disponibles = agruparTrailersPorIdioma(videos);
+    setTrailersDisponibles(disponibles);
+    // Por defecto viene apretado el de inglés, si hay — si no, el primero que haya disponible.
+    setIdiomaTrailerElegido(disponibles.find((t) => t.idioma === "en")?.idioma ?? disponibles[0]?.idioma ?? null);
 
     const recs = tipo === "series" ? await getSeriesRecommendations(tmdbId) : await getMovieRecommendations(tmdbId);
     const crudos: any[] = recs?.results ?? [];
@@ -949,9 +954,23 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
         <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEliminar={eliminarEventoVista} fechaEstreno={titulo?.release_date ?? null} />
       )}
 
-      {trailer && (
+      {trailersDisponibles.length > 0 && idiomaTrailerElegido && (
         <View style={{ marginTop: 16 }}>
-          <TrailerEmbed youtubeKey={trailer.key} />
+          <Text style={styles.label}>{t("Tráiler")}</Text>
+          <View style={styles.idiomasTrailerRow}>
+            {trailersDisponibles.map((tr) => (
+              <Pressable
+                key={tr.idioma}
+                style={[styles.idiomaTrailerPill, idiomaTrailerElegido === tr.idioma && styles.idiomaTrailerPillActiva]}
+                onPress={() => setIdiomaTrailerElegido(tr.idioma)}
+              >
+                <Text style={[styles.idiomaTrailerPillTexto, idiomaTrailerElegido === tr.idioma && styles.idiomaTrailerPillTextoActiva]}>
+                  {t(NOMBRE_IDIOMA_TRAILER[tr.idioma])}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <TrailerEmbed key={idiomaTrailerElegido} youtubeKey={trailersDisponibles.find((tr) => tr.idioma === idiomaTrailerElegido)!.key} />
         </View>
       )}
 
@@ -1282,6 +1301,13 @@ function EpisodiosTab({
   );
 }
 
+const NOMBRE_IDIOMA_TRAILER: Record<TrailerIdioma["idioma"], string> = {
+  en: "Inglés",
+  es: "Español",
+  it: "Italiano",
+  pt: "Portugués",
+};
+
 const styles = StyleSheet.create({
   backdropWrap: { width: "100%", aspectRatio: 16 / 9, backgroundColor: theme.colors.surfaceAlt },
   backdrop: { width: "100%", height: "100%" },
@@ -1322,6 +1348,11 @@ const styles = StyleSheet.create({
   popularidad: { fontSize: 13, color: theme.colors.textMuted, marginTop: 6 },
   tuCalificacion: { marginTop: 16 },
   label: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 10, fontWeight: "700", textTransform: "uppercase", textAlign: "center" },
+  idiomasTrailerRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginBottom: 10 },
+  idiomaTrailerPill: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.border },
+  idiomaTrailerPillActiva: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  idiomaTrailerPillTexto: { fontSize: 13, color: theme.colors.textMuted, fontWeight: "700" },
+  idiomaTrailerPillTextoActiva: { color: "#000000" },
   sinVer: { fontSize: 13, color: theme.colors.textFaint, marginTop: 16, fontStyle: "italic" },
   seccionTitulo: { fontSize: 16, fontWeight: "700", marginTop: 20, marginBottom: 8 },
   dato: { fontSize: 14 },
