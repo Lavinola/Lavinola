@@ -38,7 +38,7 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
     if (!persona?.biography) return;
     setTraduciendoBio(true);
     try {
-      setTraduccionBio(await traducirTexto(persona.biography.slice(0, 500), idioma));
+      setTraduccionBio(await traducirTexto(persona.biography, idioma));
     } catch (e: any) {
       Alert.alert(t("No se pudo traducir"), e.message);
     } finally {

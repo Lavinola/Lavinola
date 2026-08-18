@@ -956,7 +956,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       )}
 
       {trailersDisponibles.length > 0 && idiomaTrailerElegido && (
-        <View style={{ marginTop: 16 }}>
+        <>
           <Text style={styles.seccionTitulo}>{t("Tráiler")}</Text>
           <View style={{ marginBottom: 10 }}>
             <TrailerIdiomaSelector
@@ -966,7 +966,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
             />
           </View>
           <TrailerEmbed key={idiomaTrailerElegido} youtubeKey={trailersDisponibles.find((tr) => tr.idioma === idiomaTrailerElegido)!.key} />
-        </View>
+        </>
       )}
 
       {recomendados.length > 0 && (
