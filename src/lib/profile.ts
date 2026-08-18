@@ -32,6 +32,7 @@ export interface PerfilCompleto {
   show_titles_in_own_language: boolean;
   notify_episode_timing: "none" | "10min" | "1hora" | "1dia";
   notify_new_releases: boolean;
+  haptics_enabled: boolean;
   notify_likes: boolean;
   notify_replies: boolean;
   notify_follow_requests: boolean;

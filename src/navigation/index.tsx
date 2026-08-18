@@ -17,6 +17,7 @@ import { precargarListaPendiente, limpiarCacheListaPendiente } from "../lib/seri
 import { precargarPeliculas, limpiarCachePeliculas } from "../lib/moviesListCache";
 import { setIdiomaTitulos } from "../lib/tmdb";
 import { identificarUsuarioEnReportes } from "../lib/errorReporting";
+import { cargarPreferenciaHaptics } from "../lib/haptics";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -479,6 +480,7 @@ export default function RootNavigation() {
         identificarUsuarioEnReportes(data.session.user.id);
         registrarPushToken(data.session.user.id);
         aplicarIdioma(data.session.user.id);
+        cargarPreferenciaHaptics(data.session.user.id);
         precargarUsuariosRecomendados(data.session.user.id);
         precargarPerfilPropio(data.session.user.id);
         precargarListaPendiente(data.session.user.id);
@@ -495,6 +497,7 @@ export default function RootNavigation() {
         identificarUsuarioEnReportes(s.user.id);
         registrarPushToken(s.user.id);
         aplicarIdioma(s.user.id);
+        cargarPreferenciaHaptics(s.user.id);
         precargarUsuariosRecomendados(s.user.id);
         precargarPerfilPropio(s.user.id);
         precargarListaPendiente(s.user.id);

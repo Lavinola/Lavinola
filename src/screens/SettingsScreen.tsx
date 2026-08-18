@@ -5,6 +5,7 @@ import { Text, AppButton } from "../components/Themed";
 import SelectField from "../components/SelectField";
 import CountryPickerField from "../components/CountryPickerField";
 import TimezonePickerField from "../components/TimezonePickerField";
+import { setHapticsActivados } from "../lib/haptics";
 import { zonaHorariaPorDefectoDePais } from "../lib/timezones";
 import ConfirmModal from "../components/ConfirmModal";
 import Toast from "../components/Toast";
@@ -421,6 +422,15 @@ function TabAplicacion({ navigation }: any) {
       <SwitchLinea etiqueta={t("Series favoritas")} valor={p.show_favorite_series} onCambiar={(v) => actualizar({ show_favorite_series: v })} />
       <SwitchLinea etiqueta={t("Grupos en los que estás")} valor={p.show_groups} onCambiar={(v) => actualizar({ show_groups: v })} />
       <SwitchLinea etiqueta={t("Reseñas")} valor={p.show_comments} onCambiar={(v) => actualizar({ show_comments: v })} />
+
+      <SwitchLinea
+        etiqueta={t("Vibración al tocar (marcar visto, reaccionar, seguir)")}
+        valor={p.haptics_enabled !== false}
+        onCambiar={(v) => {
+          setHapticsActivados(v);
+          actualizar({ haptics_enabled: v });
+        }}
+      />
 
       <SeccionTitulo texto={t("Importar Datos")} />
       <Pressable onPress={() => navigation.navigate("ImportarTVTime")}>

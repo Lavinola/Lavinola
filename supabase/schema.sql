@@ -538,6 +538,7 @@ alter table profiles add column if not exists notify_episode_timing text default
 -- tenía sentido prometer un aviso "10 minutos antes". La columna vieja
 -- queda sin usar, no hace falta borrarla.
 alter table profiles add column if not exists notify_new_releases boolean default true;
+alter table profiles add column if not exists haptics_enabled boolean default true;
 -- Zona horaria (identificador IANA, ej "America/Argentina/Buenos_Aires")
 -- — se pone sola según el país elegido, pero se puede cambiar a mano
 -- (útil para países con varias zonas horarias). La usa

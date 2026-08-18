@@ -273,8 +273,8 @@ export default function PostCard({
       <View style={styles.autorRow}>
         <Pressable style={{ flexDirection: "row", alignItems: "center", flex: 1 }} onPress={() => navigation.navigate("PerfilAjeno", { userId: post.user_id })}>
           <Avatar uri={post.avatar_url} size={34} style={{ marginRight: 8 }} />
-          <View style={{ flex: 1 }}>
-            <NombreUsuario style={styles.username} displayName={post.display_name} username={post.username} numberOfLines={1} />
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+            <NombreUsuario style={[styles.username, { flexShrink: 1 }]} displayName={post.display_name} username={post.username} numberOfLines={1} />
             <Text style={styles.fecha}>{formatearTiempoRelativo(post.created_at)}</Text>
           </View>
         </Pressable>
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   avatar: { width: 34, height: 34, borderRadius: 17, marginRight: 8, backgroundColor: theme.colors.surfaceAlt },
   avatarPlaceholder: {},
   username: { fontSize: 13, fontWeight: "700" },
-  fecha: { fontSize: 10, color: theme.colors.textMuted },
+  fecha: { fontSize: 10, color: theme.colors.textMuted, marginLeft: 6, flexShrink: 0 },
   menuPuntitos: { fontSize: 18, color: theme.colors.textMuted, paddingHorizontal: 4 },
   tituloRow: { flexDirection: "row", alignItems: "center", backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, padding: 8, marginBottom: 10 },
   poster: { width: 48, height: 72, borderRadius: 6, marginRight: 10 },

@@ -66,7 +66,7 @@ export default function RecomendarTituloScreen({ route, navigation }: Props) {
   function mostrarAyuda() {
     Alert.alert(
       t("¿Qué es esto?"),
-      t("Elegí una película o serie y se la recomendás directo acá — al grupo, o a esta persona — con una notita si querés, igual que cuando compartís un título desde su pantalla de detalle.")
+      t("Elegí una película o serie y lo recomendás directo por acá, con una notita si querés.")
     );
   }
 
