@@ -8,6 +8,7 @@ interface Props {
   texto: string;
   style?: StyleProp<TextStyle>;
   maxLines?: number;
+  indicador?: "flecha" | "puntos"; // "flecha" (por defecto) = chevron abajo a la derecha, como ya se usaba. "puntos" = "..." violeta después del texto (para la biografía de actores/directores).
 }
 
 /**
@@ -22,7 +23,7 @@ interface Props {
  * versión web de la app no siempre avisa, y por eso el texto se veía
  * cortado sin que apareciera nunca la flechita para desplegarlo).
  */
-export default function ExpandableText({ texto, style, maxLines = 5 }: Props) {
+export default function ExpandableText({ texto, style, maxLines = 5, indicador = "flecha" }: Props) {
   const [expandido, setExpandido] = useState(false);
   const [truncado, setTruncado] = useState(false);
   const alturaCompleta = useRef<number | null>(null);
@@ -60,11 +61,16 @@ export default function ExpandableText({ texto, style, maxLines = 5 }: Props) {
       >
         {texto}
       </Text>
-      {truncado && (
-        <Pressable onPress={() => setExpandido((v) => !v)} style={styles.flechaBtn} hitSlop={8}>
-          <Ionicons name={expandido ? "chevron-up" : "chevron-down"} size={16} color={theme.colors.primaryLight} />
-        </Pressable>
-      )}
+      {truncado &&
+        (indicador === "puntos" ? (
+          <Pressable onPress={() => setExpandido((v) => !v)} hitSlop={8}>
+            <Text style={styles.puntosTexto}>{expandido ? "▲" : "•••"}</Text>
+          </Pressable>
+        ) : (
+          <Pressable onPress={() => setExpandido((v) => !v)} style={styles.flechaBtn} hitSlop={8}>
+            <Ionicons name={expandido ? "chevron-up" : "chevron-down"} size={16} color={theme.colors.primaryLight} />
+          </Pressable>
+        ))}
     </View>
   );
 }
@@ -72,4 +78,5 @@ export default function ExpandableText({ texto, style, maxLines = 5 }: Props) {
 const styles = StyleSheet.create({
   flechaBtn: { position: "absolute", right: 0, bottom: 0 },
   medidorWrap: { height: 0, overflow: "hidden" },
+  puntosTexto: { color: theme.colors.primary, fontSize: 18, fontWeight: "800", letterSpacing: 2, marginTop: 2 },
 });

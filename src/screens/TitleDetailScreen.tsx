@@ -16,6 +16,7 @@ import { impactoLiviano, seleccion } from "../lib/haptics";
 import { pedirReseñaSiCorresponde } from "../lib/storeReview";
 import TituloConTraduccion from "../components/TituloConTraduccion";
 import TrailerEmbed from "../components/TrailerEmbed";
+import TrailerIdiomaSelector from "../components/TrailerIdiomaSelector";
 import { SkeletonTitleDetail } from "../components/SkeletonShapes";
 import ConfirmModal from "../components/ConfirmModal";
 import TopPills from "../components/TopPills";
@@ -956,19 +957,13 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
 
       {trailersDisponibles.length > 0 && idiomaTrailerElegido && (
         <View style={{ marginTop: 16 }}>
-          <Text style={styles.label}>{t("Tráiler")}</Text>
-          <View style={styles.idiomasTrailerRow}>
-            {trailersDisponibles.map((tr) => (
-              <Pressable
-                key={tr.idioma}
-                style={[styles.idiomaTrailerPill, idiomaTrailerElegido === tr.idioma && styles.idiomaTrailerPillActiva]}
-                onPress={() => setIdiomaTrailerElegido(tr.idioma)}
-              >
-                <Text style={[styles.idiomaTrailerPillTexto, idiomaTrailerElegido === tr.idioma && styles.idiomaTrailerPillTextoActiva]}>
-                  {t(NOMBRE_IDIOMA_TRAILER[tr.idioma])}
-                </Text>
-              </Pressable>
-            ))}
+          <Text style={styles.seccionTitulo}>{t("Tráiler")}</Text>
+          <View style={{ marginBottom: 10 }}>
+            <TrailerIdiomaSelector
+              opciones={trailersDisponibles.map((tr) => ({ key: tr.idioma, label: t(NOMBRE_IDIOMA_TRAILER[tr.idioma]) }))}
+              valor={idiomaTrailerElegido}
+              onCambiar={(v) => setIdiomaTrailerElegido(v as TrailerIdioma["idioma"])}
+            />
           </View>
           <TrailerEmbed key={idiomaTrailerElegido} youtubeKey={trailersDisponibles.find((tr) => tr.idioma === idiomaTrailerElegido)!.key} />
         </View>
@@ -1348,11 +1343,6 @@ const styles = StyleSheet.create({
   popularidad: { fontSize: 13, color: theme.colors.textMuted, marginTop: 6 },
   tuCalificacion: { marginTop: 16 },
   label: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 10, fontWeight: "700", textTransform: "uppercase", textAlign: "center" },
-  idiomasTrailerRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginBottom: 10 },
-  idiomaTrailerPill: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.border },
-  idiomaTrailerPillActiva: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
-  idiomaTrailerPillTexto: { fontSize: 13, color: theme.colors.textMuted, fontWeight: "700" },
-  idiomaTrailerPillTextoActiva: { color: "#000000" },
   sinVer: { fontSize: 13, color: theme.colors.textFaint, marginTop: 16, fontStyle: "italic" },
   seccionTitulo: { fontSize: 16, fontWeight: "700", marginTop: 20, marginBottom: 8 },
   dato: { fontSize: 14 },

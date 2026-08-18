@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Image, FlatList, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "../components/Themed";
+import ExpandableText from "../components/ExpandableText";
 import { getPersonDetails, getPersonCombinedCredits, posterUrl } from "../lib/tmdb";
 import { traducirTexto } from "../lib/translate";
 import { syncSeries, syncMovie } from "../lib/sync";
@@ -102,7 +103,7 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
           )}
           {persona?.biography ? (
             <>
-              <Text style={styles.bio}>{traduccionBio ?? persona.biography.slice(0, 500)}</Text>
+              <ExpandableText texto={traduccionBio ?? persona.biography} style={styles.bio} maxLines={5} indicador="puntos" />
               <Pressable onPress={traducirBio} disabled={traduciendoBio} style={styles.traducirBioBtn}>
                 <Text style={styles.traducirBioTexto}>{traduciendoBio ? t("Traduciendo...") : traduccionBio ? t("Ver original") : t("Traducir")}</Text>
               </Pressable>

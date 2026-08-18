@@ -363,12 +363,18 @@ export function getSeriesReviews(tmdbId: number, page = 1) {
 }
 
 // ---------- Videos (tráilers, teasers) ----------
+// IMPORTANTE: /videos filtra los resultados por el parámetro "language" —
+// si no le pedimos explícitamente varios idiomas con include_video_language,
+// solo trae los del idioma que la app tenga configurado en ese momento (por
+// ejemplo, si "Mostrar en tu idioma" está apagado, terminaba trayendo SOLO
+// tráilers en inglés, para cualquier título, sin importar qué otros
+// idiomas tuviera disponibles TMDB).
 export function getSeriesVideos(tmdbId: number) {
-  return tmdbFetch<any>(`/tv/${tmdbId}/videos`);
+  return tmdbFetch<any>(`/tv/${tmdbId}/videos`, { include_video_language: "en,es,it,pt,null" }, "en-US");
 }
 
 export function getMovieVideos(tmdbId: number) {
-  return tmdbFetch<any>(`/movie/${tmdbId}/videos`);
+  return tmdbFetch<any>(`/movie/${tmdbId}/videos`, { include_video_language: "en,es,it,pt,null" }, "en-US");
 }
 
 /** Busca en la respuesta de /videos el mejor tráiler de YouTube para mostrar (oficial y en español si hay, si no el que sea). */
