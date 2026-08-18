@@ -1281,6 +1281,34 @@ exception when others then
   null; -- si la publicación no existe con ese nombre o ya está agregada de otra forma, no rompemos el resto del script
 end $$;
 
+-- IMPORTANTE: chat_messages y chat_message_reactions nunca se habían
+-- agregado acá — por eso la actualización en vivo del chat (la
+-- suscripción que ya existía en el código de la app) nunca recibía
+-- ningún aviso real cuando llegaba un mensaje nuevo o alguien
+-- recomendaba algo, aunque el código estuviera bien armado. Sin esto en
+-- la publicación de Supabase, no hay forma de que el chat se actualice
+-- solo — recién se veía al volver a entrar a la pantalla desde cero.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'chat_messages'
+  ) then
+    alter publication supabase_realtime add table chat_messages;
+  end if;
+exception when others then
+  null;
+end $$;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'chat_message_reactions'
+  ) then
+    alter publication supabase_realtime add table chat_message_reactions;
+  end if;
+exception when others then
+  null;
+end $$;
+
 -- Trae (o crea) el chat entre dos usuarios — normaliza el orden del par para
 -- que nunca haya dos chats duplicados entre las mismas dos personas.
 create or replace function obtener_o_crear_chat(otro_usuario uuid) returns uuid as $$

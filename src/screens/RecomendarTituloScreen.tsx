@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator, Alert as RNAlert } from "react-native";
+import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text, AppButton } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
@@ -38,7 +38,7 @@ export default function RecomendarTituloScreen({ route, navigation }: Props) {
       title: t("Recomendar"),
       headerRight: () => (
         <Pressable onPress={mostrarAyuda} hitSlop={10} style={{ marginRight: 12 }}>
-          <Ionicons name="help-circle-outline" size={24} color={theme.colors.text} />
+          <Ionicons name="help-circle-outline" size={24} color={theme.colors.primary} />
         </Pressable>
       ),
     });
@@ -64,7 +64,7 @@ export default function RecomendarTituloScreen({ route, navigation }: Props) {
   }, [query]);
 
   function mostrarAyuda() {
-    RNAlert.alert(
+    Alert.alert(
       t("¿Qué es esto?"),
       t("Elegí una película o serie y se la recomendás directo acá — al grupo, o a esta persona — con una notita si querés, igual que cuando compartís un título desde su pantalla de detalle.")
     );

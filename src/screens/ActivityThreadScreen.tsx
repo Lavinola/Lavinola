@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, FlatList, TextInput, Pressable, Image, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, ActivityIndicator } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { Alert } from "../lib/alert";
@@ -113,6 +114,17 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       supabase.removeChannel(canal);
     };
   }, []);
+
+  // Refuerzo además de la suscripción en vivo de arriba — si por lo que
+  // sea la conexión en tiempo real no llega a avisar (ej. al volver de
+  // recomendar un título desde el botón nuevo), esto asegura que los
+  // mensajes se actualicen apenas volvés a esta pantalla igual.
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chatId])
+  );
 
   async function inicializar() {
     const { data } = await supabase.auth.getUser();
@@ -616,7 +628,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
             onPress={() => navigation.navigate("RecomendarTitulo", { destinoTipo: "chat", chatId })}
             disabled={!!editandoMensajeId}
           >
-            <Ionicons name="add" size={16} color="#000000" />
+            <Ionicons name="add" size={20} color={theme.colors.primaryLight} />
           </Pressable>
           <Pressable style={styles.gifBtnMitad} onPress={abrirGifPicker} disabled={!!editandoMensajeId}>
             <Text style={styles.gifBtnTexto}>GIF</Text>
@@ -804,8 +816,8 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: "row", padding: 8, alignItems: "center", borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   gifBtn: { width: 44, height: 38, borderRadius: 8, backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center", marginRight: 6 },
   gifBtnTexto: { color: theme.colors.primaryLight, fontSize: 11, fontWeight: "800" },
-  masGifCol: { width: 44, height: 38, marginRight: 6, borderRadius: 8, overflow: "hidden", gap: 2 },
-  masBtn: { flex: 1, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
+  masGifCol: { width: 44, alignSelf: "stretch", marginRight: 8, borderRadius: theme.radius.md, overflow: "hidden", gap: 2 },
+  masBtn: { flex: 1, backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center" },
   gifBtnMitad: { flex: 1, backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center" },
   input: {
     flex: 1,

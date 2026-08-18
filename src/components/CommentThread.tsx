@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, TextInput, Pressable, Image, StyleSheet } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -122,6 +123,17 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
     if (targetType === "group" && groupId) listarMiembrosIds(groupId).then(setMiembroIds);
     cargar();
   }, [orden]);
+
+  // Sin esto, al volver de otra pantalla (por ej. después de recomendar un
+  // título desde el botón nuevo, o de postear algo) los comentarios/posts
+  // no se actualizaban solos — quedaban con los datos viejos hasta que la
+  // pantalla se volvía a montar de cero (saliendo del todo y volviendo).
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [targetType, targetId, groupId, orden])
+  );
 
   async function cargar() {
     const data = await cargarComentariosRaiz(targetType, targetId, orden, userId);
