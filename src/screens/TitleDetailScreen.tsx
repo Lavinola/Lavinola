@@ -1365,7 +1365,7 @@ const styles = StyleSheet.create({
   comentariosBannerTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },
   comentariosBannerFlecha: { color: "#000000", fontWeight: "800", fontSize: 22 },
 
-  temporadaHeader: { flexDirection: "row", justifyContent: "space-between", backgroundColor: theme.colors.surface, padding: 12, borderRadius: theme.radius.md },
+  temporadaHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.colors.surface, padding: 12, borderRadius: theme.radius.md },
   temporadaTitulo: { fontSize: 15, fontWeight: "700" },
   temporadaProgreso: { fontSize: 13, color: theme.colors.textMuted },
   episodioRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 4 },

@@ -80,6 +80,27 @@ async function pendientesDeUsuario(userId: string, tipo: "movie" | "series"): Pr
   return resultado;
 }
 
+/**
+ * Todo lo que un usuario YA VIO (películas vistas, o series con al menos
+ * un capítulo visto, sea parcial o completa) — a diferencia de
+ * pendientesDeUsuario, esto es para EXCLUIR de las recomendaciones de
+ * respaldo (parecido/tendencia), que salen directo de TMDB y no tienen
+ * ninguna noción propia de "esto ya lo vi". Sin esto, "¿Qué vemos?" podía
+ * terminar recomendando algo que la persona ya terminó de ver por completo.
+ */
+async function vistosDeUsuario(userId: string, tipo: "movie" | "series"): Promise<Set<number>> {
+  if (tipo === "movie") {
+    const filas = await fetchAllRows<any>((desde, hasta) =>
+      supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", userId).eq("watched", true).range(desde, hasta)
+    );
+    return new Set(filas.map((f: any) => f.movie_tmdb_id));
+  }
+  const filas = await fetchAllRows<any>((desde, hasta) =>
+    supabase.from("user_episodes_watched").select("series_tmdb_id").eq("user_id", userId).range(desde, hasta)
+  );
+  return new Set(filas.map((f: any) => f.series_tmdb_id));
+}
+
 function cumpleGenero(candidato: { genero_ids: number[] }, generos: number[]): boolean {
   if (generos.length === 0) return true;
   return candidato.genero_ids.some((g) => generos.includes(g));
@@ -220,9 +241,10 @@ export async function elegirQueVemosGrupo(
   plataformas: number[],
   watchRegion: string
 ): Promise<ResultadoQueVemos | null> {
-  const [pendientesPorMiembro, recomendadosUltimas24hs] = await Promise.all([
+  const [pendientesPorMiembro, recomendadosUltimas24hs, vistosPorMiembro] = await Promise.all([
     Promise.all(miembroIds.map((id) => pendientesDeUsuario(id, tipo))),
     obtenerRecomendadosUltimas24hsGrupo(groupId),
+    Promise.all(miembroIds.map((id) => vistosDeUsuario(id, tipo))),
   ]);
 
   // Cuenta en cuántos miembros distintos está pendiente cada título.
@@ -237,7 +259,8 @@ export async function elegirQueVemosGrupo(
   }
 
   const todosLosIds = new Set(conteoPorId.keys());
-  const idsExcluir = new Set([...todosLosIds, ...recomendadosUltimas24hs]);
+  const todosLosVistos = new Set(vistosPorMiembro.flatMap((s) => [...s]));
+  const idsExcluir = new Set([...todosLosIds, ...recomendadosUltimas24hs, ...todosLosVistos]);
 
   async function elegirDeEsePool(candidatos: CandidatoQueVemos[]): Promise<ResultadoQueVemos | null> {
     const porGenero = candidatos.filter((c) => cumpleGenero(c, generos));
@@ -286,18 +309,21 @@ export async function elegirQueVemos(
   plataformas: number[],
   watchRegion: string
 ): Promise<ResultadoQueVemos | null> {
-  const [pendientesA, pendientesB, recomendadosUltimas24hs] = await Promise.all([
+  const [pendientesA, pendientesB, recomendadosUltimas24hs, vistosA, vistosB] = await Promise.all([
     pendientesDeUsuario(userIdA, tipo),
     pendientesDeUsuario(userIdB, tipo),
     obtenerRecomendadosUltimas24hs(chatId),
+    vistosDeUsuario(userIdA, tipo),
+    vistosDeUsuario(userIdB, tipo),
   ]);
 
   const idsA = new Set(pendientesA.keys());
   const idsB = new Set(pendientesB.keys());
   // Para los respaldos por "discover" (parecido / tendencia), ni tiene
-  // sentido recomendar algo que ya tiene alguno de los dos, ni repetir algo
+  // sentido recomendar algo que ya tiene alguno de los dos, ni algo que
+  // cualquiera de los dos ya vio (aunque sea parcial), ni repetir algo
   // que la app ya recomendó en este mismo chat en las últimas 24hs.
-  const idsExcluir = new Set([...idsA, ...idsB, ...recomendadosUltimas24hs]);
+  const idsExcluir = new Set([...idsA, ...idsB, ...recomendadosUltimas24hs, ...vistosA, ...vistosB]);
 
   const compartidos = [...pendientesA.values()].filter((c) => idsB.has(c.tmdbId) && !recomendadosUltimas24hs.has(c.tmdbId));
 
