@@ -423,6 +423,7 @@ function TabAplicacion({ navigation }: any) {
       <SwitchLinea etiqueta={t("Grupos en los que estás")} valor={p.show_groups} onCambiar={(v) => actualizar({ show_groups: v })} />
       <SwitchLinea etiqueta={t("Reseñas")} valor={p.show_comments} onCambiar={(v) => actualizar({ show_comments: v })} />
 
+      <SeccionTitulo texto={t("Vibración")} />
       <SwitchLinea
         etiqueta={t("Vibración al tocar (marcar visto, reaccionar, seguir)")}
         valor={p.haptics_enabled !== false}

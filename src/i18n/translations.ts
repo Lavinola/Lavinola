@@ -279,6 +279,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  Vibración: { en: "Vibration", pt: "Vibração", it: "Vibrazione" },
   "Vibración al tocar (marcar visto, reaccionar, seguir)": {
     en: "Vibration on tap (mark watched, react, follow)",
     pt: "Vibração ao tocar (marcar visto, reagir, seguir)",
