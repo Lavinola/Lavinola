@@ -23,30 +23,73 @@ export const MOODS: { key: string; imagen: any; label: string }[] = [
 ];
 
 export interface MoodStats {
-  miMood: string | null;
-  porcentajes: Record<string, number>; // key -> porcentaje 0-100
-  total: number;
+  misMoods: string[]; // hasta 2
+  porcentajes: Record<string, number>; // key -> porcentaje 0-100 (sobre cantidad de PERSONAS, no de reacciones — como cada una puede elegir hasta 2, la suma puede superar el 100%)
+  total: number; // cantidad de personas distintas que reaccionaron
 }
+
+const MAX_MOODS_POR_PERSONA = 2;
 
 export async function getMoodStats(targetType: TargetType, targetId: string, userId: string | null): Promise<MoodStats> {
   const { data } = await supabase.from("title_mood_reactions").select("user_id, mood").eq("target_type", targetType).eq("target_id", targetId);
   const filas = data ?? [];
+  const usuariosUnicos = new Set(filas.map((f: any) => f.user_id));
+  const total = usuariosUnicos.size;
   const conteos: Record<string, number> = {};
   filas.forEach((f: any) => {
     conteos[f.mood] = (conteos[f.mood] ?? 0) + 1;
   });
-  const total = filas.length;
   const porcentajes: Record<string, number> = {};
   MOODS.forEach((m) => {
     porcentajes[m.key] = total > 0 ? Math.round(((conteos[m.key] ?? 0) / total) * 100) : 0;
   });
-  const miFila = userId ? filas.find((f: any) => f.user_id === userId) : null;
-  return { miMood: (miFila as any)?.mood ?? null, porcentajes, total };
+  const misMoods = userId ? filas.filter((f: any) => f.user_id === userId).map((f: any) => f.mood) : [];
+  return { misMoods, porcentajes, total };
 }
 
+/**
+ * Elegir un estado de ánimo — hasta 2 por persona por título:
+ *  - Si ya la habías elegido, la saca (tocarla de nuevo la deselecciona).
+ *  - Si no la habías elegido y todavía tenés lugar (menos de 2), la agrega.
+ *  - Si ya tenés 2 elegidas y elegís una tercera distinta, se reemplaza
+ *    la más vieja de las dos por la nueva — así siempre quedan como
+ *    mucho 2, sin necesidad de que la persona saque una a mano primero.
+ */
 export async function elegirMood(userId: string, targetType: TargetType, targetId: string, mood: string) {
+  const { data: existentes } = await supabase
+    .from("title_mood_reactions")
+    .select("mood, created_at")
+    .eq("user_id", userId)
+    .eq("target_type", targetType)
+    .eq("target_id", targetId);
+  const actuales = existentes ?? [];
+  const yaElegida = actuales.some((f: any) => f.mood === mood);
+
+  if (yaElegida) {
+    const { error } = await supabase
+      .from("title_mood_reactions")
+      .delete()
+      .eq("user_id", userId)
+      .eq("target_type", targetType)
+      .eq("target_id", targetId)
+      .eq("mood", mood);
+    if (error) throw error;
+    return;
+  }
+
+  if (actuales.length >= MAX_MOODS_POR_PERSONA) {
+    const masVieja = [...actuales].sort((a: any, b: any) => (a.created_at ?? "").localeCompare(b.created_at ?? ""))[0];
+    await supabase
+      .from("title_mood_reactions")
+      .delete()
+      .eq("user_id", userId)
+      .eq("target_type", targetType)
+      .eq("target_id", targetId)
+      .eq("mood", masVieja.mood);
+  }
+
   const { error } = await supabase
     .from("title_mood_reactions")
-    .upsert({ user_id: userId, target_type: targetType, target_id: targetId, mood }, { onConflict: "user_id,target_type,target_id" });
+    .insert({ user_id: userId, target_type: targetType, target_id: targetId, mood });
   if (error) throw error;
 }

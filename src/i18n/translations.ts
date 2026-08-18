@@ -279,6 +279,20 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  episodios: { en: "episodes", pt: "episódios", it: "episodi" },
+  "¿Sacar el visto a toda la temporada?": {
+    en: "Remove watched from the whole season?",
+    pt: "Tirar o visto de toda a temporada?",
+    it: "Togliere il visto a tutta la stagione?",
+  },
+  "Se van a desmarcar los": { en: "This will unmark", pt: "Isso vai desmarcar", it: "Verranno rimossi" },
+  "episodios de la temporada": { en: "episodes of season", pt: "episódios da temporada", it: "episodi della stagione" },
+  "¿Marcar toda la temporada como vista?": {
+    en: "Mark the whole season as watched?",
+    pt: "Marcar toda a temporada como assistida?",
+    it: "Segnare tutta la stagione come vista?",
+  },
+  "Se van a marcar": { en: "This will mark", pt: "Isso vai marcar", it: "Verranno segnati" },
   "Zona horaria": { en: "Time zone", pt: "Fuso horário", it: "Fuso orario" },
   "Buscar ciudad...": { en: "Search city...", pt: "Buscar cidade...", it: "Cerca città..." },
   "No encontramos ninguna zona horaria con ese nombre.": {
@@ -484,6 +498,11 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   Vista: { en: "Watched", pt: "Assistido", it: "Visto" },
   "No vista": { en: "Not watched", pt: "Não assistido", it: "Non visto" },
   "¿Cómo te sentiste?": { en: "How did you feel?", pt: "Como você se sentiu?", it: "Come ti sei sentito?" },
+  "¿Cómo te sentiste? (elegí hasta 2)": {
+    en: "How did you feel? (pick up to 2)",
+    pt: "Como você se sentiu? (escolha até 2)",
+    it: "Come ti sei sentito? (scegli fino a 2)",
+  },
   "¿Quién te ha gustado más?": { en: "Who did you like the most?", pt: "Quem você mais gostou?", it: "Chi ti è piaciuto di più?" },
   "También te podría gustar": { en: "You might also like", pt: "Você também pode gostar", it: "Potrebbe piacerti anche" },
   "Ver tráiler": { en: "Watch trailer", pt: "Ver trailer", it: "Guarda il trailer" },

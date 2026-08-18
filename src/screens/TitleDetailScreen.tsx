@@ -623,7 +623,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   const [directorId, setDirectorId] = useState<number | null>(null);
   const [recomendados, setRecomendados] = useState<any[]>([]);
   const [eventosVista, setEventosVista] = useState<EventoVisto[]>([]);
-  const [moodStats, setMoodStats] = useState<MoodStats>({ miMood: null, porcentajes: {}, total: 0 });
+  const [moodStats, setMoodStats] = useState<MoodStats>({ misMoods: [], porcentajes: {}, total: 0 });
   const [castStats, setCastStats] = useState<CastVoteStats>({ miVoto: null, porcentajes: {}, total: 0 });
 
   const targetType = tipo as "series" | "movie";
@@ -841,8 +841,8 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
           <Text style={styles.label}>{tipo === "series" ? t("Valorá esta serie") : t("Valorá esta película")}</Text>
           <StarRating valor={miRating} onCambiar={calificar} conEtiquetas size={42} />
 
-          <Text style={[styles.label, { marginTop: 20 }]}>{t("¿Cómo te sentiste?")}</Text>
-          <MoodPicker miMood={moodStats.miMood} porcentajes={moodStats.porcentajes} onElegir={elegirMoodPropio} />
+          <Text style={[styles.label, { marginTop: 20 }]}>{t("¿Cómo te sentiste? (elegí hasta 2)")}</Text>
+          <MoodPicker misMoods={moodStats.misMoods} porcentajes={moodStats.porcentajes} onElegir={elegirMoodPropio} />
 
           {reparto.length > 0 && (
             <>
@@ -1013,7 +1013,10 @@ function EpisodiosTab({
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmDatos, setConfirmDatos] = useState<{ cantidad: number; marcarEste: (con: boolean) => void } | null>(null);
   const [temporadasFuturas, setTemporadasFuturas] = useState<{ season_number: number; air_date: string | null; name: string | null }[]>([]);
+  const [totalEpisodiosPorTemporada, setTotalEpisodiosPorTemporada] = useState<Record<number, number>>({});
   const [menuVistoEpisodio, setMenuVistoEpisodio] = useState<EpisodioConEstado | null>(null);
+  const [confirmTemporadaVisible, setConfirmTemporadaVisible] = useState(false);
+  const [confirmTemporadaDatos, setConfirmTemporadaDatos] = useState<{ titulo: string; mensaje: string; accion: () => void } | null>(null);
 
   useEffect(() => {
     cargar();
@@ -1039,6 +1042,11 @@ function EpisodiosTab({
     const meta = (cache?.seasons_meta ?? []) as { season_number: number; air_date: string | null; episode_count: number; name: string | null }[];
     // Temporadas confirmadas por TMDB que todavía no tienen episodios cargados (sin salir).
     setTemporadasFuturas(meta.filter((s) => !data[s.season_number]).map((s) => ({ season_number: s.season_number, air_date: s.air_date, name: s.name })));
+    const totales: Record<number, number> = {};
+    meta.forEach((s) => {
+      totales[s.season_number] = s.episode_count;
+    });
+    setTotalEpisodiosPorTemporada(totales);
   }
 
   async function toggleEpisodio(ep: EpisodioConEstado) {
@@ -1067,6 +1075,43 @@ function EpisodiosTab({
     } else {
       marcarEste(false);
     }
+  }
+
+  async function toggleTemporadaCompleta(episodios: EpisodioConEstado[]) {
+    if (!userId) return;
+    const hoy = new Date().toISOString().slice(0, 10);
+    const emitidos = episodios.filter((e) => e.air_date && e.air_date <= hoy);
+    if (emitidos.length === 0) return;
+    const todosVistos = emitidos.every((e) => e.visto);
+    const numTemporada = emitidos[0].season_number;
+
+    if (todosVistos) {
+      setConfirmTemporadaDatos({
+        titulo: t("¿Sacar el visto a toda la temporada?"),
+        mensaje: `${t("Se van a desmarcar los")} ${emitidos.length} ${t("episodios de la temporada")} ${numTemporada}.`,
+        accion: async () => {
+          impactoLiviano();
+          for (const ep of emitidos) {
+            await desmarcarEpisodio(userId, tmdbId, ep.season_number, ep.episode_number);
+          }
+          cargar();
+        },
+      });
+    } else {
+      setConfirmTemporadaDatos({
+        titulo: t("¿Marcar toda la temporada como vista?"),
+        mensaje: `${t("Se van a marcar")} ${emitidos.length} ${t("episodios de la temporada")} ${numTemporada}.`,
+        accion: async () => {
+          impactoLiviano();
+          const lista = emitidos.map((e) => ({ season_number: e.season_number, episode_number: e.episode_number }));
+          await marcarVariosEpisodios(userId, tmdbId, lista);
+          onSerieAgregada?.();
+          cargar();
+          if (await serieRecienCompletada(userId, tmdbId)) onSerieCompletada?.();
+        },
+      });
+    }
+    setConfirmTemporadaVisible(true);
   }
 
   async function marcarNoVistoDesdeMenu() {
@@ -1103,11 +1148,11 @@ function EpisodiosTab({
       {totalEpisodios > 0 && (
         <View style={styles.resumenVistosBox}>
           <Text style={styles.resumenVistosTexto}>
-            {t("Viste")} {totalVistos}/{totalEpisodios} {t("capítulos")}
+            {t("Viste")} {totalVistos}/{totalEpisodios} {t("episodios")}
           </Text>
           {totalFaltan > 0 && (
             <Text style={styles.resumenFaltanTexto}>
-              {t("Te faltan")} {totalFaltan} {t("capítulos")}
+              {t("Te faltan")} {totalFaltan} {t("episodios")}
             </Text>
           )}
         </View>
@@ -1116,11 +1161,41 @@ function EpisodiosTab({
         const episodios = porTemporada[num];
         const vistos = episodios.filter((e) => e.visto).length;
         const abierta = temporadaAbierta === num;
+        const hoyTemp = new Date().toISOString().slice(0, 10);
+        const emitidosTemporada = episodios.filter((e) => e.air_date && e.air_date <= hoyTemp);
+        // El total "real" de la temporada según TMDB — puede ser mayor a lo
+        // que tenemos cargado en episodios (si todavía no salieron todos).
+        const totalRealTemporada = totalEpisodiosPorTemporada[num] ?? episodios.length;
+        const temporadaTerminoDeEmitir = emitidosTemporada.length >= totalRealTemporada && totalRealTemporada > 0;
+        const temporadaCompleta = temporadaTerminoDeEmitir && emitidosTemporada.every((e) => e.visto);
         return (
           <View key={num} style={{ marginBottom: 8 }}>
             <Pressable style={styles.temporadaHeader} onPress={() => setTemporadaAbierta(abierta ? null : num)}>
               <Text style={styles.temporadaTitulo}>{t("Temporada")} {num}</Text>
-              <Text style={styles.temporadaProgreso}>{vistos}/{episodios.length}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.temporadaProgreso}>{vistos}/{episodios.length}</Text>
+                <Ionicons
+                  name={abierta ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={theme.colors.textMuted}
+                  style={{ marginLeft: 10 }}
+                />
+                <Pressable
+                  style={[
+                    styles.tildeBtn,
+                    temporadaCompleta && styles.tildeBtnMarcado,
+                    !temporadaTerminoDeEmitir && styles.tildeBtnDeshabilitado,
+                  ]}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    toggleTemporadaCompleta(episodios);
+                  }}
+                  disabled={!temporadaTerminoDeEmitir}
+                  hitSlop={10}
+                >
+                  <Text style={[styles.tildeTexto, temporadaCompleta && styles.tildeTextoMarcado]}>✓</Text>
+                </Pressable>
+              </View>
             </Pressable>
             {abierta &&
               episodios.map((ep) => {
@@ -1182,6 +1257,16 @@ function EpisodiosTab({
       botones={[
         { label: t("Solo este"), onPress: () => confirmDatos?.marcarEste(false) },
         { label: t("Marcar todos"), onPress: () => confirmDatos?.marcarEste(true), destacado: true },
+      ]}
+    />
+    <ConfirmModal
+      visible={confirmTemporadaVisible}
+      onCerrar={() => setConfirmTemporadaVisible(false)}
+      titulo={confirmTemporadaDatos?.titulo ?? ""}
+      mensaje={confirmTemporadaDatos?.mensaje ?? ""}
+      botones={[
+        { label: t("Cancelar"), onPress: () => {} },
+        { label: t("Confirmar"), onPress: () => confirmTemporadaDatos?.accion(), destacado: true },
       ]}
     />
     <ActionSheetModal

@@ -8,6 +8,7 @@ import {
   getTrendingMovies,
   getTrendingSeries,
 } from "./tmdb";
+import { syncMovie, syncSeries } from "./sync";
 
 export interface CandidatoQueVemos {
   tmdbId: number;
@@ -145,7 +146,7 @@ async function buscarParecido(
   const opciones = (data.results ?? []).filter((r: any) => !idsAExcluir.has(r.id));
   if (opciones.length === 0) return null;
   const elegido = elegirAlAzar(opciones.slice(0, 10));
-  return mapResultado(elegido, tipo);
+  return await mapResultado(elegido, tipo);
 }
 
 /** Última red de contención: lo más en tendencia que cumpla los filtros (o, si ni eso hay, tendencia a secas) — siempre tiene que dar algo. */
@@ -168,10 +169,22 @@ async function buscarTendenciaConFiltros(
   }
   if (opciones.length === 0) return null;
   const elegido = elegirAlAzar(opciones.slice(0, 10));
-  return mapResultado(elegido, tipo);
+  return await mapResultado(elegido, tipo);
 }
 
-function mapResultado(r: any, tipo: "movie" | "series"): ResultadoQueVemos {
+async function mapResultado(r: any, tipo: "movie" | "series"): Promise<ResultadoQueVemos> {
+  // IMPORTANTE: estos resultados vienen directo de TMDB (discover/tendencia),
+  // no de los pendientes de alguien — por eso todavía pueden no existir en
+  // nuestra propia base. Si no los sincronizamos acá, el mensaje del chat
+  // termina apuntando a un tmdb_id que nuestra base no reconoce, y al
+  // abrirlo se ve como "este título ya no existe" aunque el título sea
+  // real. Sincronizarlo acá, antes de devolverlo, evita ese problema de raíz.
+  try {
+    if (tipo === "series") await syncSeries(r.id);
+    else await syncMovie(r.id);
+  } catch (e) {
+    console.error(`No se pudo sincronizar el título elegido por "¿Qué vemos?" (${r.id}):`, e);
+  }
   return {
     tmdbId: r.id,
     tipo,

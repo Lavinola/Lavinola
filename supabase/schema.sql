@@ -1009,8 +1009,16 @@ create table if not exists title_mood_reactions (
   target_id text not null,
   mood text not null,
   created_at timestamptz default now(),
-  primary key (user_id, target_type, target_id)
+  primary key (user_id, target_type, target_id, mood)
 );
+-- Antes se podía elegir un solo "cómo te sentiste" por título (la clave
+-- primaria no incluía "mood"). Ahora se permiten hasta 2 (se controla
+-- desde el código en moods.ts, no acá) — por eso "mood" pasa a formar
+-- parte de la clave primaria, así una misma persona puede tener más de
+-- una fila para el mismo título, siempre que sean estados de ánimo
+-- distintos entre sí.
+alter table title_mood_reactions drop constraint if exists title_mood_reactions_pkey;
+alter table title_mood_reactions add primary key (user_id, target_type, target_id, mood);
 alter table title_mood_reactions enable row level security;
 drop policy if exists "mood_select_all" on title_mood_reactions;
 create policy "mood_select_all" on title_mood_reactions for select using (true);

@@ -5,7 +5,7 @@ import { MOODS } from "../lib/moods";
 import { theme } from "../theme";
 
 interface Props {
-  miMood: string | null;
+  misMoods: string[];
   porcentajes: Record<string, number>;
   onElegir: (mood: string) => void;
 }
@@ -20,9 +20,13 @@ interface Props {
  * fila los acomoda con espacio parejo entre sí — así una palabra larga
  * como "ENTRETENIDO" empuja de forma natural a sus vecinos, sin
  * necesidad de achicar la letra ni de posicionar nada a mano.
+ *
+ * Se pueden elegir hasta 2 caritas (no una sola) — tocar una ya elegida
+ * la saca; si ya hay 2 y se toca una tercera, se resuelve solo en
+ * elegirMood (se reemplaza la más vieja).
  */
-export default function MoodPicker({ miMood, porcentajes, onElegir }: Props) {
-  const yaVoto = !!miMood;
+export default function MoodPicker({ misMoods, porcentajes, onElegir }: Props) {
+  const yaVoto = misMoods.length > 0;
   const filas = [MOODS.slice(0, 6), MOODS.slice(6, 12)];
 
   return (
@@ -30,7 +34,7 @@ export default function MoodPicker({ miMood, porcentajes, onElegir }: Props) {
       {filas.map((fila, i) => (
         <View key={i} style={styles.fila}>
           {fila.map((m) => {
-            const elegida = miMood === m.key;
+            const elegida = misMoods.includes(m.key);
             return (
               <Pressable key={m.key} style={styles.celda} onPress={() => onElegir(m.key)}>
                 <View style={[styles.circulo, elegida && styles.circuloElegido]}>

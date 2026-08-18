@@ -79,7 +79,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
     anterior: { season_number: number; episode_number: number } | null;
     siguiente: { season_number: number; episode_number: number } | null;
   }>({ anterior: null, siguiente: null });
-  const [moodStats, setMoodStats] = useState<MoodStats>({ miMood: null, porcentajes: {}, total: 0 });
+  const [moodStats, setMoodStats] = useState<MoodStats>({ misMoods: [], porcentajes: {}, total: 0 });
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuFechaVisible, setMenuFechaVisible] = useState(false);
   const [mostrarPicker, setMostrarPicker] = useState(false);
@@ -434,8 +434,8 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
               <Text style={styles.label}>{t("Valorá este capítulo")}</Text>
               <StarRating valor={miRating} onCambiar={calificar} conEtiquetas size={40} />
 
-              <Text style={[styles.label, { marginTop: 20 }]}>{t("¿Cómo te sentiste?")}</Text>
-              <MoodPicker miMood={moodStats.miMood} porcentajes={moodStats.porcentajes} onElegir={elegirMoodPropio} />
+              <Text style={[styles.label, { marginTop: 20 }]}>{t("¿Cómo te sentiste? (elegí hasta 2)")}</Text>
+              <MoodPicker misMoods={moodStats.misMoods} porcentajes={moodStats.porcentajes} onElegir={elegirMoodPropio} />
 
               {reparto.length > 0 && (
                 <>

@@ -39,7 +39,7 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
   const [userId, setUserId] = useState<string | null>(null);
   const [miRating, setMiRating] = useState(0);
   const [reparto, setReparto] = useState<any[]>([]);
-  const [moodStats, setMoodStats] = useState<MoodStats>({ miMood: null, porcentajes: {}, total: 0 });
+  const [moodStats, setMoodStats] = useState<MoodStats>({ misMoods: [], porcentajes: {}, total: 0 });
   const [castStats, setCastStats] = useState<CastVoteStats>({ miVoto: null, porcentajes: {}, total: 0 });
   const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
   const animacion = useRef(new Animated.Value(0)).current;
@@ -198,8 +198,8 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
             </View>
 
             <View style={styles.seccion}>
-              <Text style={styles.label}>{t("¿Cómo te sentiste?")}</Text>
-              <MoodPicker miMood={moodStats.miMood} porcentajes={moodStats.porcentajes} onElegir={elegirMoodPropio} />
+              <Text style={styles.label}>{t("¿Cómo te sentiste? (elegí hasta 2)")}</Text>
+              <MoodPicker misMoods={moodStats.misMoods} porcentajes={moodStats.porcentajes} onElegir={elegirMoodPropio} />
             </View>
 
             {reparto.length > 0 && (
