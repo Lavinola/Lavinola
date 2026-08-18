@@ -279,6 +279,22 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "¿Qué es esto?": { en: "What's this?", pt: "O que é isso?", it: "Cos'è questo?" },
+  "Elegí una película o serie y se la recomendás directo acá — al grupo, o a esta persona — con una notita si querés, igual que cuando compartís un título desde su pantalla de detalle.": {
+    en: "Pick a movie or series and recommend it right here — to the group, or to this person — with a short note if you want, just like when you share a title from its detail screen.",
+    pt: "Escolha um filme ou série e recomende direto aqui — para o grupo, ou para essa pessoa — com uma notinha se quiser, igual quando você compartilha um título da sua tela de detalhes.",
+    it: "Scegli un film o una serie e consiglialo direttamente qui — al gruppo, o a questa persona — con una nota se vuoi, proprio come quando condividi un titolo dalla sua schermata dei dettagli.",
+  },
+  "¿Querés agregar algo? (opcional)": {
+    en: "Want to add something? (optional)",
+    pt: "Quer adicionar algo? (opcional)",
+    it: "Vuoi aggiungere qualcosa? (opzionale)",
+  },
+  'Si decís que sí, tu mensaje aparece oculto hasta que alguien toque "Ver".': {
+    en: 'If you say yes, your message shows hidden until someone taps "See".',
+    pt: 'Se você disser que sim, sua mensagem aparece oculta até alguém tocar em "Ver".',
+    it: 'Se dici di sì, il tuo messaggio appare nascosto finché qualcuno non tocca "Vedi".',
+  },
   episodios: { en: "episodes", pt: "episódios", it: "episodi" },
   "¿Sacar el visto a toda la temporada?": {
     en: "Remove watched from the whole season?",

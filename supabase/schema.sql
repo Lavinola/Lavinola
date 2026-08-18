@@ -1231,8 +1231,10 @@ create table if not exists chat_messages (
   gif_url text,
   item_type text check (item_type in ('series', 'movie')),
   tmdb_id integer,
+  has_spoiler boolean not null default false,
   created_at timestamptz default now()
 );
+alter table chat_messages add column if not exists has_spoiler boolean not null default false;
 alter table chat_messages enable row level security;
 drop policy if exists "chat_messages_select" on chat_messages;
 create policy "chat_messages_select" on chat_messages for select using (

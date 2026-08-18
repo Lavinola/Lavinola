@@ -49,6 +49,7 @@ interface Props {
   mostrarTipo?: boolean; // solo true en Comentarios/Posts de la ficha de un título — en todos lados más, no hace falta aclarar que es un comentario
   contenidoExtra?: React.ReactNode; // se muestra ENTRE la barra de escribir y la lista de comentarios (ej: publicaciones del Lobby sobre este título)
   onAbrirEncuesta?: () => void; // si viene (solo grupos), se muestra el botón "Encuesta" al lado de "¿Qué vemos?"
+  onAbrirRecomendar?: () => void; // si viene (solo grupos), se muestra el botón "Recomendar" a la izquierda de "¿Qué vemos?"
   elementosExtra?: ElementoExtra[]; // cosas que NO son comentarios (ej: encuestas) pero se mezclan y ordenan junto con ellos, como si fuesen un mensaje más
 }
 
@@ -74,7 +75,7 @@ function extractoDeComentario(c: Comentario): string {
   return "";
 }
 
-export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra, onAbrirEncuesta, elementosExtra }: Props) {
+export default function CommentThread({ targetType, targetId, groupId, navigation, soloLectura, highlightCommentId, soloSiguiendo, soloAutorId, mostrarTipo, contenidoExtra, onAbrirEncuesta, onAbrirRecomendar, elementosExtra }: Props) {
   const { t } = useT();
   const [orden, setOrden] = useState<OrdenComentarios>(targetType === "group" ? "nuevo" : "viejo");
   const [raiz, setRaiz] = useState<Comentario[]>([]);
@@ -153,6 +154,11 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
     <View style={styles.container}>
       {targetType === "group" && groupId && (
         <View style={styles.botonesGrupoRow}>
+          {onAbrirRecomendar && (
+            <Pressable style={styles.queVemosBtn} onPress={onAbrirRecomendar}>
+              <Text style={styles.queVemosBtnTexto}>{t("Recomendar")}</Text>
+            </Pressable>
+          )}
           <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
             <Text style={styles.queVemosBtnTexto}>{t("¿Qué vemos?")}</Text>
           </Pressable>

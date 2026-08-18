@@ -27,6 +27,7 @@ export interface MensajeChat {
   shared_group_id: string | null;
   shared_list_id: string | null;
   es_que_vemos: boolean;
+  has_spoiler: boolean;
   reply_to_id: string | null;
   created_at: string;
   edited_at: string | null;
@@ -126,7 +127,7 @@ export async function cargarMensajesChat(chatId: string, userId?: string): Promi
   let query = supabase
     .from("chat_messages")
     .select(
-      "id, sender_id, kind, content, gif_url, item_type, tmdb_id, season_number, episode_number, shared_group_id, shared_list_id, es_que_vemos, reply_to_id, created_at, edited_at, deleted"
+      "id, sender_id, kind, content, gif_url, item_type, tmdb_id, season_number, episode_number, shared_group_id, shared_list_id, es_que_vemos, has_spoiler, reply_to_id, created_at, edited_at, deleted"
     )
     .eq("chat_id", chatId);
 
@@ -213,7 +214,8 @@ export async function enviarRecomendacionAUsuario(
   tmdbId: number,
   nota?: string | null,
   seasonNumber?: number | null,
-  episodeNumber?: number | null
+  episodeNumber?: number | null,
+  hasSpoiler?: boolean
 ) {
   if (nota?.trim()) {
     const resultado = await moderarTexto(nota);
@@ -231,6 +233,7 @@ export async function enviarRecomendacionAUsuario(
     tmdb_id: tmdbId,
     season_number: itemType === "episode" ? seasonNumber ?? null : null,
     episode_number: itemType === "episode" ? episodeNumber ?? null : null,
+    has_spoiler: !!hasSpoiler,
   });
   if (error) throw error;
 }
@@ -396,7 +399,7 @@ export async function listarChatsDeUsuarioParaAdmin(userId: string): Promise<Cha
 export async function cargarMensajesChatParaAdmin(chatId: string): Promise<MensajeChat[]> {
   const { data, error } = await supabase
     .from("chat_messages")
-    .select("id, sender_id, kind, content, gif_url, item_type, tmdb_id, season_number, episode_number, shared_group_id, shared_list_id, es_que_vemos, reply_to_id, created_at, edited_at, deleted")
+    .select("id, sender_id, kind, content, gif_url, item_type, tmdb_id, season_number, episode_number, shared_group_id, shared_list_id, es_que_vemos, has_spoiler, reply_to_id, created_at, edited_at, deleted")
     .eq("chat_id", chatId)
     .order("created_at", { ascending: true });
   if (error) throw error;

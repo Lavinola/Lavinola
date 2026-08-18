@@ -73,6 +73,7 @@ import FavoritedByScreen from "../screens/FavoritedByScreen";
 import ListasConTituloScreen from "../screens/ListasConTituloScreen";
 import PeliculasVistasPerfilScreen from "../screens/PeliculasVistasPerfilScreen";
 import SeriesEnCursoPerfilScreen from "../screens/SeriesEnCursoPerfilScreen";
+import RecomendarTituloScreen from "../screens/RecomendarTituloScreen";
 import AnnouncementsScreen from "../screens/AnnouncementsScreen";
 import StatsScreen from "../screens/StatsScreen";
 import RankingScreen from "../screens/RankingScreen";
@@ -185,6 +186,7 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
       <Stack.Screen name="ListasConTitulo" component={ListasConTituloScreen} options={{ title: t("Listas") }} />
       <Stack.Screen name="PeliculasVistasPerfil" component={PeliculasVistasPerfilScreen} options={{ title: t("Vistas") }} />
       <Stack.Screen name="SeriesEnCursoPerfil" component={SeriesEnCursoPerfilScreen} options={{ title: t("Series") }} />
+      <Stack.Screen name="RecomendarTitulo" component={RecomendarTituloScreen} options={{ title: t("Recomendar"), presentation: "modal" }} />
       <Stack.Screen
         name="DetalleGrupo"
         component={GroupDetailScreen}

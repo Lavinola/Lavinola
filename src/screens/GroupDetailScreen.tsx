@@ -254,6 +254,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
             soloLectura={suspendido || miEstado.baneado || miEstado.silenciado || soyMiembro === false}
             highlightCommentId={highlightCommentId}
             onAbrirEncuesta={soyMiembro ? () => setCrearEncuestaVisible(true) : undefined}
+            onAbrirRecomendar={soyMiembro ? () => navigation.navigate("RecomendarTitulo", { destinoTipo: "grupo", groupId }) : undefined}
             elementosExtra={encuestas.map(
               (enc): ElementoExtra => ({
                 id: enc.id,

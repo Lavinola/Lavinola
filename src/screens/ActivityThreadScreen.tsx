@@ -85,6 +85,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
   }
   const [reportarMensajeVisible, setReportarMensajeVisible] = useState(false);
   const [reaccionPickerMensajeId, setReaccionPickerMensajeId] = useState<string | null>(null);
+  const [spoilersRevelados, setSpoilersRevelados] = useState<Set<string>>(new Set());
   const [traducciones, setTraducciones] = useState<Record<string, string>>({});
   const [traduciendoId, setTraduciendoId] = useState<string | null>(null);
   const [idiomaUsuario, setIdiomaUsuario] = useState("en");
@@ -503,7 +504,19 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                     </View>
                   </Pressable>
                 )}
-                {item.content ? <Text style={styles.mensajeTexto}>{traducciones[item.id] ?? item.content}</Text> : null}
+                {item.content ? (
+                  item.has_spoiler && !spoilersRevelados.has(item.id) ? (
+                    <Pressable
+                      style={styles.spoilerBox}
+                      onPress={() => setSpoilersRevelados((prev) => new Set(prev).add(item.id))}
+                    >
+                      <Text style={styles.spoilerTexto}>{t("Contiene spoiler")}</Text>
+                      <Text style={styles.spoilerVerTexto}>{t("Ver")}</Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={styles.mensajeTexto}>{traducciones[item.id] ?? item.content}</Text>
+                  )
+                ) : null}
                 {item.gif_url && <Image source={{ uri: item.gif_url }} style={styles.gifEnBurbuja} />}
                 {item.edited_at && <Text style={styles.editadoTexto}>{t("mensaje editado")}</Text>}
                 <View style={styles.pieMensajeRow}>
@@ -597,9 +610,18 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       )}
 
       <View style={styles.inputRow}>
-        <Pressable style={styles.gifBtn} onPress={abrirGifPicker} disabled={!!editandoMensajeId}>
-          <Text style={styles.gifBtnTexto}>GIF</Text>
-        </Pressable>
+        <View style={styles.masGifCol}>
+          <Pressable
+            style={styles.masBtn}
+            onPress={() => navigation.navigate("RecomendarTitulo", { destinoTipo: "chat", chatId })}
+            disabled={!!editandoMensajeId}
+          >
+            <Ionicons name="add" size={16} color="#000000" />
+          </Pressable>
+          <Pressable style={styles.gifBtnMitad} onPress={abrirGifPicker} disabled={!!editandoMensajeId}>
+            <Text style={styles.gifBtnTexto}>GIF</Text>
+          </Pressable>
+        </View>
         <TextInput
           style={styles.input}
           placeholder={t("Escribir...")}
@@ -694,6 +716,15 @@ const styles = StyleSheet.create({
   mensajeTexto:
     Platform.OS === "web" ? ({ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } as any) : {},
   container: { flex: 1, backgroundColor: theme.colors.background },
+  spoilerBox: {
+    backgroundColor: theme.colors.surfaceAlt,
+    borderRadius: theme.radius.md,
+    padding: 14,
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  spoilerTexto: { fontSize: 13, color: theme.colors.textMuted, fontWeight: "700", marginBottom: 6 },
+  spoilerVerTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   tituloBox: { flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   tituloAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
   tituloMenuBtn: { paddingHorizontal: 8, paddingVertical: 6 },
@@ -773,6 +804,9 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: "row", padding: 8, alignItems: "center", borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   gifBtn: { width: 44, height: 38, borderRadius: 8, backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center", marginRight: 6 },
   gifBtnTexto: { color: theme.colors.primaryLight, fontSize: 11, fontWeight: "800" },
+  masGifCol: { width: 44, height: 38, marginRight: 6, borderRadius: 8, overflow: "hidden", gap: 2 },
+  masBtn: { flex: 1, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
+  gifBtnMitad: { flex: 1, backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center" },
   input: {
     flex: 1,
     minHeight: 40,
