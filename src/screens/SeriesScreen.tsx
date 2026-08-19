@@ -349,7 +349,10 @@ function ListaPendiente({ navigation }: any) {
     {calificarModal && (
       <CalificarModal
         visible={!!calificarModal}
-        onCerrar={() => setCalificarModal(null)}
+        onCerrar={() => {
+          setCalificarModal(null);
+          cargar(true);
+        }}
         tipo="episode"
         tmdbId={calificarModal.tmdbId}
         temporada={calificarModal.temporada}

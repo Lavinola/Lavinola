@@ -363,7 +363,7 @@ function TabAplicacion({ navigation }: any) {
         valor={p.content_language ?? "en-US"}
         onCambiar={(v) =>
           actualizar(
-            v === "es-ES" || v === "en-US"
+            v === "es-ES" || v === "en-US" || v === "pt-BR"
               ? { content_language: v, show_titles_in_own_language: true }
               : v === "es-419" || v === "it-IT"
               ? { content_language: v, show_titles_in_own_language: false }

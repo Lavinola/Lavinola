@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { View, TextInput, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
@@ -35,6 +36,17 @@ export default function EditProfileScreen({ navigation }: any) {
   useEffect(() => {
     cargar();
   }, []);
+
+  // Solo la portada, a propósito — si recargáramos TODO el perfil acá, se
+  // perdería cualquier cambio a medio escribir en los demás campos
+  // (usuario, bio, redes) apenas volvés de elegir una portada nueva.
+  useFocusEffect(
+    useCallback(() => {
+      if (!perfil) return;
+      getCoverPosterPath(perfil).then(setCoverPath);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [perfil])
+  );
 
   async function cargar() {
     const { data: userData } = await supabase.auth.getUser();

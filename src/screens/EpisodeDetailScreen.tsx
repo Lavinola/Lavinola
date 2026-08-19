@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, ScrollView, Image, Pressable, StyleSheet, Dimensions } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
@@ -90,9 +91,12 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   const hoyStr = new Date().toISOString().slice(0, 10);
   const noSalioTodavia = !episodio?.air_date || episodio.air_date > hoyStr;
 
-  useEffect(() => {
-    cargar();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [seriesTmdbId, seasonNumber, episodeNumber])
+  );
 
   const [localizadaEncontrada, setLocalizadaEncontrada] = useState(false);
 

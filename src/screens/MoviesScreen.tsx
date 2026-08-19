@@ -311,7 +311,10 @@ export default function MoviesScreen({ navigation }: any) {
       {calificarModal && (
         <CalificarModal
           visible={!!calificarModal}
-          onCerrar={() => setCalificarModal(null)}
+          onCerrar={() => {
+            setCalificarModal(null);
+            cargar();
+          }}
           tipo="movie"
           tmdbId={calificarModal.tmdbId}
           titulo={calificarModal.titulo}

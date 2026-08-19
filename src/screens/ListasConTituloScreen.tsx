@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, FlatList, TextInput, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import ConfirmModal from "../components/ConfirmModal";
@@ -32,9 +33,11 @@ export default function ListasConTituloScreen({ route, navigation }: any) {
     navigation.setOptions({ title: nombre ? `${t("Listas que tienen")} ${nombre}` : t("Listas") });
   }, [nombre]);
 
-  useEffect(() => {
-    cargar();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [])
+  );
 
   async function cargar() {
     const { data: userData } = await supabase.auth.getUser();

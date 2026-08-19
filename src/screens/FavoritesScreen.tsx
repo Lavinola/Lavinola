@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, FlatList, Image, Pressable, StyleSheet } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { listarFavoritos, Favorito } from "../lib/favorites";
 import { posterUrl } from "../lib/tmdb";
@@ -16,9 +17,11 @@ export default function FavoritesScreen({ navigation }: any) {
   const [favoritos, setFavoritos] = useState<Favorito[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    cargar();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [])
+  );
 
   async function cargar() {
     setLoading(true);

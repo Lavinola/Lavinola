@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { View, FlatList, Image, Pressable, TextInput, StyleSheet, Platform } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
 import { Text } from "../components/Themed";
@@ -34,8 +35,13 @@ export default function FollowListScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     navigation.setOptions({ title: modo === "siguiendo" ? t("Siguiendo") : t("Seguidores") });
-    cargar();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [])
+  );
 
   async function cargar() {
     setCargando(true);

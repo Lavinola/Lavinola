@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Text, StyleSheet, Platform, useWindowDimensions } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet, Platform, useWindowDimensions } from "react-native";
 import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -143,6 +143,7 @@ const tabScreenOptions = {
 };
 
 const styles = StyleSheet.create({
+  pantallaCarga: { flex: 1, backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center" },
   comunidadCirculo: {
     width: 56,
     height: 56,
@@ -586,7 +587,13 @@ export default function RootNavigation() {
     setIdiomaTitulos(data?.content_language ?? "en-US", data?.show_titles_in_own_language !== false);
   }
 
-  if (loading) return null; // TODO: splash screen
+  if (loading) {
+    return (
+      <View style={styles.pantallaCarga}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   if (modoRecuperacion && session) {
     return <ResetPasswordScreen onListo={() => setModoRecuperacion(false)} />;

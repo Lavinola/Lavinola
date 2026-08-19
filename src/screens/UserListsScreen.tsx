@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Text } from "../components/Themed";
 import { seleccion } from "../lib/haptics";
 import { supabase } from "../lib/supabase";
@@ -18,8 +19,13 @@ export default function UserListsScreen({ route, navigation }: any) {
 
   useEffect(() => {
     navigation.setOptions({ title: username ? `@${username}` : t("Listas") });
-    cargar();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [])
+  );
 
   async function cargar() {
     setLoading(true);

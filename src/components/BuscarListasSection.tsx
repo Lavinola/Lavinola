@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, FlatList, TextInput, Pressable, StyleSheet, ActivityIndicator, Image } from "react-native";
 import { Text } from "./Themed";
 import EstadoVacio from "./EstadoVacio";
@@ -112,13 +113,23 @@ function TendenciasListas({ navigation, userId }: { navigation: any; userId: str
   const { t } = useT();
   const [listas, setListas] = useState<Lista[]>([]);
   const [loading, setLoading] = useState(true);
+  const yaCargoRef = React.useRef(false);
 
-  useEffect(() => {
-    listarListasTendencia(userId)
-      .then(setListas)
-      .catch((e) => console.error("Error al cargar tendencias de listas:", e))
-      .finally(() => setLoading(false));
-  }, [userId]);
+  // Al tocar una lista de acá se entra a su detalle, donde se puede dejar de
+  // seguirla — sin esto, al volver seguía mostrando "Siguiendo" aunque ya no.
+  useFocusEffect(
+    useCallback(() => {
+      if (!yaCargoRef.current) setLoading(true);
+      listarListasTendencia(userId)
+        .then(setListas)
+        .catch((e) => console.error("Error al cargar tendencias de listas:", e))
+        .finally(() => {
+          yaCargoRef.current = true;
+          setLoading(false);
+        });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId])
+  );
 
   if (loading) return <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 32 }} />;
 
@@ -155,7 +166,10 @@ function BuscarPorNombre({ navigation, userId }: { navigation: any; userId: stri
     if (userId) supabase.from("follows").select("followee_id").eq("follower_id", userId).then(({ data }) => setSeguidosIds(new Set((data ?? []).map((f: any) => f.followee_id))));
   }, [userId]);
 
+  const ultimaBusquedaRef = React.useRef({ query: "", userId: null as string | null });
+
   useEffect(() => {
+    ultimaBusquedaRef.current = { query, userId };
     if (!query.trim()) {
       setListas([]);
       return;
@@ -169,6 +183,21 @@ function BuscarPorNombre({ navigation, userId }: { navigation: any; userId: stri
     }, 350);
     return () => clearTimeout(idTimeout);
   }, [query, userId]);
+
+  // Al tocar un resultado de acá se entra al detalle de la lista, donde se
+  // puede dejar de seguirla — sin esto, al volver seguía mostrando
+  // "Siguiendo" aunque ya no. Se usa la referencia (no query/userId
+  // directo) para no reactivar esto en cada letra que se escribe, solo
+  // cuando la pantalla vuelve a tener foco de verdad.
+  useFocusEffect(
+    useCallback(() => {
+      const { query: q, userId: uid } = ultimaBusquedaRef.current;
+      if (!q.trim()) return;
+      buscarListasPorNombre(q, uid)
+        .then(setListas)
+        .catch((e) => console.error("Error al recargar listas por nombre:", e));
+    }, [])
+  );
 
   const filtradas = listas
     .filter((l) => (filtro === "seguidos" ? !!l.user_id && seguidosIds.has(l.user_id) : true))
