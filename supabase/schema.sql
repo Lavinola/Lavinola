@@ -2985,3 +2985,23 @@ create policy "poll_votes_insert" on poll_votes for insert with check (
       )
   )
 );
+
+-- ============================================================
+-- Ocultado automático por reporte, ahora también para POSTS del Lobby
+-- (antes solo existía para comentarios y encuestas) — mismo criterio:
+-- si el admin del grupo reporta un post DE SU GRUPO, se oculta al
+-- instante hasta que un admin de la app lo revise.
+-- ============================================================
+alter table posts add column if not exists oculto_por_reporte boolean not null default false;
+
+drop policy if exists "posts_select" on posts;
+create policy "posts_select" on posts for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (not oculto_por_reporte or exists (select 1 from profiles where id = auth.uid() and is_admin = true))
+  and (
+    auth.uid() = user_id
+    or es_comentario_de_titulo = true
+    or exists (select 1 from profiles where profiles.id = posts.user_id and profiles.is_private = false)
+    or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = posts.user_id)
+  )
+);

@@ -132,8 +132,8 @@ export default function AdminReportsScreen({ navigation }: any) {
     await supabase.from("reports").update({ status }).eq("id", id);
     // Si se descarta el reporte y el contenido había quedado oculto en
     // revisión (el admin del grupo lo reportó), vuelve a aparecer donde estaba.
-    if (status === "dismissed" && targetId && (targetType === "comment" || targetType === "poll")) {
-      const tabla = targetType === "comment" ? "comentarios" : "polls";
+    if (status === "dismissed" && targetId && (targetType === "comment" || targetType === "poll" || targetType === "post")) {
+      const tabla = targetType === "comment" ? "comentarios" : targetType === "poll" ? "polls" : "posts";
       await supabase.from(tabla).update({ oculto_por_reporte: false }).eq("id", targetId);
     }
     cargar();

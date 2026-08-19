@@ -22,9 +22,9 @@ export async function reportar(params: {
   // toque (nadie más lo ve) hasta que un admin de la app lo revise —
   // borrándolo para siempre, o descartando el reporte y devolviéndolo a
   // donde estaba.
-  if (params.targetType === "comment" || params.targetType === "poll") {
+  if (params.targetType === "comment" || params.targetType === "poll" || params.targetType === "post") {
     try {
-      const tabla = params.targetType === "comment" ? "comentarios" : "polls";
+      const tabla = params.targetType === "comment" ? "comentarios" : params.targetType === "poll" ? "polls" : "posts";
       const { data: contenido } = await supabase.from(tabla).select("group_id").eq("id", params.targetId).maybeSingle();
       if (contenido?.group_id) {
         const { data: grupo } = await supabase.from("groups").select("creator_id").eq("id", contenido.group_id).maybeSingle();
