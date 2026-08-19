@@ -2899,3 +2899,44 @@ create policy "comentarios_insert_auth" on comentarios for insert with check (
     )
   )
 );
+
+-- ============================================================
+-- BLOQUEO en reacciones ("me gusta"): sin esto, alguien bloqueado podía
+-- seguir reaccionando a tus comentarios/posts (aunque ya no los vea
+-- listados en la app), y encima eso te seguía generando una notificación
+-- — justo lo que bloquear a alguien debería evitar.
+-- ============================================================
+drop policy if exists "likes_manage_own" on likes_comentario;
+create policy "likes_manage_own" on likes_comentario for all using (auth.uid() = user_id) with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from comentarios where comentarios.id = likes_comentario.comment_id and existe_bloqueo(auth.uid(), comentarios.user_id)
+  )
+);
+
+drop policy if exists "post_reactions_manage_own" on post_reactions;
+create policy "post_reactions_manage_own" on post_reactions for all using (auth.uid() = user_id) with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from posts where posts.id = post_reactions.post_id and existe_bloqueo(auth.uid(), posts.user_id)
+  )
+);
+
+-- ============================================================
+-- El bloqueo general de un usuario (desde su perfil, tabla "blocks") no
+-- estaba conectado con los chats — solo existía un bloqueo aparte,
+-- específico de un chat puntual (tabla "chat_blocks", una acción manual
+-- distinta). Esto hacía que bloquear a alguien desde su perfil NO le
+-- impidiera seguir mandándote mensajes directos. Ahora se revisan los dos.
+-- ============================================================
+drop policy if exists "chat_messages_insert" on chat_messages;
+create policy "chat_messages_insert" on chat_messages for insert with check (
+  auth.uid() = sender_id
+  and exists (
+    select 1 from chats
+    where chats.id = chat_messages.chat_id
+      and (chats.user_a = auth.uid() or chats.user_b = auth.uid())
+      and not existe_bloqueo(chats.user_a, chats.user_b)
+  )
+  and not exists (select 1 from chat_blocks where chat_blocks.chat_id = chat_messages.chat_id)
+);
