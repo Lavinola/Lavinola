@@ -57,6 +57,7 @@ export default function ProfileScreen({ navigation }: any) {
   const [progreso, setProgreso] = useState<Record<number, ProgresoSerie>>({});
   const [misPeliculas, setMisPeliculas] = useState<ItemMini[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
   const [reportesPendientes, setReportesPendientes] = useState(0);
   const [recapBannerVisible, setRecapBannerVisible] = useState(false);
   const [recapYear, setRecapYear] = useState<number | null>(null);
@@ -154,7 +155,8 @@ export default function ProfileScreen({ navigation }: any) {
     actualizarCachePerfilPropio(userId, datos);
 
     setIsAdmin(!!(datos.perfil as any)?.is_admin);
-    if ((datos.perfil as any)?.is_admin) {
+    setIsModerator(!!(datos.perfil as any)?.is_moderator);
+    if ((datos.perfil as any)?.is_admin || (datos.perfil as any)?.is_moderator) {
       const { count } = await supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending");
       setReportesPendientes(count ?? 0);
     }
@@ -292,18 +294,20 @@ export default function ProfileScreen({ navigation }: any) {
           )}
         </View>
       )}
+      {(isAdmin || isModerator) && (
+        <View style={styles.accionesRow}>
+          <View style={{ flex: 1, position: "relative" }}>
+            <AppButton title={t("Moderación (reportes)")} onPress={() => navigation.navigate("AdminReportes")} variant="danger" />
+            {reportesPendientes > 0 && (
+              <View style={styles.badgeReportes}>
+                <Text style={styles.badgeReportesTexto}>{reportesPendientes > 99 ? "99+" : reportesPendientes}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
       {isAdmin && (
         <>
-          <View style={styles.accionesRow}>
-            <View style={{ flex: 1, position: "relative" }}>
-              <AppButton title={t("Moderación (reportes)")} onPress={() => navigation.navigate("AdminReportes")} variant="danger" />
-              {reportesPendientes > 0 && (
-                <View style={styles.badgeReportes}>
-                  <Text style={styles.badgeReportesTexto}>{reportesPendientes > 99 ? "99+" : reportesPendientes}</Text>
-                </View>
-              )}
-            </View>
-          </View>
           <View style={styles.accionesRow}>
             <AppButton title={t("Moderadores")} onPress={() => navigation.navigate("AdminModeradores")} variant="danger" />
           </View>

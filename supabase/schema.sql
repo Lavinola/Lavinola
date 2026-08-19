@@ -3005,3 +3005,337 @@ create policy "posts_select" on posts for select using (
     or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = posts.user_id)
   )
 );
+
+-- ============================================================
+-- El rol de MODERADOR existe y se usa de verdad en la app (hay una
+-- pantalla para asignarlo), pero la mayoría de estas políticas solo le
+-- daban el poder extra a is_admin, dejando a los moderadores sin poder
+-- resolver reportes ni ver/borrar el contenido oculto que reportan —
+-- podían ver que el reporte existía, pero no hacer nada con él. Se
+-- corrige acá, dándole a is_moderator el mismo poder que a is_admin en
+-- todo lo que es moderación de contenido puntual (no en cosas más
+-- sensibles como leer chats privados, anuncios oficiales, o métricas de
+-- la app — esas quedan exclusivas del admin, a propósito).
+-- ============================================================
+drop policy if exists "reports_update_admin" on reports;
+create policy "reports_update_admin" on reports for update using (
+  exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);
+
+drop policy if exists "comentarios_delete_own" on comentarios;
+create policy "comentarios_delete_own" on comentarios for delete using (
+  auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);
+
+drop policy if exists "groups_update_own_or_admin" on groups;
+create policy "groups_update_own_or_admin" on groups for update using (
+  auth.uid() = creator_id or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);
+drop policy if exists "groups_delete_own_or_admin" on groups;
+create policy "groups_delete_own_or_admin" on groups for delete using (
+  auth.uid() = creator_id or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);
+
+drop policy if exists "posts_delete" on posts;
+create policy "posts_delete" on posts for delete using (
+  auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);
+
+drop policy if exists "polls_delete" on polls;
+create policy "polls_delete" on polls for delete using (
+  auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);
+
+drop policy if exists "polls_update_moderacion" on polls;
+create policy "polls_update_moderacion" on polls for update using (
+  exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  or exists (select 1 from groups where groups.id = polls.group_id and groups.creator_id = auth.uid())
+) with check (
+  exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  or exists (select 1 from groups where groups.id = polls.group_id and groups.creator_id = auth.uid())
+);
+
+drop policy if exists "comentarios_update_moderacion" on comentarios;
+create policy "comentarios_update_moderacion" on comentarios for update using (
+  exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  or exists (select 1 from groups where groups.id = comentarios.group_id and groups.creator_id = auth.uid())
+) with check (
+  exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  or exists (select 1 from groups where groups.id = comentarios.group_id and groups.creator_id = auth.uid())
+);
+
+-- Ver contenido oculto por reporte (comentarios, posts, encuestas): antes
+-- solo el admin lo podía ver mientras estaba oculto en revisión.
+drop policy if exists "comentarios_select_all" on comentarios;
+create policy "comentarios_select_all" on comentarios for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (
+    not oculto_por_reporte
+    or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  )
+);
+
+drop policy if exists "posts_select" on posts;
+create policy "posts_select" on posts for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (not oculto_por_reporte or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true)))
+  and (
+    auth.uid() = user_id
+    or es_comentario_de_titulo = true
+    or exists (select 1 from profiles where profiles.id = posts.user_id and profiles.is_private = false)
+    or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = posts.user_id)
+  )
+);
+
+drop policy if exists "polls_select" on polls;
+create policy "polls_select" on polls for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (
+    group_id is not null
+    or auth.uid() = user_id
+    or exists (select 1 from profiles where profiles.id = polls.user_id and profiles.is_private = false)
+    or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = polls.user_id)
+  )
+  and (not oculto_por_reporte or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true)))
+);
+
+-- ============================================================
+-- La suspensión de cuenta solo frenaba comentarios — a alguien suspendido
+-- no le impedía nada publicar posts en el Lobby o mandar mensajes por
+-- chat, esquivando la suspensión por completo. La función ya soporta
+-- tablas con "user_id" o "sender_id" (se armó justo para esto), así que
+-- solo hacía falta conectarla también acá.
+-- ============================================================
+drop trigger if exists trg_no_postear_suspendido on posts;
+create trigger trg_no_postear_suspendido before insert on posts
+  for each row execute function enforce_not_suspended();
+
+drop trigger if exists trg_no_chatear_suspendido on chat_messages;
+create trigger trg_no_chatear_suspendido before insert on chat_messages
+  for each row execute function enforce_not_suspended();
+
+drop trigger if exists trg_no_encuesta_suspendido on polls;
+create trigger trg_no_encuesta_suspendido before insert on polls
+  for each row execute function enforce_not_suspended();
+
+-- ============================================================
+-- Posts y encuestas de grupo: los posts ni siquiera revisaban que fueras
+-- miembro del grupo (cualquiera podía publicar en cualquier grupo), y
+-- las encuestas no revisaban baneos/silencios de grupo (solo comentarios
+-- los tenía en cuenta). Mismo criterio que ya usa comentarios_insert_auth.
+-- ============================================================
+drop policy if exists "posts_insert" on posts;
+create policy "posts_insert" on posts for insert with check (
+  auth.uid() = user_id
+  and (
+    group_id is null
+    or (
+      exists (select 1 from group_members where group_members.group_id = posts.group_id and group_members.user_id = auth.uid())
+      and not exists (select 1 from group_bans where group_bans.group_id = posts.group_id and group_bans.user_id = auth.uid())
+      and not exists (
+        select 1 from group_mutes
+        where group_mutes.group_id = posts.group_id
+          and group_mutes.user_id = auth.uid()
+          and (group_mutes.muted_until is null or group_mutes.muted_until > now())
+      )
+    )
+  )
+);
+
+drop policy if exists "polls_insert" on polls;
+create policy "polls_insert" on polls for insert with check (
+  auth.uid() = user_id
+  and (
+    group_id is null
+    or (
+      exists (select 1 from group_members where group_members.group_id = polls.group_id and group_members.user_id = auth.uid())
+      and not exists (select 1 from group_bans where group_bans.group_id = polls.group_id and group_bans.user_id = auth.uid())
+      and not exists (
+        select 1 from group_mutes
+        where group_mutes.group_id = polls.group_id
+          and group_mutes.user_id = auth.uid()
+          and (group_mutes.muted_until is null or group_mutes.muted_until > now())
+      )
+    )
+  )
+);
+
+-- ============================================================
+-- A la corrección anterior de comentarios_insert_auth (bloqueo + baneos)
+-- le faltaba revisar que quien comenta en un grupo sea REALMENTE
+-- miembro de ese grupo — sin esto, cualquiera podía comentar en
+-- cualquier grupo, esté adentro o no.
+-- ============================================================
+drop policy if exists "comentarios_insert_auth" on comentarios;
+create policy "comentarios_insert_auth" on comentarios for insert with check (
+  auth.uid() = user_id
+  and (
+    parent_comment_id is null
+    or not exists (
+      select 1 from comentarios padre
+      where padre.id = comentarios.parent_comment_id and existe_bloqueo(auth.uid(), padre.user_id)
+    )
+  )
+  and (
+    target_type <> 'group'
+    or (
+      exists (select 1 from group_members where group_members.group_id = comentarios.group_id and group_members.user_id = auth.uid())
+      and not exists (select 1 from group_bans where group_bans.group_id = comentarios.group_id and group_bans.user_id = auth.uid())
+      and not exists (
+        select 1 from group_mutes
+        where group_mutes.group_id = comentarios.group_id
+          and group_mutes.user_id = auth.uid()
+          and (group_mutes.muted_until is null or group_mutes.muted_until > now())
+      )
+    )
+  )
+);
+
+-- Evita que alguien baneado de un grupo mande pedidos de unirse en bucle
+-- (el ingreso real ya estaba protegido en group_members_insert_own, esto
+-- es solo para no dejarlo ni siquiera mandar el pedido de entrada).
+drop policy if exists "group_join_requests_insert" on group_join_requests;
+create policy "group_join_requests_insert" on group_join_requests for insert with check (
+  auth.uid() = requester_id
+  and not exists (select 1 from group_bans where group_bans.group_id = group_join_requests.group_id and group_bans.user_id = auth.uid())
+);
+
+-- ============================================================
+-- CRÍTICO: en algún momento se había corregido profiles_update_own para
+-- que admin/moderador pudieran editar la fila de OTRA persona (necesario
+-- para suspender/dar rol de moderador) — pero más abajo en este mismo
+-- archivo quedó una versión vieja de esa política que la pisaba al
+-- volver a correr todo, dejando "auth.uid() = id" sin ninguna otra
+-- condición. Eso rompía las herramientas de moderación (nadie podía
+-- suspender a otro) Y de paso dejaba una puerta abierta: cualquiera
+-- podía, en teoría, ponerse is_admin = true a sí mismo, porque nada
+-- restringía QUÉ campos se pueden tocar en la propia fila.
+--
+-- Se arregla en dos capas: la política de RLS vuelve a permitir que
+-- admin/moderador editen la fila de otra persona (para las acciones de
+-- moderación), y un trigger aparte revisa específicamente que nadie
+-- cambie is_admin/is_moderator/suspended_until/suspension_reason a
+-- menos que quien hace el cambio sea realmente admin o moderador — así
+-- ni siquiera un admin/moderador editando SU PROPIA fila puede tocar
+-- esos campos puntuales sin que se vuelva a chequear el permiso real.
+-- ============================================================
+drop policy if exists "profiles_update_own" on profiles;
+create policy "profiles_update_own" on profiles for update using (
+  auth.uid() = id or exists (select 1 from profiles p where p.id = auth.uid() and (p.is_admin = true or p.is_moderator = true))
+);
+
+create or replace function enforce_profile_privilege_columns() returns trigger as $$
+declare
+  actor_admin boolean;
+  actor_moderador boolean;
+begin
+  if new.is_admin is not distinct from old.is_admin
+     and new.is_moderator is not distinct from old.is_moderator
+     and new.suspended_until is not distinct from old.suspended_until
+     and new.suspension_reason is not distinct from old.suspension_reason then
+    return new;
+  end if;
+
+  select is_admin, is_moderator into actor_admin, actor_moderador from profiles where id = auth.uid();
+
+  if new.is_admin is distinct from old.is_admin and not coalesce(actor_admin, false) then
+    raise exception 'No tenés permiso para cambiar el estado de administrador.';
+  end if;
+
+  if (
+    new.is_moderator is distinct from old.is_moderator
+    or new.suspended_until is distinct from old.suspended_until
+    or new.suspension_reason is distinct from old.suspension_reason
+  ) and not (coalesce(actor_admin, false) or coalesce(actor_moderador, false)) then
+    raise exception 'No tenés permiso para cambiar estos campos.';
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists trg_enforce_profile_privilege_columns on profiles;
+create trigger trg_enforce_profile_privilege_columns before update on profiles
+  for each row execute function enforce_profile_privilege_columns();
+
+-- ============================================================
+-- Silenciar/expulsar dentro de un grupo solo lo podía hacer el creador
+-- de ESE grupo puntual — mismo criterio que ya aplicamos a comentarios y
+-- encuestas de grupo: un admin/moderador de la app también debería poder
+-- actuar acá, por ejemplo al resolver un reporte sobre un grupo que no
+-- es el suyo.
+-- ============================================================
+drop policy if exists "group_mutes_manage_admin" on group_mutes;
+create policy "group_mutes_manage_admin" on group_mutes for all using (
+  exists (select 1 from groups where groups.id = group_mutes.group_id and groups.creator_id = auth.uid())
+  or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+) with check (
+  exists (select 1 from groups where groups.id = group_mutes.group_id and groups.creator_id = auth.uid())
+  or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);
+
+drop policy if exists "group_bans_manage_admin" on group_bans;
+create policy "group_bans_manage_admin" on group_bans for all using (
+  exists (select 1 from groups where groups.id = group_bans.group_id and groups.creator_id = auth.uid())
+  or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+) with check (
+  exists (select 1 from groups where groups.id = group_bans.group_id and groups.creator_id = auth.uid())
+  or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);
+
+-- ============================================================
+-- CRÍTICO (mismo problema que encontramos en profiles): expulsar a
+-- alguien de un grupo borra la fila de OTRA persona en group_members,
+-- pero la política solo dejaba borrar la propia (salir por tu cuenta).
+-- Esto significa que "Expulsar" probablemente no funcionaba para nadie
+-- — ni el creador del grupo, ni un admin/moderador de la app.
+-- ============================================================
+drop policy if exists "group_members_delete_own" on group_members;
+create policy "group_members_delete_own" on group_members for delete using (
+  auth.uid() = user_id
+  or exists (select 1 from groups where groups.id = group_members.group_id and groups.creator_id = auth.uid())
+  or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);
+
+-- ============================================================
+-- Ajuste al trigger de la corrección anterior: dar o sacar el rol de
+-- moderador tiene que ser EXCLUSIVO del admin (así está en la app — el
+-- botón "Moderadores" solo se le muestra al admin, no a los
+-- moderadores) — mi primera versión del trigger dejaba que un moderador
+-- se lo diera a cualquier otra persona también, cosa que no correspondía.
+-- Suspender/desuspender sigue siendo admin O moderador, que sí es correcto.
+-- ============================================================
+create or replace function enforce_profile_privilege_columns() returns trigger as $$
+declare
+  actor_admin boolean;
+  actor_moderador boolean;
+begin
+  if new.is_admin is not distinct from old.is_admin
+     and new.is_moderator is not distinct from old.is_moderator
+     and new.suspended_until is not distinct from old.suspended_until
+     and new.suspension_reason is not distinct from old.suspension_reason then
+    return new;
+  end if;
+
+  select is_admin, is_moderator into actor_admin, actor_moderador from profiles where id = auth.uid();
+
+  if new.is_admin is distinct from old.is_admin and not coalesce(actor_admin, false) then
+    raise exception 'No tenés permiso para cambiar el estado de administrador.';
+  end if;
+
+  -- Dar/sacar el rol de moderador: exclusivo del admin.
+  if new.is_moderator is distinct from old.is_moderator and not coalesce(actor_admin, false) then
+    raise exception 'No tenés permiso para cambiar el estado de moderador.';
+  end if;
+
+  -- Suspender/desuspender: admin o moderador.
+  if (
+    new.suspended_until is distinct from old.suspended_until
+    or new.suspension_reason is distinct from old.suspension_reason
+  ) and not (coalesce(actor_admin, false) or coalesce(actor_moderador, false)) then
+    raise exception 'No tenés permiso para suspender/desuspender usuarios.';
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;

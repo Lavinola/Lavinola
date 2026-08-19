@@ -48,6 +48,26 @@ serve(async (req) => {
 
     // Cliente admin (service role) para el borrado real.
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // El borrado en cascada de la base NO limpia los archivos que la
+    // persona haya subido a Storage (avatar propio, imágenes de Recap) —
+    // eso es un sistema aparte, hay que borrarlo a mano acá, si no queda
+    // guardado para siempre aunque la cuenta ya no exista.
+    try {
+      const { data: avatares } = await supabaseAdmin.storage.from("avatars").list("", { search: user.id });
+      const rutasAvatares = (avatares ?? []).filter((f) => f.name.startsWith(user.id)).map((f) => f.name);
+      rutasAvatares.push(`defaults/${user.id}.png`); // el avatar por defecto generado automáticamente
+      if (rutasAvatares.length > 0) await supabaseAdmin.storage.from("avatars").remove(rutasAvatares);
+
+      const { data: recaps } = await supabaseAdmin.storage.from("recap-images").list(user.id);
+      const rutasRecaps = (recaps ?? []).map((f) => `${user.id}/${f.name}`);
+      if (rutasRecaps.length > 0) await supabaseAdmin.storage.from("recap-images").remove(rutasRecaps);
+    } catch (e) {
+      // No bloqueamos el borrado de la cuenta por esto — mejor borrar la
+      // cuenta y dejar algún archivo huérfano, que no poder borrarla.
+      console.error("No se pudieron limpiar los archivos de Storage del usuario:", e);
+    }
+
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id);
     if (error) throw error;
 
