@@ -2847,3 +2847,55 @@ end $$;
 update public.profiles
 set avatar_url = 'https://api.dicebear.com/10.x/' || (array['bottts-neutral', 'critters', 'sprouts', 'moods'])[1 + floor(random() * 4)::int] || '/png?seed=' || username
 where avatar_url is null or avatar_url = '' or avatar_url like 'https://api.dicebear.com/%';
+
+-- ============================================================
+-- BLOQUEO COMPLETO en posts/comentarios: si dos personas se bloquearon
+-- (en cualquier dirección), ninguna ve los posts/comentarios de la otra,
+-- y tampoco puede responder directo a un comentario suyo. Antes el
+-- bloqueo solo cubría mensajes directos, seguir, y compartir un título —
+-- esto lo extiende a los posts y comentarios, como corresponde.
+-- ============================================================
+drop policy if exists "posts_select" on posts;
+create policy "posts_select" on posts for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (
+    auth.uid() = user_id
+    or es_comentario_de_titulo = true
+    or exists (select 1 from profiles where profiles.id = posts.user_id and profiles.is_private = false)
+    or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = posts.user_id)
+  )
+);
+
+drop policy if exists "comentarios_select_all" on comentarios;
+create policy "comentarios_select_all" on comentarios for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (
+    not oculto_por_reporte
+    or exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  )
+);
+
+drop policy if exists "comentarios_insert_auth" on comentarios;
+create policy "comentarios_insert_auth" on comentarios for insert with check (
+  auth.uid() = user_id
+  and (
+    -- no responder directo a un comentario de alguien que te bloqueó (o bloqueaste)
+    parent_comment_id is null
+    or not exists (
+      select 1 from comentarios padre
+      where padre.id = comentarios.parent_comment_id and existe_bloqueo(auth.uid(), padre.user_id)
+    )
+  )
+  and (
+    target_type <> 'group'
+    or (
+      not exists (select 1 from group_bans where group_bans.group_id = comentarios.group_id and group_bans.user_id = auth.uid())
+      and not exists (
+        select 1 from group_mutes
+        where group_mutes.group_id = comentarios.group_id
+          and group_mutes.user_id = auth.uid()
+          and (group_mutes.muted_until is null or group_mutes.muted_until > now())
+      )
+    )
+  )
+);
