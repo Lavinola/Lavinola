@@ -2940,3 +2940,48 @@ create policy "chat_messages_insert" on chat_messages for insert with check (
   )
   and not exists (select 1 from chat_blocks where chat_blocks.chat_id = chat_messages.chat_id)
 );
+
+-- ============================================================
+-- BLOQUEO en seguir listas: mismo criterio que ya usamos para seguir
+-- perfiles, reaccionar a comentarios/posts, etc. — si bloqueaste a
+-- alguien, no debería poder seguir tus listas.
+-- ============================================================
+drop policy if exists "list_follows_manage_own" on list_follows;
+create policy "list_follows_manage_own" on list_follows for all using (auth.uid() = user_id) with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from lists where lists.id = list_follows.list_id and existe_bloqueo(auth.uid(), lists.user_id)
+  )
+);
+
+-- ============================================================
+-- BLOQUEO en encuestas del Lobby: mismo criterio que ya aplicamos a
+-- posts/comentarios — ver y votar una encuesta de alguien bloqueado
+-- (o que te bloqueó) no debería ser posible. Las encuestas DE GRUPO no
+-- se tocan acá — esas ya se rigen por si sos miembro del grupo o no,
+-- igual que los comentarios de grupo.
+-- ============================================================
+drop policy if exists "polls_select" on polls;
+create policy "polls_select" on polls for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (
+    group_id is not null
+    or auth.uid() = user_id
+    or exists (select 1 from profiles where profiles.id = polls.user_id and profiles.is_private = false)
+    or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = polls.user_id)
+  )
+  and (not oculto_por_reporte or exists (select 1 from profiles where id = auth.uid() and is_admin = true))
+);
+
+drop policy if exists "poll_votes_insert" on poll_votes;
+create policy "poll_votes_insert" on poll_votes for insert with check (
+  auth.uid() = user_id and exists (
+    select 1 from polls
+    where polls.id = poll_votes.poll_id
+      and not existe_bloqueo(auth.uid(), polls.user_id)
+      and (
+        polls.group_id is null
+        or exists (select 1 from group_members where group_members.group_id = polls.group_id and group_members.user_id = auth.uid())
+      )
+  )
+);
