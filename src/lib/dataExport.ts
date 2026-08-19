@@ -7,7 +7,24 @@ import { zipSync, strToU8 } from "fflate";
 
 /** Junta todos los datos personales del usuario desde las distintas tablas. */
 async function recolectarDatos(userId: string) {
-  const [perfilRes, series, peliculas, episodios, favoritos, comentarios, listas, siguiendo, seguidores] = await Promise.all([
+  const [
+    perfilRes,
+    series,
+    peliculas,
+    episodios,
+    favoritos,
+    comentarios,
+    listas,
+    siguiendo,
+    seguidores,
+    posts,
+    mensajesChat,
+    grupos,
+    estadosDeAnimo,
+    actoresFavoritos,
+    historialPeliculas,
+    historialEpisodios,
+  ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
     fetchAllRows((desde, hasta) =>
       supabase.from("user_series").select("series_tmdb_id, rating, watched_platform, last_watched_at, series_cache(name)").eq("user_id", userId).range(desde, hasta)
@@ -25,6 +42,27 @@ async function recolectarDatos(userId: string) {
     fetchAllRows((desde, hasta) => supabase.from("lists").select("title, created_at").eq("user_id", userId).range(desde, hasta)),
     fetchAllRows((desde, hasta) => supabase.from("follows").select("followee_id").eq("follower_id", userId).range(desde, hasta)),
     fetchAllRows((desde, hasta) => supabase.from("follows").select("follower_id").eq("followee_id", userId).range(desde, hasta)),
+    fetchAllRows((desde, hasta) =>
+      supabase.from("posts").select("item_type, tmdb_id, season_number, episode_number, content, has_spoiler, created_at").eq("user_id", userId).range(desde, hasta)
+    ),
+    fetchAllRows((desde, hasta) =>
+      supabase.from("chat_messages").select("chat_id, content, gif_url, created_at").eq("sender_id", userId).eq("deleted", false).range(desde, hasta)
+    ),
+    fetchAllRows((desde, hasta) =>
+      supabase.from("group_members").select("joined_at, groups(name)").eq("user_id", userId).range(desde, hasta)
+    ),
+    fetchAllRows((desde, hasta) =>
+      supabase.from("title_mood_reactions").select("target_type, target_id, mood, created_at").eq("user_id", userId).range(desde, hasta)
+    ),
+    fetchAllRows((desde, hasta) =>
+      supabase.from("title_favorite_cast").select("target_type, target_id, actor_name, created_at").eq("user_id", userId).range(desde, hasta)
+    ),
+    fetchAllRows((desde, hasta) =>
+      supabase.from("movie_watch_events").select("movie_tmdb_id, watched_at").eq("user_id", userId).range(desde, hasta)
+    ),
+    fetchAllRows((desde, hasta) =>
+      supabase.from("episode_watch_events").select("series_tmdb_id, season_number, episode_number, watched_at").eq("user_id", userId).range(desde, hasta)
+    ),
   ]);
 
   return {
@@ -56,6 +94,47 @@ async function recolectarDatos(userId: string) {
     listas: listas ?? [],
     cantidad_siguiendo: siguiendo?.length ?? 0,
     cantidad_seguidores: seguidores?.length ?? 0,
+    posts_del_lobby: (posts ?? []).map((p: any) => ({
+      tipo: p.item_type,
+      tmdb_id: p.tmdb_id,
+      temporada: p.season_number,
+      episodio: p.episode_number,
+      contenido: p.content,
+      tiene_spoiler: p.has_spoiler,
+      publicado_el: p.created_at,
+    })),
+    mensajes_de_chat_enviados: (mensajesChat ?? []).map((m: any) => ({
+      chat_id: m.chat_id,
+      contenido: m.content,
+      gif_url: m.gif_url,
+      enviado_el: m.created_at,
+    })),
+    grupos: (grupos ?? []).map((g: any) => ({
+      nombre: g.groups?.name ?? null,
+      te_uniste_el: g.joined_at,
+    })),
+    como_te_sentiste: (estadosDeAnimo ?? []).map((e: any) => ({
+      tipo: e.target_type,
+      target_id: e.target_id,
+      animo: e.mood,
+      fecha: e.created_at,
+    })),
+    actor_director_favorito_votado: (actoresFavoritos ?? []).map((a: any) => ({
+      tipo: a.target_type,
+      target_id: a.target_id,
+      nombre: a.actor_name,
+      fecha: a.created_at,
+    })),
+    historial_completo_peliculas: (historialPeliculas ?? []).map((h: any) => ({
+      tmdb_id: h.movie_tmdb_id,
+      vista_el: h.watched_at,
+    })),
+    historial_completo_episodios: (historialEpisodios ?? []).map((h: any) => ({
+      serie_tmdb_id: h.series_tmdb_id,
+      temporada: h.season_number,
+      episodio: h.episode_number,
+      visto_el: h.watched_at,
+    })),
     exportado_el: new Date().toISOString(),
   };
 }
@@ -81,6 +160,21 @@ function armarCSVCompleto(datos: Awaited<ReturnType<typeof recolectarDatos>>): s
   secciones.push("### FAVORITOS ###\n" + aCSV(datos.favoritos, ["item_type", "tmdb_id"]));
   secciones.push("### COMENTARIOS ###\n" + aCSV(datos.comentarios, ["target_type", "target_id", "content", "created_at"]));
   secciones.push("### LISTAS ###\n" + aCSV(datos.listas, ["title", "created_at"]));
+  secciones.push(
+    "### POSTS DEL LOBBY ###\n" +
+      aCSV(datos.posts_del_lobby, ["tipo", "tmdb_id", "temporada", "episodio", "contenido", "tiene_spoiler", "publicado_el"])
+  );
+  secciones.push("### MENSAJES DE CHAT ENVIADOS ###\n" + aCSV(datos.mensajes_de_chat_enviados, ["chat_id", "contenido", "gif_url", "enviado_el"]));
+  secciones.push("### GRUPOS ###\n" + aCSV(datos.grupos, ["nombre", "te_uniste_el"]));
+  secciones.push("### COMO TE SENTISTE ###\n" + aCSV(datos.como_te_sentiste, ["tipo", "target_id", "animo", "fecha"]));
+  secciones.push(
+    "### ACTOR/DIRECTOR FAVORITO VOTADO ###\n" + aCSV(datos.actor_director_favorito_votado, ["tipo", "target_id", "nombre", "fecha"])
+  );
+  secciones.push("### HISTORIAL COMPLETO DE PELICULAS (todas las veces que la viste) ###\n" + aCSV(datos.historial_completo_peliculas, ["tmdb_id", "vista_el"]));
+  secciones.push(
+    "### HISTORIAL COMPLETO DE EPISODIOS (todas las veces que los viste) ###\n" +
+      aCSV(datos.historial_completo_episodios, ["serie_tmdb_id", "temporada", "episodio", "visto_el"])
+  );
 
   return secciones.join("\n\n");
 }
@@ -176,6 +270,17 @@ export async function exportarDatosZip(userId: string) {
     "favoritos.csv": strToU8(aCSV(datos.favoritos, ["item_type", "tmdb_id"])),
     "comentarios.csv": strToU8(aCSV(datos.comentarios, ["target_type", "target_id", "content", "created_at"])),
     "listas.csv": strToU8(aCSV(datos.listas, ["title", "created_at"])),
+    "posts_del_lobby.csv": strToU8(
+      aCSV(datos.posts_del_lobby, ["tipo", "tmdb_id", "temporada", "episodio", "contenido", "tiene_spoiler", "publicado_el"])
+    ),
+    "mensajes_de_chat_enviados.csv": strToU8(aCSV(datos.mensajes_de_chat_enviados, ["chat_id", "contenido", "gif_url", "enviado_el"])),
+    "grupos.csv": strToU8(aCSV(datos.grupos, ["nombre", "te_uniste_el"])),
+    "como_te_sentiste.csv": strToU8(aCSV(datos.como_te_sentiste, ["tipo", "target_id", "animo", "fecha"])),
+    "actor_director_favorito_votado.csv": strToU8(aCSV(datos.actor_director_favorito_votado, ["tipo", "target_id", "nombre", "fecha"])),
+    "historial_completo_peliculas.csv": strToU8(aCSV(datos.historial_completo_peliculas, ["tmdb_id", "vista_el"])),
+    "historial_completo_episodios.csv": strToU8(
+      aCSV(datos.historial_completo_episodios, ["serie_tmdb_id", "temporada", "episodio", "visto_el"])
+    ),
   };
 
   const zip = zipSync(archivos, { level: 6 });
