@@ -112,11 +112,18 @@ export async function crearComentarioDeTitulo(params: {
 
 /** Publicar una LISTA propia en el Lobby (no un título puntual). */
 export async function crearPostDeLista(params: { userId: string; listId: string; content: string; hasSpoiler: boolean }) {
+  const texto = params.content.trim();
+  if (texto) {
+    const resultado = await moderarTexto(texto);
+    if (!resultado.permitido) {
+      throw new Error(resultado.motivo ?? "Este mensaje no cumple las normas de la comunidad.");
+    }
+  }
   const { error } = await supabase.from("posts").insert({
     user_id: params.userId,
     item_type: "list",
     list_id: params.listId,
-    content: params.content.trim(),
+    content: texto,
     has_spoiler: params.hasSpoiler,
   });
   if (error) throw error;
@@ -124,11 +131,18 @@ export async function crearPostDeLista(params: { userId: string; listId: string;
 
 /** Publicar un GRUPO propio en el Lobby (solo tiene sentido para grupos públicos — eso se controla del lado de la app, no acá). */
 export async function crearPostDeGrupo(params: { userId: string; groupId: string; content: string; hasSpoiler: boolean }) {
+  const texto = params.content.trim();
+  if (texto) {
+    const resultado = await moderarTexto(texto);
+    if (!resultado.permitido) {
+      throw new Error(resultado.motivo ?? "Este mensaje no cumple las normas de la comunidad.");
+    }
+  }
   const { error } = await supabase.from("posts").insert({
     user_id: params.userId,
     item_type: "group",
     group_id: params.groupId,
-    content: params.content.trim(),
+    content: texto,
     has_spoiler: params.hasSpoiler,
   });
   if (error) throw error;
@@ -136,11 +150,18 @@ export async function crearPostDeGrupo(params: { userId: string; groupId: string
 
 /** Publicar la imagen del Lavinola Recap en el Lobby (con mensaje opcional). */
 export async function crearPostRecap(params: { userId: string; imageUrl: string; content: string }) {
+  const texto = params.content.trim();
+  if (texto) {
+    const resultado = await moderarTexto(texto);
+    if (!resultado.permitido) {
+      throw new Error(resultado.motivo ?? "Este mensaje no cumple las normas de la comunidad.");
+    }
+  }
   const { error } = await supabase.from("posts").insert({
     user_id: params.userId,
     item_type: "recap",
     image_url: params.imageUrl,
-    content: params.content.trim(),
+    content: texto,
     has_spoiler: false,
   });
   if (error) throw error;

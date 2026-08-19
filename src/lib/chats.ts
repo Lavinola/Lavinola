@@ -169,6 +169,12 @@ export async function quitarReaccionMensajeChat(mensajeId: string, userId: strin
 
 /** Editar un mensaje propio de texto — la política de la base ya rechaza esto pasada 1 hora de enviado. */
 export async function editarMensajeChat(mensajeId: string, contenidoNuevo: string) {
+  if (contenidoNuevo.trim()) {
+    const resultado = await moderarTexto(contenidoNuevo);
+    if (!resultado.permitido) {
+      throw new Error(resultado.motivo ?? "Este mensaje no cumple las normas de la comunidad.");
+    }
+  }
   const { error } = await supabase
     .from("chat_messages")
     .update({ content: contenidoNuevo.slice(0, 500), edited_at: new Date().toISOString() })
