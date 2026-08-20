@@ -86,7 +86,8 @@ export interface MiembroGrupo {
 }
 
 export async function listarMiembrosParaModerar(groupId: string): Promise<MiembroGrupo[]> {
-  const [{ data: miembros }, { data: mutes }] = await Promise.all([
+  const [{ data: grupo }, { data: miembros }, { data: mutes }] = await Promise.all([
+    supabase.from("groups").select("creator_id").eq("id", groupId).maybeSingle(),
     supabase.from("group_members").select("profiles!group_members_user_id_fkey(id, username, avatar_url)").eq("group_id", groupId),
     supabase.from("group_mutes").select("user_id, muted_until").eq("group_id", groupId),
   ]);
@@ -98,6 +99,8 @@ export async function listarMiembrosParaModerar(groupId: string): Promise<Miembr
   return (miembros ?? [])
     .map((r: any) => r.profiles)
     .filter(Boolean)
+    // El admin del grupo (quien lo creó) no se puede silenciar/expulsar/banear a sí mismo — ni tiene sentido que aparezca en esta lista.
+    .filter((p: any) => p.id !== grupo?.creator_id)
     .map((p: any) => ({ id: p.id, username: p.username, avatar_url: p.avatar_url, silenciado_hasta: muteMap[p.id] ?? null }));
 }
 

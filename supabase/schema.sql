@@ -3339,3 +3339,53 @@ begin
   return new;
 end;
 $$ language plpgsql security definer set search_path = public;
+
+-- ============================================================
+-- Usuario, nombre para mostrar, y frase favorita del perfil no tenían
+-- ningún límite de longitud puesto en la base — solo en la app (14, 15 y
+-- 110 caracteres respectivamente). Sin esto, alguien saltándose la app y
+-- llamando directo a la base podía guardar un texto de cualquier
+-- longitud ahí, rompiendo el diseño en todos lados donde se muestra.
+-- ============================================================
+do $$
+begin
+  alter table profiles add constraint profiles_username_length check (char_length(username) <= 14);
+exception when others then null;
+end $$;
+do $$
+begin
+  alter table profiles add constraint profiles_display_name_length check (display_name is null or char_length(display_name) <= 15);
+exception when others then null;
+end $$;
+do $$
+begin
+  alter table profiles add constraint profiles_favorite_quote_length check (favorite_quote is null or char_length(favorite_quote) <= 110);
+exception when others then null;
+end $$;
+
+-- Nombre de grupo y título de lista no tenían ningún límite, ni siquiera
+-- en la propia app — se agrega un tope razonable solo como red de
+-- contención, sin achicar lo que ya se puede escribir hoy.
+do $$
+begin
+  alter table groups add constraint groups_name_length check (char_length(name) <= 100);
+exception when others then null;
+end $$;
+do $$
+begin
+  alter table lists add constraint lists_title_length check (char_length(title) <= 100);
+exception when others then null;
+end $$;
+
+-- ============================================================
+-- Ajuste a los límites de arriba: bajan de 100 a los valores pedidos, y
+-- se agrega la descripción del grupo (150), que faltaba.
+-- ============================================================
+alter table groups drop constraint if exists groups_name_length;
+alter table groups add constraint groups_name_length check (char_length(name) <= 70);
+
+alter table groups drop constraint if exists groups_description_length;
+alter table groups add constraint groups_description_length check (description is null or char_length(description) <= 150);
+
+alter table lists drop constraint if exists lists_title_length;
+alter table lists add constraint lists_title_length check (char_length(title) <= 40);

@@ -76,6 +76,7 @@ export default function CreateListScreen({ route, navigation }: any) {
         placeholder={t("Ej: Para maratonear")}
         value={nombre}
         onChangeText={setNombre}
+        maxLength={40}
       />
 
       <Text style={styles.label}>{t("Descripción (opcional)")}</Text>

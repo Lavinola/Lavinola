@@ -75,6 +75,7 @@ export default function CreateGroupScreen({ navigation }: any) {
         placeholder={t("Ej: Sitcoms, Fans de Harry Potter...")}
         value={nombre}
         onChangeText={setNombre}
+        maxLength={70}
       />
 
       <Text style={styles.label}>{t("Descripción")}</Text>
@@ -85,7 +86,7 @@ export default function CreateGroupScreen({ navigation }: any) {
         value={descripcion}
         onChangeText={setDescripcion}
         multiline
-        maxLength={300}
+        maxLength={150}
       />
 
       <Text style={styles.label}>{t("¿Quién puede entrar?")}</Text>
