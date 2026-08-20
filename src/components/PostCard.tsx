@@ -462,7 +462,7 @@ export default function PostCard({
         opciones={[
           ...(userId === post.user_id ? [{ label: t("Eliminar"), icono: "trash-outline" as const, destructivo: true, onPress: confirmarEliminar }] : []),
           ...(mostrarNoInteresa && userId !== post.user_id ? [{ label: t("No me interesa"), icono: "eye-off-outline" as const, onPress: noMeInteresa }] : []),
-          { label: t("Denunciar"), icono: "flag-outline", destructivo: true, onPress: denunciar },
+          ...(userId !== post.user_id ? [{ label: t("Denunciar"), icono: "flag-outline" as const, destructivo: true, onPress: denunciar }] : []),
         ]}
       />
       <ReportModal visible={reportModalVisible} onCerrar={() => setReportModalVisible(false)} reporterId={userId} targetType="post" targetId={post.id} />

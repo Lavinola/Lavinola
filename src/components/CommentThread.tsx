@@ -670,8 +670,7 @@ export function NodoComentario({
         opciones={[
           ...(userId === comentario.user_id
             ? [{ label: t("Eliminar"), icono: "trash-outline" as const, destructivo: true, onPress: () => { setReportarVisible(false); setConfirmEliminarVisible(true); } }]
-            : []),
-          { label: t("Denunciar"), icono: "flag-outline", destructivo: true, onPress: () => { setReportarVisible(false); setReportModalVisible(true); } },
+            : [{ label: t("Denunciar"), icono: "flag-outline" as const, destructivo: true, onPress: () => { setReportarVisible(false); setReportModalVisible(true); } }]),
         ]}
       />
       <ConfirmModal

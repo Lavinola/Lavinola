@@ -9,6 +9,9 @@ export async function reportar(params: {
   reason: string;
   details?: string | null;
 }) {
+  if (params.targetType === "user" && params.targetId === params.reporterId) {
+    throw new Error("No podés reportarte a vos mismo.");
+  }
   const { error } = await supabase.from("reports").insert({
     reporter_id: params.reporterId,
     target_type: params.targetType,
