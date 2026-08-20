@@ -19,6 +19,19 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Sin esto, esta función funcionaba como un "proxy abierto" — cualquiera
+// podía pedirle que trajera CUALQUIER URL (no solo RSS), usándola gratis
+// para esconder su identidad, o peor, para intentar llegar a direcciones
+// internas del servidor. Se restringe a los dominios de noticias que
+// realmente usamos (ver src/lib/news.ts).
+const DOMINIOS_PERMITIDOS = [
+  "www.sensacine.com",
+  "decine21.com",
+  "variety.com",
+  "www.indiewire.com",
+  "www.adorocinema.com",
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: CORS_HEADERS });
@@ -28,6 +41,22 @@ serve(async (req) => {
   if (!url) {
     return new Response(JSON.stringify({ error: "Falta el parámetro url" }), {
       status: 400,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    });
+  }
+
+  let dominio: string;
+  try {
+    dominio = new URL(url).hostname;
+  } catch {
+    return new Response(JSON.stringify({ error: "URL inválida" }), {
+      status: 400,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    });
+  }
+  if (!DOMINIOS_PERMITIDOS.includes(dominio)) {
+    return new Response(JSON.stringify({ error: "Dominio no permitido" }), {
+      status: 403,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });
   }

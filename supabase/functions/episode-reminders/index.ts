@@ -103,7 +103,15 @@ function listarNumerosNatural(numeros: number[]): string {
   return `${todosMenosUltimo} y ${ultimo}`;
 }
 
-serve(async (_req) => {
+serve(async (req) => {
+  // El cron ya está configurado (ver instrucciones arriba) para mandar
+  // este header — sin verificarlo acá, cualquiera podía disparar esto a
+  // mano las veces que quisiera, mandando avisos duplicados a usuarios reales.
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
+    return new Response("No autorizado", { status: 401 });
+  }
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const hoy = new Date().toISOString().slice(0, 10);
   let enviados = 0;
