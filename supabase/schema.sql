@@ -3389,3 +3389,30 @@ alter table groups add constraint groups_description_length check (description i
 
 alter table lists drop constraint if exists lists_title_length;
 alter table lists add constraint lists_title_length check (char_length(title) <= 40);
+
+-- Capa extra de precaución: aunque no hay forma de llegar a esto desde la
+-- app (el botón de mensaje ya está oculto en el propio perfil), la
+-- función en sí no impedía crear un "chat" con uno mismo si alguien la
+-- llamaba directo, saltándose la app.
+create or replace function obtener_o_crear_chat(otro_usuario uuid) returns uuid as $$
+declare
+  a uuid;
+  b uuid;
+  resultado uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'No autenticado';
+  end if;
+  if auth.uid() = otro_usuario then
+    raise exception 'No podés iniciar un chat con vos mismo.';
+  end if;
+  if auth.uid() < otro_usuario then a := auth.uid(); b := otro_usuario; else a := otro_usuario; b := auth.uid(); end if;
+
+  select id into resultado from chats where user_a = a and user_b = b;
+  if resultado is null then
+    insert into chats (user_a, user_b) values (a, b) returning id into resultado;
+  end if;
+  return resultado;
+end;
+$$ language plpgsql security definer set search_path = public;
+grant execute on function obtener_o_crear_chat(uuid) to authenticated;
