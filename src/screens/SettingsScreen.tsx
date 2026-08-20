@@ -14,6 +14,7 @@ import { getPerfil, actualizarPerfil, PerfilCompleto } from "../lib/profile";
 import { setIdiomaTitulos } from "../lib/tmdb";
 import { IDIOMAS } from "../lib/languages";
 import { exportarDatosZip } from "../lib/dataExport";
+import { limpiarPushToken } from "../lib/notifications";
 import TopPills from "../components/TopPills";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -264,7 +265,10 @@ function TabCuenta({ navigation }: any) {
       mensaje={t("¿Seguro?")}
       botones={[
         { label: t("Cancelar"), onPress: () => {} },
-        { label: t("Cerrar sesión"), onPress: () => supabase.auth.signOut(), destacado: true },
+        { label: t("Cerrar sesión"), onPress: async () => {
+            if (userId) await limpiarPushToken(userId);
+            await supabase.auth.signOut();
+          }, destacado: true },
       ]}
     />
     <ConfirmModal

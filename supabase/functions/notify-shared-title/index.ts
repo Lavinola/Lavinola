@@ -12,6 +12,14 @@
 //        - Function: notify-shared-title
 //
 // El payload que manda un Database Webhook trae `record` con la fila nueva.
+//
+// IMPORTANTE — paso extra necesario después de este cambio: al crear (o
+// editar) el webhook en el panel de Supabase (Database > Webhooks), hay
+// que agregarle un HTTP Header:
+//   Authorization: Bearer <tu SUPABASE_SERVICE_ROLE_KEY>
+// Sin ese header, el webhook va a dejar de poder llamar a esta función
+// (la va a rechazar con 401) — es la forma de confirmar que el pedido
+// realmente viene de Supabase y no de cualquiera que encuentre la URL.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -21,6 +29,17 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 serve(async (req) => {
   try {
+    // Sin este chequeo, cualquiera que encontrara la URL podía mandar un
+    // payload falso ("record": {sender_id, receiver_id: CUALQUIERA}) y
+    // hacer que le llegara una notificación push a cualquier usuario. El
+    // webhook de Supabase que dispara esto hay que configurarlo (en el
+    // panel, al crearlo) para que mande este mismo header — si no, deja
+    // de funcionar. Ver instrucciones al final de este archivo.
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
+      return new Response("No autorizado", { status: 401 });
+    }
+
     const payload = await req.json();
     const record = payload.record;
     if (!record) return new Response("ok", { status: 200 });

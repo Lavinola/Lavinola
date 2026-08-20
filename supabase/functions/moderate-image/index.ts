@@ -22,7 +22,23 @@ const NIVELES_RECHAZADOS = ["LIKELY", "VERY_LIKELY"];
 
 serve(async (req) => {
   try {
+    // Sin esto, cualquiera (sin ser usuario nuestro) podía gastar la
+    // cuota de Google Cloud Vision a costa nuestra, y de paso subir una
+    // imagen a Storage a nombre de OTRA persona (mandando su userId).
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return new Response(JSON.stringify({ aprobado: false, motivo: "No autenticado" }), { status: 401 });
+    const supabaseCaller = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const {
+      data: { user: caller },
+    } = await supabaseCaller.auth.getUser();
+    if (!caller) return new Response(JSON.stringify({ aprobado: false, motivo: "Token inválido" }), { status: 401 });
+
     const { imageBase64, userId, groupNameSlug } = await req.json();
+    if (userId && userId !== caller.id) {
+      return new Response(JSON.stringify({ aprobado: false, motivo: "No coincide el usuario." }), { status: 403 });
+    }
     if (!imageBase64 || !userId) {
       return new Response(JSON.stringify({ aprobado: false, motivo: "Faltan datos" }), { status: 400 });
     }

@@ -14,8 +14,11 @@
 // reportes reales una vez en producción.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const PERSPECTIVE_API_KEY = Deno.env.get("PERSPECTIVE_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const UMBRAL_TOXICIDAD = 0.8;
 
 // Necesario para que la webapp pueda invocar esta función desde el navegador.
@@ -36,6 +39,18 @@ serve(async (req) => {
     return new Response(null, { headers: CORS_HEADERS });
   }
   try {
+    // Sin esto, cualquiera (sin ni siquiera ser usuario de la app) podía
+    // gastar la cuota gratuita de la API de Perspective a costa nuestra.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return jsonResponse({ permitido: false, motivo: "No autenticado" }, 401);
+    const supabaseCaller = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const {
+      data: { user: caller },
+    } = await supabaseCaller.auth.getUser();
+    if (!caller) return jsonResponse({ permitido: false, motivo: "Token inválido" }, 401);
+
     const { text } = await req.json();
 
     if (!text || typeof text !== "string") {

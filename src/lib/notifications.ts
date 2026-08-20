@@ -56,3 +56,18 @@ export async function registrarPushToken(userId: string): Promise<void> {
     console.warn("No se pudo registrar el push token:", e);
   }
 }
+
+/**
+ * Se llama al cerrar sesión — sin esto, en un celular compartido, la
+ * persona que se va podía seguir recibiendo notificaciones de SU cuenta
+ * incluso después de que otra persona inició sesión en ese mismo
+ * dispositivo (el token del aparato quedaba pegado a su perfil para
+ * siempre, sin limpiarse nunca).
+ */
+export async function limpiarPushToken(userId: string): Promise<void> {
+  try {
+    await supabase.from("profiles").update({ push_token: null }).eq("id", userId);
+  } catch (e) {
+    console.warn("No se pudo limpiar el push token:", e);
+  }
+}

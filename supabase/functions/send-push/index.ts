@@ -5,8 +5,20 @@
 // desde la app.
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
 serve(async (req) => {
   try {
+    // Esta función NUNCA se llama directo desde la app — solo la usan
+    // otras funciones nuestras (notify-shared-title, episode-reminders).
+    // Sin este chequeo, cualquiera que encontrara la URL podía mandar
+    // notificaciones push arbitrarias a cualquier token, haciéndose
+    // pasar por Lavinola.
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
+      return new Response(JSON.stringify({ ok: false, motivo: "No autorizado" }), { status: 401 });
+    }
+
     const { to, title, body, data } = await req.json();
     if (!to || !title) {
       return new Response(JSON.stringify({ ok: false, motivo: "Faltan datos" }), { status: 400 });

@@ -55,11 +55,32 @@ async function generarYSubir(supabase: any, userId: string, username: string): P
 
 serve(async (req) => {
   try {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const body = await req.json().catch(() => ({}));
 
+    // IMPORTANTE: esta función usa la service role key (esquiva RLS por
+    // completo) para poder escribir el avatar. Sin este chequeo,
+    // cualquiera podía mandar el userId de OTRA persona y pisarle el
+    // avatar, o llamarla en bucle para gastar recursos — no hacía falta
+    // ni estar logueado.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return new Response(JSON.stringify({ error: "No autenticado" }), { status: 401 });
+    const supabaseCaller = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const {
+      data: { user: caller },
+    } = await supabaseCaller.auth.getUser();
+    if (!caller) return new Response(JSON.stringify({ error: "Token inválido" }), { status: 401 });
+
     if (body.backfill) {
-      const { data: pendientes, error } = await supabase
+      // El backfill toca cuentas ajenas en lote — exclusivo de admin.
+      const { data: callerProfile } = await supabaseAdmin.from("profiles").select("is_admin").eq("id", caller.id).single();
+      if (!callerProfile?.is_admin) {
+        return new Response(JSON.stringify({ error: "No tenés permisos de admin." }), { status: 403 });
+      }
+
+      const { data: pendientes, error } = await supabaseAdmin
         .from("profiles")
         .select("id, username")
         .like("avatar_url", "https://api.dicebear.com/%")
@@ -69,7 +90,7 @@ serve(async (req) => {
       let ok = 0;
       let fallidos = 0;
       for (const p of pendientes ?? []) {
-        const resultado = await generarYSubir(supabase, p.id, p.username);
+        const resultado = await generarYSubir(supabaseAdmin, p.id, p.username);
         if (resultado) ok++;
         else fallidos++;
       }
@@ -83,7 +104,14 @@ serve(async (req) => {
     if (!userId || !username) {
       return new Response(JSON.stringify({ error: "Faltan userId/username" }), { status: 400 });
     }
-    const avatarUrl = await generarYSubir(supabase, userId, username);
+    // Solo se puede generar el avatar propio — salvo que quien llame sea admin.
+    if (userId !== caller.id) {
+      const { data: callerProfile } = await supabaseAdmin.from("profiles").select("is_admin").eq("id", caller.id).single();
+      if (!callerProfile?.is_admin) {
+        return new Response(JSON.stringify({ error: "No tenés permiso para generar el avatar de otra persona." }), { status: 403 });
+      }
+    }
+    const avatarUrl = await generarYSubir(supabaseAdmin, userId, username);
     if (!avatarUrl) return new Response(JSON.stringify({ error: "No se pudo generar el avatar" }), { status: 500 });
     return new Response(JSON.stringify({ avatar_url: avatarUrl }), { headers: { "Content-Type": "application/json" } });
   } catch (e: any) {
