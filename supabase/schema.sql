@@ -3472,3 +3472,126 @@ begin
   return new;
 end;
 $$ language plpgsql security definer set search_path = public;
+
+-- ============================================================
+-- Mismo criterio a nivel de base: nadie puede banearse, silenciarse, ni
+-- expulsarse a sí mismo de un grupo — ni el creador, ni un admin/mod de
+-- la app que esté moderando ese grupo y además sea miembro de él. La app
+-- ya lo esconde en pantalla; esto cierra la puerta del lado del servidor.
+-- ============================================================
+drop policy if exists "group_mutes_manage_admin" on group_mutes;
+create policy "group_mutes_manage_admin" on group_mutes for all using (
+  user_id <> auth.uid()
+  and (
+    exists (select 1 from groups where groups.id = group_mutes.group_id and groups.creator_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  )
+) with check (
+  user_id <> auth.uid()
+  and (
+    exists (select 1 from groups where groups.id = group_mutes.group_id and groups.creator_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  )
+);
+
+drop policy if exists "group_bans_manage_admin" on group_bans;
+create policy "group_bans_manage_admin" on group_bans for all using (
+  user_id <> auth.uid()
+  and (
+    exists (select 1 from groups where groups.id = group_bans.group_id and groups.creator_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  )
+) with check (
+  user_id <> auth.uid()
+  and (
+    exists (select 1 from groups where groups.id = group_bans.group_id and groups.creator_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  )
+);
+
+drop policy if exists "group_members_delete_own" on group_members;
+create policy "group_members_delete_own" on group_members for delete using (
+  (
+    auth.uid() = user_id
+    and not exists (select 1 from groups where groups.id = group_members.group_id and groups.creator_id = auth.uid())
+  )
+  or (
+    user_id <> auth.uid()
+    and (
+      exists (select 1 from groups where groups.id = group_members.group_id and groups.creator_id = auth.uid())
+      or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+    )
+  )
+);
+
+-- ============================================================
+-- CRÍTICO: el contenido de un grupo (comentarios, posts, encuestas) no
+-- estaba restringido a sus miembros para nada al momento de VERLO —
+-- comentarios_select_all no tenía en cuenta el grupo en absoluto,
+-- posts_select regía la visibilidad de un post de grupo por si el AUTOR
+-- tenía perfil público o lo seguías (nada que ver con ser miembro del
+-- grupo), y polls_select mostraba CUALQUIER encuesta de grupo a
+-- cualquiera. Se unifica acá con una regla correcta y consistente para
+-- los tres: un grupo público lo ve cualquiera, uno privado solo sus
+-- miembros — y admin/moderador de la app siempre, para poder moderar
+-- grupos ajenos (incluso privados) sin depender de ser miembro.
+-- ============================================================
+create or replace function puede_ver_contenido_de_grupo(p_group_id uuid) returns boolean as $$
+  select
+    p_group_id is null
+    or exists (select 1 from groups where groups.id = p_group_id and groups.visibility = 'public')
+    or exists (select 1 from group_members where group_members.group_id = p_group_id and group_members.user_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true));
+$$ language sql stable;
+
+drop policy if exists "comentarios_select_all" on comentarios;
+create policy "comentarios_select_all" on comentarios for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (
+    not oculto_por_reporte
+    or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+  )
+  and (target_type <> 'group' or puede_ver_contenido_de_grupo(group_id))
+);
+
+drop policy if exists "posts_select" on posts;
+create policy "posts_select" on posts for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (not oculto_por_reporte or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true)))
+  and (
+    group_id is not null
+      and puede_ver_contenido_de_grupo(group_id)
+    or group_id is null and (
+      auth.uid() = user_id
+      or es_comentario_de_titulo = true
+      or exists (select 1 from profiles where profiles.id = posts.user_id and profiles.is_private = false)
+      or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = posts.user_id)
+    )
+  )
+);
+
+drop policy if exists "polls_select" on polls;
+create policy "polls_select" on polls for select using (
+  not existe_bloqueo(auth.uid(), user_id)
+  and (not oculto_por_reporte or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true)))
+  and (
+    group_id is not null and puede_ver_contenido_de_grupo(group_id)
+    or group_id is null and (
+      auth.uid() = user_id
+      or exists (select 1 from profiles where profiles.id = polls.user_id and profiles.is_private = false)
+      or exists (select 1 from follows where follows.follower_id = auth.uid() and follows.followee_id = polls.user_id)
+    )
+  )
+);
+
+-- Ajuste: por ahora, ver el contenido de un grupo privado sin ser
+-- miembro queda exclusivo del admin — los moderadores NO tienen este
+-- acceso (a diferencia del resto de las tareas de moderación, donde sí
+-- están a la par del admin).
+create or replace function puede_ver_contenido_de_grupo(p_group_id uuid) returns boolean as $$
+  select
+    p_group_id is null
+    or exists (select 1 from groups where groups.id = p_group_id and groups.visibility = 'public')
+    or exists (select 1 from group_members where group_members.group_id = p_group_id and group_members.user_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and is_admin = true);
+$$ language sql stable;
