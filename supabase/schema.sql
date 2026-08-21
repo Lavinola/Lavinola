@@ -3595,3 +3595,114 @@ create or replace function puede_ver_contenido_de_grupo(p_group_id uuid) returns
     or exists (select 1 from group_members where group_members.group_id = p_group_id and group_members.user_id = auth.uid())
     or exists (select 1 from profiles where id = auth.uid() and is_admin = true);
 $$ language sql stable;
+
+-- ============================================================
+-- Mismo hallazgo que con el contenido: la lista de MIEMBROS de un grupo
+-- privado también estaba completamente expuesta a cualquiera. Se corrige
+-- con el mismo criterio ya usado para comentarios/posts/encuestas.
+-- ============================================================
+drop policy if exists "group_members_select_all" on group_members;
+create policy "group_members_select_all" on group_members for select using (
+  puede_ver_contenido_de_grupo(group_id)
+);
+
+-- ============================================================
+-- IMPORTANTE: la corrección de arriba (restringir group_members) creaba
+-- un problema — puede_ver_contenido_de_grupo() consulta group_members
+-- por dentro, y esa tabla ahora depende de la MISMA función para
+-- decidir su propia visibilidad → chequeo circular. Se soluciona
+-- marcando la función como "security definer", para que su consulta
+-- interna a group_members no quede sujeta a la política de esa tabla
+-- (mismo recurso ya usado en obtener_o_crear_chat).
+-- ============================================================
+create or replace function puede_ver_contenido_de_grupo(p_group_id uuid) returns boolean as $$
+  select
+    p_group_id is null
+    or exists (select 1 from groups where groups.id = p_group_id and groups.visibility = 'public')
+    or exists (select 1 from group_members where group_members.group_id = p_group_id and group_members.user_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and is_admin = true);
+$$ language sql stable security definer set search_path = public;
+
+-- ============================================================
+-- CRÍTICO: existe_bloqueo() no era "security definer" — su consulta
+-- interna a la tabla "blocks" quedaba sujeta a la política de esa
+-- tabla (blocks_owner: "solo ves las filas donde SOS el que bloqueó").
+-- Esto significa que si OTRA persona te bloqueó a vos (no al revés),
+-- existe_bloqueo() podía no detectarlo, porque esa fila le pertenece a
+-- ella, no a vos — y la función no la podía "ver" para chequearla.
+-- Como TODAS las correcciones de bloqueo de esta sesión (comentarios,
+-- posts, chats, reacciones, listas, encuestas, seguir) dependen de esta
+-- única función, este arreglo las corrige a todas de una — no hace
+-- falta tocar cada política de nuevo.
+-- ============================================================
+create or replace function existe_bloqueo(a uuid, b uuid) returns boolean as $$
+  select exists (
+    select 1 from blocks
+    where (blocker_id = a and blocked_id = b) or (blocker_id = b and blocked_id = a)
+  );
+$$ language sql stable security definer set search_path = public;
+
+-- ============================================================
+-- CRÍTICO — regresión mía: al agregar "no podés banearte/silenciarte a
+-- vos mismo" en group_bans_manage_admin/group_mutes_manage_admin, esa
+-- política pasó a excluir explícitamente tu propia fila (user_id <>
+-- auth.uid()) — pero esa MISMA tabla también se usa desde
+-- comentarios_insert_auth/posts_insert/polls_insert para chequear "¿YO
+-- estoy baneado/silenciado?", y con esa política ya no podías ver tu
+-- propia fila de baneo — dejando pasar comentarios de gente baneada,
+-- justo lo que esa protección debía evitar. Se separa en una función
+-- aparte, con permiso para consultar sin esa restricción.
+-- ============================================================
+create or replace function esta_baneado_o_silenciado(p_group_id uuid, p_user_id uuid) returns boolean as $$
+  select
+    exists (select 1 from group_bans where group_bans.group_id = p_group_id and group_bans.user_id = p_user_id)
+    or exists (
+      select 1 from group_mutes
+      where group_mutes.group_id = p_group_id
+        and group_mutes.user_id = p_user_id
+        and (group_mutes.muted_until is null or group_mutes.muted_until > now())
+    );
+$$ language sql stable security definer set search_path = public;
+
+drop policy if exists "comentarios_insert_auth" on comentarios;
+create policy "comentarios_insert_auth" on comentarios for insert with check (
+  auth.uid() = user_id
+  and (
+    parent_comment_id is null
+    or not exists (
+      select 1 from comentarios padre
+      where padre.id = comentarios.parent_comment_id and existe_bloqueo(auth.uid(), padre.user_id)
+    )
+  )
+  and (
+    target_type <> 'group'
+    or (
+      exists (select 1 from group_members where group_members.group_id = comentarios.group_id and group_members.user_id = auth.uid())
+      and not esta_baneado_o_silenciado(comentarios.group_id, auth.uid())
+    )
+  )
+);
+
+drop policy if exists "posts_insert" on posts;
+create policy "posts_insert" on posts for insert with check (
+  auth.uid() = user_id
+  and (
+    group_id is null
+    or (
+      exists (select 1 from group_members where group_members.group_id = posts.group_id and group_members.user_id = auth.uid())
+      and not esta_baneado_o_silenciado(posts.group_id, auth.uid())
+    )
+  )
+);
+
+drop policy if exists "polls_insert" on polls;
+create policy "polls_insert" on polls for insert with check (
+  auth.uid() = user_id
+  and (
+    group_id is null
+    or (
+      exists (select 1 from group_members where group_members.group_id = polls.group_id and group_members.user_id = auth.uid())
+      and not esta_baneado_o_silenciado(polls.group_id, auth.uid())
+    )
+  )
+);
