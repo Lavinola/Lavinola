@@ -3429,3 +3429,46 @@ create policy "group_members_delete_own" on group_members for delete using (
   or exists (select 1 from groups where groups.id = group_members.group_id and groups.creator_id = auth.uid() and groups.creator_id <> group_members.user_id)
   or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
 );
+
+-- ============================================================
+-- Mismo resguardo que ya agregamos en "borrar usuario": ni siquiera un
+-- admin/moderador puede suspenderse a sí mismo, ni darse/sacarse el rol
+-- de moderador o admin a sí mismo, aunque técnicamente tenga el permiso
+-- — la app ya lo esconde en pantalla, esto es la capa de servidor.
+-- ============================================================
+create or replace function enforce_profile_privilege_columns() returns trigger as $$
+declare
+  actor_admin boolean;
+  actor_moderador boolean;
+begin
+  if new.is_admin is not distinct from old.is_admin
+     and new.is_moderator is not distinct from old.is_moderator
+     and new.suspended_until is not distinct from old.suspended_until
+     and new.suspension_reason is not distinct from old.suspension_reason then
+    return new;
+  end if;
+
+  if auth.uid() = new.id then
+    raise exception 'No podés cambiar estos campos en tu propia cuenta.';
+  end if;
+
+  select is_admin, is_moderator into actor_admin, actor_moderador from profiles where id = auth.uid();
+
+  if new.is_admin is distinct from old.is_admin and not coalesce(actor_admin, false) then
+    raise exception 'No tenés permiso para cambiar el estado de administrador.';
+  end if;
+
+  if new.is_moderator is distinct from old.is_moderator and not coalesce(actor_admin, false) then
+    raise exception 'No tenés permiso para cambiar el estado de moderador.';
+  end if;
+
+  if (
+    new.suspended_until is distinct from old.suspended_until
+    or new.suspension_reason is distinct from old.suspension_reason
+  ) and not (coalesce(actor_admin, false) or coalesce(actor_moderador, false)) then
+    raise exception 'No tenés permiso para suspender/desuspender usuarios.';
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
