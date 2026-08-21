@@ -50,6 +50,29 @@ serve(async (req) => {
       return jsonResponse({ ok: false, motivo: "No tenés permisos de admin." }, 403);
     }
 
+    // Precaución extra: ni siquiera un admin puede borrarse a sí mismo por
+    // esta vía (la app ya lo esconde en la pantalla, esto es el resguardo
+    // del lado del servidor por si alguien la llama directo).
+    if (targetUserId === caller.id) {
+      return jsonResponse({ ok: false, motivo: "No podés borrar tu propia cuenta desde acá — usá 'Eliminar mi cuenta' en Ajustes." }, 400);
+    }
+
+    // Mismo criterio que delete-account: limpiar los archivos que la
+    // persona haya subido a Storage, que el borrado en cascada de la base
+    // no toca por ser un sistema aparte.
+    try {
+      const { data: avatares } = await supabaseAdmin.storage.from("avatars").list("", { search: targetUserId });
+      const rutasAvatares = (avatares ?? []).filter((f: any) => f.name.startsWith(targetUserId)).map((f: any) => f.name);
+      rutasAvatares.push(`defaults/${targetUserId}.png`);
+      if (rutasAvatares.length > 0) await supabaseAdmin.storage.from("avatars").remove(rutasAvatares);
+
+      const { data: recaps } = await supabaseAdmin.storage.from("recap-images").list(targetUserId);
+      const rutasRecaps = (recaps ?? []).map((f: any) => `${targetUserId}/${f.name}`);
+      if (rutasRecaps.length > 0) await supabaseAdmin.storage.from("recap-images").remove(rutasRecaps);
+    } catch (e) {
+      console.error("No se pudieron limpiar los archivos de Storage del usuario:", e);
+    }
+
     const { error } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
     if (error) throw error;
 
