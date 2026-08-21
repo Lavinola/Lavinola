@@ -287,8 +287,17 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
           ? [{ label: t("Cambiar tapa/banner"), icono: "image-outline" as const, onPress: () => { setMenuVisible(false); setMenuTapaBannerVisible(true); } }]
           : []),
         { label: silenciadoPersonal ? t("Dejar de silenciar") : t("Silenciar grupo"), icono: "volume-mute-outline", onPress: toggleSilencioPersonal },
-        { label: t("Salir del grupo"), icono: "exit-outline", destructivo: true, onPress: () => { setMenuVisible(false); setConfirmSalirVisible(true); } },
-        { label: t("Denunciar"), icono: "flag-outline", destructivo: true, onPress: () => { setMenuVisible(false); setReportVisible(true); } },
+        // El creador no puede "salir" de su propio grupo (lo dejaría
+        // huérfano, sin nadie, aunque siga teniendo poder de moderación
+        // sobre él) — si lo que quiere es dejar de tenerlo, la opción real
+        // es "Eliminar grupo" desde la pestaña Admin de Grupos.
+        ...(userId && grupo?.creator_id !== userId
+          ? [{ label: t("Salir del grupo"), icono: "exit-outline" as const, destructivo: true, onPress: () => { setMenuVisible(false); setConfirmSalirVisible(true); } }]
+          : []),
+        // Tampoco puede denunciar su propio grupo.
+        ...(userId && grupo?.creator_id !== userId
+          ? [{ label: t("Denunciar"), icono: "flag-outline" as const, destructivo: true, onPress: () => { setMenuVisible(false); setReportVisible(true); } }]
+          : []),
       ]}
     />
 

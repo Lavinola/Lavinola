@@ -3416,3 +3416,16 @@ begin
 end;
 $$ language plpgsql security definer set search_path = public;
 grant execute on function obtener_o_crear_chat(uuid) to authenticated;
+
+-- El creador de un grupo no puede sacarse a sí mismo de su propio grupo
+-- (lo dejaría huérfano, sin nadie, aunque siga teniendo poder de
+-- moderación sobre él) — si quiere dejar de tenerlo, tiene que borrarlo.
+drop policy if exists "group_members_delete_own" on group_members;
+create policy "group_members_delete_own" on group_members for delete using (
+  (
+    auth.uid() = user_id
+    and not exists (select 1 from groups where groups.id = group_members.group_id and groups.creator_id = auth.uid())
+  )
+  or exists (select 1 from groups where groups.id = group_members.group_id and groups.creator_id = auth.uid() and groups.creator_id <> group_members.user_id)
+  or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true))
+);

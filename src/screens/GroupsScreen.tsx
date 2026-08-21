@@ -92,6 +92,10 @@ export default function GroupsScreen({ navigation }: any) {
     if (!userId || gruposBaneado.has(grupo.id)) return;
     try {
       if (grupo.soyMiembro) {
+        if (grupo.creator_id === userId) {
+          Alert.alert(t("No podés salir de tu propio grupo"), t("Si querés dejar de tenerlo, usá 'Eliminar grupo' desde la pestaña Admin."));
+          return;
+        }
         await salirDeGrupo(grupo.id, userId);
       } else if (grupo.visibility === "private") {
         if (solicitudesEnviadas.has(grupo.id)) return;
@@ -331,8 +335,12 @@ export default function GroupsScreen({ navigation }: any) {
             icono: "volume-mute-outline",
             onPress: grupoMenuAccion && gruposSilenciados.has(grupoMenuAccion.id) ? dejarDeSilenciar : abrirMenuSilenciar,
           },
-          { label: t("Salir del grupo"), icono: "exit-outline", destructivo: true, onPress: confirmarSalirDelGrupo },
-          { label: t("Denunciar"), icono: "flag-outline", destructivo: true, onPress: denunciarGrupo },
+          ...(grupoMenuAccion && grupoMenuAccion.creator_id !== userId
+            ? [{ label: t("Salir del grupo"), icono: "exit-outline" as const, destructivo: true, onPress: confirmarSalirDelGrupo }]
+            : []),
+          ...(grupoMenuAccion && grupoMenuAccion.creator_id !== userId
+            ? [{ label: t("Denunciar"), icono: "flag-outline" as const, destructivo: true, onPress: denunciarGrupo }]
+            : []),
         ]}
       />
 
