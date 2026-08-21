@@ -180,8 +180,9 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
             const tabla = m.item_type === "series" ? "series_cache" : "movies_cache";
             const tablaUsuario = m.item_type === "series" ? "user_series" : "user_movies";
             const columnaId = m.item_type === "series" ? "series_tmdb_id" : "movie_tmdb_id";
+            const camposCache = m.item_type === "series" ? "tmdb_id, name, poster_path, total_seasons" : "tmdb_id, title, poster_path, release_date";
             const [{ data: cache }, { data: custom }] = await Promise.all([
-              supabase.from(tabla).select("*").eq("tmdb_id", m.tmdb_id).maybeSingle(),
+              supabase.from(tabla).select(camposCache).eq("tmdb_id", m.tmdb_id).maybeSingle() as any,
               supabase.from(tablaUsuario).select("custom_poster_path").eq("user_id", m.sender_id).eq(columnaId, m.tmdb_id).maybeSingle(),
             ]);
             if (cache) {

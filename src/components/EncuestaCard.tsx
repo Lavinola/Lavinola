@@ -48,7 +48,8 @@ function useTitulo(itemType: "series" | "movie" | "episode" | null, tmdbId: numb
       // buscando en TMDB directo al armar la encuesta) — primero probamos
       // el caché rápido, y si no está, se lo pedimos a TMDB directamente.
       const tabla = itemType === "movie" ? "movies_cache" : "series_cache";
-      const { data: cache } = await supabase.from(tabla).select("*").eq("tmdb_id", tmdbId).maybeSingle();
+      const camposCache = itemType === "movie" ? "tmdb_id, title, poster_path" : "tmdb_id, name, poster_path";
+      const { data: cache } = (await supabase.from(tabla).select(camposCache).eq("tmdb_id", tmdbId).maybeSingle()) as any;
       let nombre: string | null = cache ? (itemType === "movie" ? cache.title : cache.name) : null;
       let posterPath: string | null = cache?.poster_path ?? null;
 
@@ -127,7 +128,8 @@ function useNombresDeOpciones(opciones: OpcionEncuesta[]): Record<string, string
     Promise.all(
       conTitulo.map(async (o) => {
         const tabla = o.itemType === "movie" ? "movies_cache" : "series_cache";
-        const { data: cache } = await supabase.from(tabla).select("*").eq("tmdb_id", o.tmdbId!).maybeSingle();
+        const camposCache = o.itemType === "movie" ? "tmdb_id, title" : "tmdb_id, name";
+        const { data: cache } = (await supabase.from(tabla).select(camposCache).eq("tmdb_id", o.tmdbId!).maybeSingle()) as any;
         let nombre: string | null = cache ? (o.itemType === "movie" ? cache.title : cache.name) : null;
         if (!nombre) {
           try {

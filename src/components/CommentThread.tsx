@@ -809,8 +809,9 @@ function RecomendacionPreview({
         const tabla = itemType === "series" ? "series_cache" : "movies_cache";
         const tablaUsuario = itemType === "series" ? "user_series" : "user_movies";
         const columnaId = itemType === "series" ? "series_tmdb_id" : "movie_tmdb_id";
+        const camposCache = itemType === "series" ? "tmdb_id, name, poster_path, total_seasons" : "tmdb_id, title, poster_path, release_date";
         const [{ data }, { data: custom }] = await Promise.all([
-          supabase.from(tabla).select("*").eq("tmdb_id", tmdbId).maybeSingle(),
+          supabase.from(tabla).select(camposCache).eq("tmdb_id", tmdbId).maybeSingle() as any,
           autorId
             ? supabase.from(tablaUsuario).select("custom_poster_path").eq("user_id", autorId).eq(columnaId, tmdbId).maybeSingle()
             : Promise.resolve({ data: null as any }),
