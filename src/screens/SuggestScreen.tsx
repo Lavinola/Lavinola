@@ -16,8 +16,8 @@ export default function SuggestScreen({ navigation }: any) {
     if (!texto.trim()) return;
     setEnviando(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user?.id;
       if (!userId) return;
       await enviarSugerencia(userId, texto.trim());
       Alert.alert(t("¡Gracias!"), t("Tu idea le llega directo al admin."));

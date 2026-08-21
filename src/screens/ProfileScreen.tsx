@@ -96,8 +96,8 @@ export default function ProfileScreen({ navigation }: any) {
 
   async function cerrarAvisoUsername() {
     setAvisoUsernameVisible(false);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (uid) await supabase.from("profiles").update({ vio_aviso_username: true }).eq("id", uid);
   }
 
@@ -105,8 +105,8 @@ export default function ProfileScreen({ navigation }: any) {
     setRecapModalVisible(true);
     setRecapCargando(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      const uid = data.user?.id;
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id;
       if (!uid) return;
       setRecapUserId(uid);
       const datos = await calcularRecap(uid, year);
@@ -138,8 +138,8 @@ export default function ProfileScreen({ navigation }: any) {
   }
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const userId = userData.session?.user?.id;
     if (!userId) return;
 
     // Si ya se había precargado en segundo plano (al abrir la app, o en

@@ -66,8 +66,8 @@ export default function ListsScreen({ navigation }: any) {
   );
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id ?? null;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id ?? null;
     setUserId(uid);
     if (!uid) return;
     const [mias, sigo] = await Promise.all([listarMisListas(uid), listarListasQueSigo(uid)]);

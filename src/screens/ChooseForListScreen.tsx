@@ -59,8 +59,8 @@ export default function ChooseForListScreen({ route }: any) {
 
   async function cargar() {
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) {
       setLoading(false);
       return;

@@ -26,8 +26,8 @@ export default function AddTitleScreen() {
   const [agregados, setAgregados] = useState<Set<string>>(new Set());
 
   React.useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      const uid = data.user?.id;
+    supabase.auth.getSession().then(async ({ data }) => {
+      const uid = data.session?.user?.id;
       if (!uid) return;
       const [series, movies] = await Promise.all([
         fetchAllRows<any>((desde, hasta) => supabase.from("user_series").select("series_tmdb_id").eq("user_id", uid).range(desde, hasta)),
@@ -68,8 +68,8 @@ export default function AddTitleScreen() {
   async function agregar(item: Resultado) {
     setAgregando(item.id);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user?.id;
       if (!userId) return;
       if (item.tipo === "series") await seguirSerie(userId, item.id);
       else await agregarPelicula(userId, item.id);

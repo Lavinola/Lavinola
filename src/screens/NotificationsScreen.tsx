@@ -37,8 +37,8 @@ export default function NotificationsScreen({ navigation }: any) {
   );
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) return;
     const [todas, solicitudes] = await Promise.all([listarNotificaciones(uid), listarSolicitudesPendientes(uid)]);
     // Las solicitudes de seguimiento van aparte, en su propio botón — no se mezclan con el resto.

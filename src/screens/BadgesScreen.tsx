@@ -32,8 +32,8 @@ export default function BadgesScreen() {
   async function cargar() {
     setCargando(true);
     setError(null);
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
     if (!uid) {
       setCargando(false);
       return;

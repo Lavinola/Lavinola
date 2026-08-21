@@ -68,8 +68,8 @@ export default function ImportTVTimeScreen() {
   }, []);
 
   async function retomarSiHayAlgoEnCurso() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) return;
     const { data: job } = await supabase
       .from("tvtime_import_jobs")
@@ -154,8 +154,8 @@ export default function ImportTVTimeScreen() {
           }
           const resultadosSofa = agruparPorTmdbId(registros);
 
-          const { data: userData } = await supabase.auth.getUser();
-          const uid = userData.user?.id;
+          const { data: userData } = await supabase.auth.getSession();
+          const uid = userData.session?.user?.id;
           if (!uid) throw new Error("No se pudo identificar tu usuario.");
 
           const { data: job, error: jobError } = await supabase
@@ -216,8 +216,8 @@ export default function ImportTVTimeScreen() {
       }));
       setProgreso({ procesados: 0, total: gruposArray.length });
 
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const uid = userData.session?.user?.id;
       let idiomaUsuario = "es-419";
       if (uid) {
         const { data: perfil } = await supabase.from("profiles").select("content_language").eq("id", uid).maybeSingle();
@@ -375,8 +375,8 @@ export default function ImportTVTimeScreen() {
     // en el celular, reportando progreso en vivo igual que el resto.
     if (!jobId) {
       setEtapa("importando");
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const uid = userData.session?.user?.id;
       if (!uid) return;
       try {
         const { episodiosOmitidosTotal } = await aplicarMatchesConfiados(uid, resultados, (p) =>
@@ -432,9 +432,9 @@ export default function ImportTVTimeScreen() {
         setEpisodiosOmitidosDetalle(Array.isArray(job.episodios_omitidos_detalle) ? job.episodios_omitidos_detalle : []);
         await supabase.from("tvtime_import_jobs").delete().eq("id", jobId!);
         setEtapa("listo");
-        supabase.auth.getUser().then(({ data }) => {
-          if (!data.user) return;
-          chequearSubidaDeNivel(data.user.id)
+        supabase.auth.getSession().then(({ data }) => {
+          if (!data.session?.user) return;
+          chequearSubidaDeNivel(data.session?.user?.id)
             .then((nivel) => nivel && setNivelSubido(nivel))
             .catch((e) => console.error("Error al chequear el nivel de insignias:", e));
         });

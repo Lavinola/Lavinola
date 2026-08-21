@@ -127,8 +127,8 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
   );
 
   async function inicializar() {
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id ?? null;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id ?? null;
     setUserId(uid);
     if (uid) {
       const { data: perfilPropio } = await supabase.from("profiles").select("content_language").eq("id", uid).maybeSingle();

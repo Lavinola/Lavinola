@@ -57,8 +57,8 @@ export async function getPerfil(userId: string): Promise<PerfilCompleto | null> 
     // "0 rows"), lo creamos en el momento. Cubre cuentas viejas afectadas por
     // el bug de que el perfil no se creaba si faltaba confirmar el mail.
     if (error.code === "PGRST116") {
-      const { data: sesion } = await supabase.auth.getUser();
-      if (sesion.user?.id === userId) {
+      const { data: sesion } = await supabase.auth.getSession();
+      if (sesion.session?.user?.id === userId) {
         const { data: creado, error: errorCrear } = await supabase
           .from("profiles")
           .insert({ id: userId })

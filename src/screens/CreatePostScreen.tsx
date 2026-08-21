@@ -32,8 +32,8 @@ export default function CreatePostScreen({ route, navigation }: Props) {
     if (!texto.trim()) return;
     setPublicando(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user?.id;
       if (!userId) return;
       await crearPost({
         userId,

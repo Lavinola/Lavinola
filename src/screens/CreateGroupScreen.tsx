@@ -46,8 +46,8 @@ export default function CreateGroupScreen({ navigation }: any) {
     if (!nombre.trim()) return;
     setCreando(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user?.id;
       if (!userId) return;
       await crearGrupo({
         creatorId: userId,

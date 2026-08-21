@@ -61,8 +61,8 @@ export default function ChooseCoverPhotoScreen({ navigation }: any) {
     if (!tituloElegido) return;
     setGuardando(path);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user?.id;
       if (!userId) return;
       await setCoverPhoto(userId, tituloElegido.tipo, tituloElegido.id, path);
       navigation.goBack();

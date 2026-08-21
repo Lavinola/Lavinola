@@ -24,8 +24,8 @@ export default function FindUsersScreen({ navigation }: any) {
   // el botón ya refleja el estado correcto.
   useFocusEffect(
     useCallback(() => {
-      supabase.auth.getUser().then(({ data }) => {
-        const uid = data.user?.id ?? null;
+      supabase.auth.getSession().then(({ data }) => {
+        const uid = data.session?.user?.id ?? null;
         setUserId(uid);
         if (query.trim().length >= 2) buscarCon(uid, query);
       });

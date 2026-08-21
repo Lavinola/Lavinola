@@ -107,8 +107,8 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
   }, [highlightCommentId]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      const uid = data.user?.id ?? null;
+    supabase.auth.getSession().then(async ({ data }) => {
+      const uid = data.session?.user?.id ?? null;
       setUserId(uid);
       if (uid) {
         const { data: perfil } = await supabase.from("profiles").select("content_language, country").eq("id", uid).maybeSingle();

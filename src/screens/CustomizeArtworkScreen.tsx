@@ -35,8 +35,8 @@ export default function CustomizeArtworkScreen({ route, navigation }: Props) {
   }
 
   async function elegir(path: string) {
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const userId = userData.session?.user?.id;
     if (!userId) return;
     const tabla = tipo === "series" ? "user_series" : "user_movies";
     const columnaId = tipo === "series" ? "series_tmdb_id" : "movie_tmdb_id";

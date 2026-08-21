@@ -58,8 +58,8 @@ export default function CalificarModal({ visible, onCerrar, tipo, tmdbId, tempor
     if (!visible) return;
     (async () => {
       setMiRating(0);
-      const { data } = await supabase.auth.getUser();
-      const uid = data.user?.id ?? null;
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id ?? null;
       setUserId(uid);
       if (uid) {
         chequearSubidaDeNivel(uid)

@@ -28,8 +28,8 @@ export default function BlockedUsersScreen() {
 
   async function cargar() {
     setCargando(true);
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
     if (!uid) {
       setCargando(false);
       return;

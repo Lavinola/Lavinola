@@ -69,8 +69,8 @@ export default function MoviesScreen({ navigation }: any) {
   );
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const userId = userData.session?.user?.id;
     if (!userId) {
       setLoading(false);
       return;
@@ -105,8 +105,8 @@ export default function MoviesScreen({ navigation }: any) {
   }
 
   async function marcarVista(tmdbId: number, watched: boolean) {
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const userId = userData.session?.user?.id;
     if (!userId) return;
     if (watched) impactoLiviano();
     await toggleVistaPelicula(userId, tmdbId, watched);

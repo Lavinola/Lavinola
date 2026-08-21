@@ -53,10 +53,10 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
   const [agregando, setAgregando] = useState<number | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      setUserId(data.user?.id ?? null);
-      if (data.user?.id) {
-        const { data: perfil } = await supabase.from("profiles").select("country").eq("id", data.user.id).maybeSingle();
+    supabase.auth.getSession().then(async ({ data }) => {
+      setUserId(data.session?.user?.id ?? null);
+      if (data.session?.user?.id) {
+        const { data: perfil } = await supabase.from("profiles").select("country").eq("id", data.session?.user?.id).maybeSingle();
         if (perfil?.country) setWatchRegion(perfil.country);
       }
     });

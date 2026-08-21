@@ -83,8 +83,8 @@ function ListaPendiente({ navigation }: any) {
   async function cargar(silencioso = false) {
     const miId = ++idCargaRef.current;
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user?.id;
       if (!userId) return;
 
       // Si ya se había precargado en segundo plano (al abrir la app, o en
@@ -165,8 +165,8 @@ function ListaPendiente({ navigation }: any) {
   async function tocarSiguienteCapitulo(item: SerieListado) {
     if (item.next_episode_season == null || item.next_episode_number == null) return;
     impactoLiviano();
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const userId = userData.session?.user?.id;
     if (!userId) return;
 
     const previos = await episodiosAnterioresNoVistos(userId, item.tmdb_id, item.next_episode_season, item.next_episode_number);
@@ -192,8 +192,8 @@ function ListaPendiente({ navigation }: any) {
     if (!confirmAnteriores) return;
     const { item, anteriores, resolver } = confirmAnteriores;
     setConfirmAnteriores(null);
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const userId = userData.session?.user?.id;
     if (userId && item.next_episode_season != null && item.next_episode_number != null) {
       const lista = conAnteriores
         ? [...anteriores, { season_number: item.next_episode_season, episode_number: item.next_episode_number }]

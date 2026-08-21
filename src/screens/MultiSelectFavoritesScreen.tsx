@@ -34,8 +34,8 @@ export default function MultiSelectFavoritesScreen({ route, navigation }: Props)
   }, []);
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) return;
     setUserId(uid);
 

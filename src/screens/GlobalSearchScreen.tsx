@@ -42,8 +42,8 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   const [agregados, setAgregados] = useState<Set<string>>(new Set());
 
   useState(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      const uid = data.user?.id ?? null;
+    supabase.auth.getSession().then(async ({ data }) => {
+      const uid = data.session?.user?.id ?? null;
       setUserId(uid);
       if (uid) {
         await cargarAgregados(uid);

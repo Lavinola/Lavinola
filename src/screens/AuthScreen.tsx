@@ -191,8 +191,8 @@ export default function AuthScreen() {
         // guardamos como archivo propio (no bloqueamos el alta esperando
         // esto — si falla, no pasa nada grave, el usuario simplemente no
         // tiene foto todavía hasta que suba la suya).
-        if (data.user?.id) {
-          supabase.functions.invoke("generate-default-avatar", { body: { userId: data.user.id, username: usernameLimpio } }).catch((e) => {
+        if (data.session?.user?.id) {
+          supabase.functions.invoke("generate-default-avatar", { body: { userId: data.session?.user?.id, username: usernameLimpio } }).catch((e) => {
             console.error("No se pudo generar el avatar por default:", e);
           });
         }

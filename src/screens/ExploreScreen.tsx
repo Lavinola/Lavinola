@@ -163,8 +163,8 @@ function Descubrir({ navigation }: any) {
   async function cargarTodo() {
     setLoading(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id ?? null;
+      const { data: userData } = await supabase.auth.getSession();
+      const uid = userData.session?.user?.id ?? null;
       setUserId(uid);
 
       // Pedimos 2 páginas de tendencia (40 títulos en crudo) en vez de 1

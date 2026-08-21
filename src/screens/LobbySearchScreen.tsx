@@ -72,8 +72,8 @@ export default function LobbySearchScreen({ route, navigation }: Props) {
     setTituloElegido(item);
     setCargandoPosts(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      const uid = data.user?.id ?? null;
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id ?? null;
       let lista = await listarPostsDeTitulo(item.tipo, item.id, undefined, undefined, uid);
       if (modo === "misPosts" && uid) lista = lista.filter((p) => p.user_id === uid);
       setPosts(lista);

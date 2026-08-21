@@ -14,8 +14,8 @@ export async function listarAnuncios(): Promise<Anuncio[]> {
 
 /** Crea el anuncio (visible in-app para todos) y dispara el push a quienes tengan token guardado. */
 export async function crearAnuncio(mensaje: string): Promise<{ ok: boolean; motivo?: string }> {
-  const { data: userData } = await supabase.auth.getUser();
-  const adminId = userData.user?.id;
+  const { data: userData } = await supabase.auth.getSession();
+  const adminId = userData.session?.user?.id;
   if (!adminId) return { ok: false, motivo: "No autenticado" };
 
   const { error } = await supabase.from("announcements").insert({ admin_id: adminId, message: mensaje.slice(0, 500) });

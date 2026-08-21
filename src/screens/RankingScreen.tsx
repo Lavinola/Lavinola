@@ -23,8 +23,8 @@ export default function RankingScreen({ route, navigation }: Props) {
   }, []);
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) return;
     const data = tipo === "series" ? await getRankingTiempoSeries(uid) : await getRankingTiempoPeliculas(uid);
     setRanking(data);

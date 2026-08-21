@@ -28,8 +28,8 @@ export default function GuardadosScreen({ navigation }: any) {
   );
 
   async function cargar() {
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
     if (!uid) return;
     setUserId(uid);
     const { data: perfil } = await supabase.from("profiles").select("content_language").eq("id", uid).maybeSingle();

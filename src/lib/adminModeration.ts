@@ -86,8 +86,8 @@ export interface MiembroGrupo {
 }
 
 export async function listarMiembrosParaModerar(groupId: string): Promise<MiembroGrupo[]> {
-  const { data: userData } = await supabase.auth.getUser();
-  const miId = userData.user?.id ?? null;
+  const { data: userData } = await supabase.auth.getSession();
+  const miId = userData.session?.user?.id ?? null;
   const [{ data: grupo }, { data: miembros }, { data: mutes }] = await Promise.all([
     supabase.from("groups").select("creator_id").eq("id", groupId).maybeSingle(),
     supabase.from("group_members").select("profiles!group_members_user_id_fkey(id, username, avatar_url)").eq("group_id", groupId),

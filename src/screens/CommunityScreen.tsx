@@ -49,8 +49,8 @@ export default function CommunityScreen({ navigation, route }: any) {
   );
 
   async function cargarBadges() {
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
     if (!uid) return;
     const [misGrupos, chats, solicitudes] = await Promise.all([listarMisGrupos(uid), contarChatsConNoLeidos(uid), listarSolicitudesDeMisGrupos(uid)]);
     const conteoPorGrupo = await contarComentariosNuevosPorGrupo(uid, misGrupos.map((g) => g.id));
@@ -198,8 +198,8 @@ function FeedDePosts({
   async function cargar(silencioso = false) {
     if (!silencioso) setLoading(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      const uid = data.user?.id;
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id;
       if (!uid) return;
       setUserId(uid);
       setHayMas(true);

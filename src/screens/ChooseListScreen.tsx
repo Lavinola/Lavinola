@@ -23,8 +23,8 @@ export default function ChooseListScreen({ route, navigation }: any) {
   }, []);
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id ?? null;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id ?? null;
     setUserId(uid);
     if (!uid) return;
     const { data } = await supabase.from("lists").select("id, title").eq("user_id", uid).order("created_at", { ascending: false });

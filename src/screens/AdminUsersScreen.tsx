@@ -30,8 +30,8 @@ export default function AdminUsersScreen({ navigation }: any) {
   }, []);
 
   async function verificarYcargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) {
       setAutorizado(false);
       return;

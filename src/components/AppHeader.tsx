@@ -20,8 +20,8 @@ export default function AppHeader({ navigation }: { navigation: any }) {
   );
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) return;
     setNoLeidas(await contarNoLeidas(uid));
   }

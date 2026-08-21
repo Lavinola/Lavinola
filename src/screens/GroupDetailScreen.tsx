@@ -62,19 +62,19 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
     cargarMiembros();
     cargarGrupo();
     cargarEncuestas();
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (data.user) {
-        setUserId(data.user.id);
-        marcarGrupoLeido(groupId, data.user.id);
-        marcarNotificacionesDeGrupoComoLeidas(data.user.id, groupId);
-        miEstadoEnGrupo(groupId, data.user.id).then(setMiEstado);
-        const silenciados = await idsGruposSilenciados(data.user.id);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session?.user) {
+        setUserId(data.session?.user?.id);
+        marcarGrupoLeido(groupId, data.session?.user?.id);
+        marcarNotificacionesDeGrupoComoLeidas(data.session?.user?.id, groupId);
+        miEstadoEnGrupo(groupId, data.session?.user?.id).then(setMiEstado);
+        const silenciados = await idsGruposSilenciados(data.session?.user?.id);
         setSilenciadoPersonal(silenciados.has(groupId));
         const { data: filaMiembro } = await supabase
           .from("group_members")
           .select("user_id")
           .eq("group_id", groupId)
-          .eq("user_id", data.user.id)
+          .eq("user_id", data.session?.user?.id)
           .maybeSingle();
         setSoyMiembro(!!filaMiembro);
       }
@@ -83,8 +83,8 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
 
   async function cargarEncuestas() {
     try {
-      const { data } = await supabase.auth.getUser();
-      setEncuestas(await cargarEncuestasDeGrupo(groupId, data.user?.id ?? null));
+      const { data } = await supabase.auth.getSession();
+      setEncuestas(await cargarEncuestasDeGrupo(groupId, data.session?.user?.id ?? null));
     } catch (e) {
       console.error("Error al cargar las encuestas del grupo:", e);
     }

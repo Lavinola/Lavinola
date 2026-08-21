@@ -77,9 +77,9 @@ function TabCuenta({ navigation }: any) {
   }, []);
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    setEmail(userData.user?.email ?? null);
-    const uid = userData.user?.id ?? null;
+    const { data: userData } = await supabase.auth.getSession();
+    setEmail(userData.session?.user?.email ?? null);
+    const uid = userData.session?.user?.id ?? null;
     setUserId(uid);
     if (!uid) return;
     const p = await getPerfil(uid);
@@ -176,8 +176,8 @@ function TabCuenta({ navigation }: any) {
     // servidor termina bien pero la respuesta nunca llega completa al
     // celular — eso se veía como "error" acá aunque en los hechos ya estaba
     // borrada. Chequeamos la sesión real antes de decidir qué mostrar.
-    const { data: sesionActual, error: errorSesion } = await supabase.auth.getUser();
-    const cuentaSigueExistiendo = !errorSesion && !!sesionActual?.user;
+    const { data: sesionActual, error: errorSesion } = await supabase.auth.getSession();
+    const cuentaSigueExistiendo = !errorSesion && !!sesionActual?.session?.user;
 
     if (!cuentaSigueExistiendo) {
       await supabase.auth.signOut();
@@ -317,8 +317,8 @@ function TabAplicacion({ navigation }: any) {
   async function cargar() {
     setCargando(true);
     setError(false);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id ?? null;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id ?? null;
     setUserId(uid);
     if (!uid) {
       setCargando(false);

@@ -28,8 +28,8 @@ export default function AdminGroupsScreen({ navigation }: any) {
   );
 
   async function cargar() {
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
     if (!uid) return;
     setGrupos(await listarGruposCreadosPor(uid));
     setSolicitudes(await listarSolicitudesDeMisGrupos(uid));

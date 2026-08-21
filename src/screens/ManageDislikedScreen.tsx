@@ -13,9 +13,9 @@ export default function ManageDislikedScreen() {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id ?? null);
-      if (data.user?.id) cargar(data.user.id);
+    supabase.auth.getSession().then(({ data }) => {
+      setUserId(data.session?.user?.id ?? null);
+      if (data.session?.user?.id) cargar(data.session?.user?.id);
     });
   }, []);
 

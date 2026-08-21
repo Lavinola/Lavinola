@@ -146,8 +146,8 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   }
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id ?? null;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id ?? null;
     setUserId(uid);
 
     const { data: serieCache } = await supabase.from("series_cache").select("name").eq("tmdb_id", seriesTmdbId).maybeSingle();

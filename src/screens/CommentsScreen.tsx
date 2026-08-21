@@ -94,8 +94,8 @@ export default function CommentsScreen({ route, navigation }: any) {
   }
 
   async function cargarSiguiendo() {
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
     if (!uid) return;
     setMiUserId(uid);
     const { data: sigo } = await supabase.from("follows").select("followee_id").eq("follower_id", uid);
@@ -186,8 +186,8 @@ export default function CommentsScreen({ route, navigation }: any) {
 
   async function cargarPosts() {
     try {
-      const { data } = await supabase.auth.getUser();
-      const uid = data.user?.id ?? null;
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id ?? null;
       if (targetType === "episode") {
         // formato del targetId: "seriesTmdbId:temporada:episodio"
         const [seriesTmdbId, season, episode] = targetId.split(":").map(Number);

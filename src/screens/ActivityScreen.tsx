@@ -27,8 +27,8 @@ export default function ActivityScreen({ navigation }: any) {
   );
 
   async function cargar() {
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id ?? null;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id ?? null;
     setUserId(uid);
     if (uid) setChats(await listarChats(uid, t));
   }

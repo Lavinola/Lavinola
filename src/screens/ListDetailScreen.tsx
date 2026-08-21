@@ -51,8 +51,8 @@ export default function ListDetailScreen({ route, navigation }: any) {
 
   async function cargar(silencioso = false) {
     if (!silencioso) setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id ?? null;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id ?? null;
     setUserId(uid);
     const [{ data: listaData }, { data }] = await Promise.all([
       supabase.from("lists").select("description, user_id").eq("id", listId).maybeSingle(),

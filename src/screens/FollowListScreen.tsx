@@ -45,8 +45,8 @@ export default function FollowListScreen({ route, navigation }: Props) {
 
   async function cargar() {
     setCargando(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id ?? null;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id ?? null;
     setViewerId(uid);
     const data = modo === "siguiendo" ? await usuariosQueSigo(userId, uid) : await seguidoresDe(userId, uid);
     setLista(data);

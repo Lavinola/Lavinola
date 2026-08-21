@@ -86,8 +86,8 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
     const esPrimeraCarga = !perfil;
     if (esPrimeraCarga) setCargando(true);
 
-    const { data: userData } = await supabase.auth.getUser();
-    const vid = userData.user?.id ?? null;
+    const { data: userData } = await supabase.auth.getSession();
+    const vid = userData.session?.user?.id ?? null;
     setViewerId(vid);
     if (!vid) {
       if (esPrimeraCarga) setCargando(false);

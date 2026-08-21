@@ -21,9 +21,9 @@ export default function ShareTitleScreen({ route, navigation }: Props) {
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return;
-      const lista = await usuariosQueSigo(data.user.id);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session?.user) return;
+      const lista = await usuariosQueSigo(data.session?.user?.id);
       setSiguiendo(lista);
     });
   }, []);
@@ -32,8 +32,8 @@ export default function ShareTitleScreen({ route, navigation }: Props) {
     if (!destinatario) return;
     setEnviando(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user?.id;
       if (!userId) return;
       await compartirTitulo({
         senderId: userId,

@@ -37,8 +37,8 @@ export default function GroupModerateUsersScreen({ route, navigation }: Props) {
   }, []);
 
   async function cargar() {
-    const { data } = await supabase.auth.getUser();
-    setUserId(data.user?.id ?? null);
+    const { data } = await supabase.auth.getSession();
+    setUserId(data.session?.user?.id ?? null);
     setMiembros(await listarMiembrosParaModerar(groupId));
   }
 

@@ -23,8 +23,8 @@ export default function CreateListScreen({ route, navigation }: any) {
     if (!nombre.trim()) return;
     setCreando(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user?.id;
       if (!userId) return;
       const lista = await crearLista(userId, nombre.trim(), visibilidad, descripcion.trim() || null);
       if (pendingItem && lista) {
@@ -53,8 +53,8 @@ export default function CreateListScreen({ route, navigation }: any) {
     if (!nombre.trim()) return;
     setCreando(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const { data: userData } = await supabase.auth.getSession();
+      const userId = userData.session?.user?.id;
       if (!userId) return;
       const lista = await crearLista(userId, nombre.trim(), visibilidad, descripcion.trim() || null);
       if (!lista) return;

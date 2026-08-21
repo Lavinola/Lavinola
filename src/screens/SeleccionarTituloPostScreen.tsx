@@ -47,8 +47,8 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
   const [crearEncuestaVisible, setCrearEncuestaVisible] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id ?? null);
+    supabase.auth.getSession().then(({ data }) => {
+      setUserId(data.session?.user?.id ?? null);
     });
   }, []);
 

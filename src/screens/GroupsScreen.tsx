@@ -64,8 +64,8 @@ export default function GroupsScreen({ navigation }: any) {
   );
 
   async function cargar() {
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id ?? null;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id ?? null;
     setUserId(uid);
     const lista = subTab === "todos" ? await listarGrupos(uid, orden, ascendente) : uid ? await listarMisGrupos(uid, orden, ascendente) : [];
     setGrupos(lista);

@@ -66,8 +66,8 @@ export default function PublishActionModal({
     if (!texto.trim() || (!publicarParams && !publicarListaParams && !publicarGrupoParams)) return;
     setPublicando(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      const userId = data.user?.id;
+      const { data } = await supabase.auth.getSession();
+      const userId = data.session?.user?.id;
       if (!userId) return;
       if (publicarListaParams) {
         await crearPostDeLista({ userId, listId: publicarListaParams.listId, content: texto, hasSpoiler: false });

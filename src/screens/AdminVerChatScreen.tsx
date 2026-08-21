@@ -39,8 +39,8 @@ export default function AdminVerChatScreen({ route, navigation }: Props) {
       setAutorizado(false);
       return;
     }
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) {
       setAutorizado(false);
       return;

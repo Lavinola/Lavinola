@@ -50,8 +50,8 @@ function StatsSeriesTab({ navigation }: any) {
   }, []);
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) return;
     setStats(await getEstadisticasSeries(uid));
     getActividadMensualSeries(uid).then(setActividad);
@@ -147,8 +147,8 @@ function StatsPeliculasTab({ navigation }: any) {
   }, []);
 
   async function cargar() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) return;
     setStats(await getEstadisticasPeliculas(uid));
     getActividadMensualPeliculas(uid).then(setActividad);

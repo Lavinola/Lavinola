@@ -55,8 +55,8 @@ export default function RecommendScreen({ route, navigation }: Props) {
 
   async function cargar() {
     setLoading(true);
-    const { data } = await supabase.auth.getUser();
-    const uid = data.user?.id ?? null;
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id ?? null;
     setUserId(uid);
     if (uid) {
       const [u, g] = await Promise.all([usuariosMutuos(uid), listarMisGrupos(uid)]);
@@ -75,8 +75,8 @@ export default function RecommendScreen({ route, navigation }: Props) {
   async function enviarAUsuario(u: UsuarioBasico) {
     let uid = userId;
     if (!uid) {
-      const { data } = await supabase.auth.getUser();
-      uid = data.user?.id ?? null;
+      const { data } = await supabase.auth.getSession();
+      uid = data.session?.user?.id ?? null;
       if (uid) setUserId(uid);
     }
     if (!uid) {
@@ -107,8 +107,8 @@ export default function RecommendScreen({ route, navigation }: Props) {
   async function enviarAGrupo(g: Grupo) {
     let uid = userId;
     if (!uid) {
-      const { data } = await supabase.auth.getUser();
-      uid = data.user?.id ?? null;
+      const { data } = await supabase.auth.getSession();
+      uid = data.session?.user?.id ?? null;
       if (uid) setUserId(uid);
     }
     if (!uid) {

@@ -32,18 +32,18 @@ export default function TopMonthlyScreen({ navigation }: any) {
   const eligioManualRef = React.useRef(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return;
-      setUserId(data.user.id);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session?.user) return;
+      setUserId(data.session?.user?.id);
     });
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       if (eligioManualRef.current) return; // ya eligió un país a mano en esta sesión, no lo pisamos
-      supabase.auth.getUser().then(async ({ data }) => {
-        if (!data.user) return;
-        const { data: perfil } = await supabase.from("profiles").select("country").eq("id", data.user.id).maybeSingle();
+      supabase.auth.getSession().then(async ({ data }) => {
+        if (!data.session?.user) return;
+        const { data: perfil } = await supabase.from("profiles").select("country").eq("id", data.session?.user?.id).maybeSingle();
         const pais = perfil?.country ?? null;
         setMiPais((actual) => {
           if (actual === pais) return actual;

@@ -37,8 +37,8 @@ export default function MyCommentsScreen({ route, navigation }: Props) {
   );
 
   async function cargarIdioma() {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = userData.session?.user?.id;
     if (!uid) return;
     const { data: perfil } = await supabase.from("profiles").select("content_language").eq("id", uid).maybeSingle();
     setIdiomaUsuario(idiomaCorto(perfil?.content_language));
@@ -47,8 +47,8 @@ export default function MyCommentsScreen({ route, navigation }: Props) {
   async function cargar() {
     let userId = route.params?.userId;
     if (!userId) {
-      const { data } = await supabase.auth.getUser();
-      userId = data.user?.id;
+      const { data } = await supabase.auth.getSession();
+      userId = data.session?.user?.id;
     }
     if (!userId) return;
     const [comentarios, posts] = await Promise.all([misComentarios(userId), listarMisPosts(userId)]);

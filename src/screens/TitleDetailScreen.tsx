@@ -143,8 +143,8 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
   async function cargar() {
     setLoading(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const uid = userData.user?.id ?? null;
+      const { data: userData } = await supabase.auth.getSession();
+      const uid = userData.session?.user?.id ?? null;
       setUserId(uid);
 
       const tabla = tipo === "series" ? "series_cache" : "movies_cache";

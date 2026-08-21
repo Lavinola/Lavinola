@@ -82,8 +82,8 @@ export default function PostCard({
   }, [post.reacciones]);
 
   React.useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      const uid = data.user?.id ?? null;
+    supabase.auth.getSession().then(async ({ data }) => {
+      const uid = data.session?.user?.id ?? null;
       setUserId(uid);
       if (uid) {
         const { data: perfil } = await supabase.from("profiles").select("content_language").eq("id", uid).maybeSingle();
@@ -217,8 +217,8 @@ export default function PostCard({
     }
     setTraduciendo(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      const userId = data.user?.id;
+      const { data } = await supabase.auth.getSession();
+      const userId = data.session?.user?.id;
       let idiomaDestino = "es";
       if (userId) {
         const { data: perfil } = await supabase.from("profiles").select("content_language").eq("id", userId).maybeSingle();

@@ -29,8 +29,8 @@ export default function UserListsScreen({ route, navigation }: any) {
 
   async function cargar() {
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const vid = userData.user?.id ?? null;
+    const { data: userData } = await supabase.auth.getSession();
+    const vid = userData.session?.user?.id ?? null;
     setViewerId(vid);
     const todas = await listarListasDeUsuarioOrdenadasPorSeguidores(targetId);
     setListas(todas);

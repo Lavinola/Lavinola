@@ -83,13 +83,13 @@ export default function AllMoviesScreen({ route, navigation }: any) {
     // una nueva y perder el lugar del scroll en el que estabas.
     const esPrimeraCarga = !yaCargoRef.current;
     if (esPrimeraCarga) setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = targetUserId ?? userData.user?.id;
+    const { data: userData } = await supabase.auth.getSession();
+    const uid = targetUserId ?? userData.session?.user?.id;
     if (!uid) {
       setLoading(false);
       return;
     }
-    setUserId(userData.user?.id ?? null);
+    setUserId(userData.session?.user?.id ?? null);
     const data = await fetchAllRows((desde, hasta) =>
       supabase
         .from("user_movies")
