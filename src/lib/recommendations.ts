@@ -146,18 +146,30 @@ export async function marcarNoMeInteresa(userId: string, tipo: "series" | "movie
 
 export async function listarDescartados(userId: string): Promise<{ item_type: "series" | "movie"; tmdb_id: number; nombre: string; poster_path: string | null }[]> {
   const { data } = await supabase.from("user_disliked_titles").select("item_type, tmdb_id").eq("user_id", userId);
-  const resultado = [];
-  for (const d of data ?? []) {
-    const tabla = d.item_type === "series" ? "series_cache" : "movies_cache";
-    const { data: cache } = await supabase.from(tabla).select("*").eq("tmdb_id", d.tmdb_id).maybeSingle();
-    resultado.push({
+  const descartados = data ?? [];
+  const idsSeries = descartados.filter((d) => d.item_type === "series").map((d) => d.tmdb_id);
+  const idsPeliculas = descartados.filter((d) => d.item_type === "movie").map((d) => d.tmdb_id);
+
+  // Una sola consulta por tabla (no una por título) — antes esto hacía
+  // tantas idas y vueltas a la base como títulos descartados hubiera.
+  const [{ data: seriesCache }, { data: moviesCache }] = await Promise.all([
+    idsSeries.length > 0 ? supabase.from("series_cache").select("tmdb_id, name, poster_path").in("tmdb_id", idsSeries) : Promise.resolve({ data: [] }),
+    idsPeliculas.length > 0
+      ? supabase.from("movies_cache").select("tmdb_id, title, poster_path").in("tmdb_id", idsPeliculas)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const mapaSeries = new Map((seriesCache ?? []).map((s: any) => [s.tmdb_id, s]));
+  const mapaPeliculas = new Map((moviesCache ?? []).map((p: any) => [p.tmdb_id, p]));
+
+  return descartados.map((d) => {
+    const cache = d.item_type === "series" ? mapaSeries.get(d.tmdb_id) : mapaPeliculas.get(d.tmdb_id);
+    return {
       item_type: d.item_type as "series" | "movie",
       tmdb_id: d.tmdb_id,
-      nombre: cache ? (d.item_type === "series" ? cache.name : cache.title) : "—",
+      nombre: cache ? (d.item_type === "series" ? (cache as any).name : (cache as any).title) : "—",
       poster_path: cache?.poster_path ?? null,
-    });
-  }
-  return resultado;
+    };
+  });
 }
 
 export async function quitarDescarte(userId: string, tipo: "series" | "movie", tmdbId: number) {
