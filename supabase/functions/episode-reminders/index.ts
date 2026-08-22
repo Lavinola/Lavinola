@@ -76,10 +76,17 @@ function esLas10amEn(timezone: string): boolean {
   }
 }
 
-async function mandarPushSiCorresponde(supabase: any, userId: string, titulo: string, cuerpo: string, data: Record<string, any>) {
+/** Elige el texto según el idioma que la persona tenga elegido en la app (mismo criterio que el resto de la app: en/pt/it si empieza así, español para cualquier otro caso incluido es-ES/es-419). */
+function elegirIdioma(textos: Record<string, string>, contentLanguage: string | null | undefined): string {
+  const idioma = contentLanguage ?? "";
+  const codigo = idioma.startsWith("en") ? "en" : idioma.startsWith("pt") ? "pt" : idioma.startsWith("it") ? "it" : "es";
+  return textos[codigo] ?? textos.es;
+}
+
+async function mandarPushSiCorresponde(supabase: any, userId: string, titulos: Record<string, string>, cuerpos: Record<string, string>, data: Record<string, any>) {
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("push_token, notify_new_releases, timezone, country")
+    .select("push_token, notify_new_releases, timezone, country, content_language")
     .eq("id", userId)
     .maybeSingle();
   if (!perfil?.push_token) return false;
@@ -89,7 +96,12 @@ async function mandarPushSiCorresponde(supabase: any, userId: string, titulo: st
   if (!esLas10amEn(tz)) return false; // no es la hora de esta persona todavía
 
   await supabase.functions.invoke("send-push", {
-    body: { to: perfil.push_token, title: titulo, body: cuerpo, data },
+    body: {
+      to: perfil.push_token,
+      title: elegirIdioma(titulos, perfil.content_language),
+      body: elegirIdioma(cuerpos, perfil.content_language),
+      data,
+    },
   });
   return true;
 }
@@ -156,8 +168,13 @@ serve(async (req) => {
         const enviado = await mandarPushSiCorresponde(
           supabase,
           s.user_id,
-          "Nueva temporada hoy",
-          `Hoy se estrena la temporada ${grupo.season} de ${grupo.nombreSerie}`,
+          { es: "Nueva temporada hoy", en: "New season today", pt: "Nova temporada hoje", it: "Nuova stagione oggi" },
+          {
+            es: `Hoy se estrena la temporada ${grupo.season} de ${grupo.nombreSerie}`,
+            en: `Season ${grupo.season} of ${grupo.nombreSerie} premieres today`,
+            pt: `Hoje estreia a temporada ${grupo.season} de ${grupo.nombreSerie}`,
+            it: `Oggi esce la stagione ${grupo.season} di ${grupo.nombreSerie}`,
+          },
           { type: "season_today", seriesTmdbId: grupo.seriesTmdbId, season: grupo.season }
         );
         if (enviado) enviados++;
@@ -165,8 +182,13 @@ serve(async (req) => {
         const enviado = await mandarPushSiCorresponde(
           supabase,
           s.user_id,
-          "Nuevos episodios hoy",
-          `Hoy se estrenan los capítulos ${listarNumerosNatural(grupo.episodios)} de ${grupo.nombreSerie}`,
+          { es: "Nuevos episodios hoy", en: "New episodes today", pt: "Novos episódios hoje", it: "Nuovi episodi oggi" },
+          {
+            es: `Hoy se estrenan los capítulos ${listarNumerosNatural(grupo.episodios)} de ${grupo.nombreSerie}`,
+            en: `Episodes ${listarNumerosNatural(grupo.episodios)} of ${grupo.nombreSerie} premiere today`,
+            pt: `Hoje estreiam os episódios ${listarNumerosNatural(grupo.episodios)} de ${grupo.nombreSerie}`,
+            it: `Oggi escono gli episodi ${listarNumerosNatural(grupo.episodios)} di ${grupo.nombreSerie}`,
+          },
           { type: "episodes_today", seriesTmdbId: grupo.seriesTmdbId, season: grupo.season, episodes: grupo.episodios }
         );
         if (enviado) enviados++;
@@ -175,8 +197,13 @@ serve(async (req) => {
           const enviado = await mandarPushSiCorresponde(
             supabase,
             s.user_id,
-            "Nuevo episodio hoy",
-            `Hoy se estrena T${grupo.season} - E${numEp} de ${grupo.nombreSerie}`,
+            { es: "Nuevo episodio hoy", en: "New episode today", pt: "Novo episódio hoje", it: "Nuovo episodio oggi" },
+            {
+              es: `Hoy se estrena T${grupo.season} - E${numEp} de ${grupo.nombreSerie}`,
+              en: `S${grupo.season} - E${numEp} of ${grupo.nombreSerie} premieres today`,
+              pt: `Hoje estreia T${grupo.season} - E${numEp} de ${grupo.nombreSerie}`,
+              it: `Oggi esce S${grupo.season} - E${numEp} di ${grupo.nombreSerie}`,
+            },
             { type: "episode_today", seriesTmdbId: grupo.seriesTmdbId, season: grupo.season, episode: numEp }
           );
           if (enviado) enviados++;
@@ -192,10 +219,21 @@ serve(async (req) => {
     const { data: pendientes } = await supabase.from("user_movies").select("user_id").eq("movie_tmdb_id", peli.tmdb_id).eq("watched", false);
 
     for (const p of pendientes ?? []) {
-      const enviado = await mandarPushSiCorresponde(supabase, p.user_id, "Nuevo estreno hoy", `Hoy se estrena ${peli.title}`, {
-        type: "movie_today",
-        movieTmdbId: peli.tmdb_id,
-      });
+      const enviado = await mandarPushSiCorresponde(
+        supabase,
+        p.user_id,
+        { es: "Nuevo estreno hoy", en: "New release today", pt: "Nova estreia hoje", it: "Nuova uscita oggi" },
+        {
+          es: `Hoy se estrena ${peli.title}`,
+          en: `${peli.title} premieres today`,
+          pt: `Hoje estreia ${peli.title}`,
+          it: `Oggi esce ${peli.title}`,
+        },
+        {
+          type: "movie_today",
+          movieTmdbId: peli.tmdb_id,
+        }
+      );
       if (enviado) enviados++;
     }
   }

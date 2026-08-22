@@ -4249,3 +4249,358 @@ exception when others then
   null; -- un fallo al mandar el push no debe romper la acción real (el like, la respuesta, etc.)
 end;
 $$ language plpgsql security definer set search_path = public;
+
+-- ============================================================
+-- Los push que se mandan desde disparadores de la base venían siempre en
+-- español fijo, sin importar el idioma que cada persona tenga elegido en
+-- la app. Ahora enviar_push_notificacion recibe un texto por cada uno de
+-- los 4 idiomas (es/en/pt/it) y elige solo el que corresponda, mirando
+-- el content_language del destinatario (el mismo dato que ya usa el
+-- resto de la app para traducir todo).
+-- ============================================================
+create or replace function enviar_push_notificacion(destinatario uuid, titulos jsonb, cuerpos jsonb, datos jsonb default '{}'::jsonb) returns void as $$
+declare
+  token text;
+  idioma text;
+  codigo text;
+  clave text;
+  titulo text;
+  cuerpo text;
+begin
+  select push_token, content_language into token, idioma from profiles where id = destinatario;
+  if token is null then return; end if;
+
+  codigo := case
+    when idioma like 'en%' then 'en'
+    when idioma like 'pt%' then 'pt'
+    when idioma like 'it%' then 'it'
+    else 'es'
+  end;
+  titulo := coalesce(titulos ->> codigo, titulos ->> 'es');
+  cuerpo := coalesce(cuerpos ->> codigo, cuerpos ->> 'es');
+  if titulo is null or cuerpo is null then return; end if;
+
+  select value into clave from app_secrets where name = 'service_role_key';
+  if clave is null or clave = '' then return; end if;
+  perform net.http_post(
+    url := 'https://vrpnmypbyuspemnoshuu.supabase.co/functions/v1/send-push',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || clave),
+    body := jsonb_build_object('to', token, 'title', titulo, 'body', cuerpo, 'data', datos)
+  );
+exception when others then
+  null;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+-- ============================================================
+-- Ajuste a los disparadores de arriba: mandan los 4 idiomas en vez de
+-- un texto fijo en español.
+-- ============================================================
+create or replace function notify_like() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  select user_id into autor_id from comentarios where id = new.comment_id;
+  if autor_id is not null and autor_id <> new.user_id then
+    insert into notifications (user_id, type, actor_id, target_type, target_id, message, comment_id)
+      values (autor_id, 'like', new.user_id, 'comment', new.comment_id::text, new.emoji, new.comment_id)
+      returning id into v_notif_id;
+    select notify_likes into quiere_notif from profiles where id = autor_id;
+    if coalesce(quiere_notif, true) then
+      perform enviar_push_notificacion(
+        autor_id,
+        jsonb_build_object('es', 'Nuevo me gusta', 'en', 'New like', 'pt', 'Nova curtida', 'it', 'Nuovo like'),
+        jsonb_build_object(
+          'es', 'A alguien le gustó tu comentario', 'en', 'Someone liked your comment',
+          'pt', 'Alguém curtiu seu comentário', 'it', 'A qualcuno è piaciuto il tuo commento'
+        ),
+        jsonb_build_object('notificationId', v_notif_id)
+      );
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_post_reaction() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  select user_id into autor_id from posts where id = new.post_id;
+  if autor_id is not null and autor_id <> new.user_id then
+    insert into notifications (user_id, type, actor_id, target_type, target_id, message)
+      values (autor_id, 'like', new.user_id, 'post', new.post_id::text, new.emoji)
+      returning id into v_notif_id;
+    select notify_likes into quiere_notif from profiles where id = autor_id;
+    if coalesce(quiere_notif, true) then
+      perform enviar_push_notificacion(
+        autor_id,
+        jsonb_build_object('es', 'Nuevo me gusta', 'en', 'New like', 'pt', 'Nova curtida', 'it', 'Nuovo like'),
+        jsonb_build_object(
+          'es', 'A alguien le gustó tu post', 'en', 'Someone liked your post',
+          'pt', 'Alguém curtiu seu post', 'it', 'A qualcuno è piaciuto il tuo post'
+        ),
+        jsonb_build_object('notificationId', v_notif_id)
+      );
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_reply() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  if new.parent_comment_id is not null then
+    select user_id into autor_id from comentarios where id = new.parent_comment_id;
+    if autor_id is not null and autor_id <> new.user_id then
+      insert into notifications (user_id, type, actor_id, target_type, target_id, comment_id, trigger_comment_id)
+        values (autor_id, 'reply', new.user_id, new.target_type, new.target_id, new.parent_comment_id, new.id)
+        returning id into v_notif_id;
+      select notify_replies into quiere_notif from profiles where id = autor_id;
+      if coalesce(quiere_notif, true) then
+        perform enviar_push_notificacion(
+          autor_id,
+          jsonb_build_object('es', 'Nueva respuesta', 'en', 'New reply', 'pt', 'Nova resposta', 'it', 'Nuova risposta'),
+          jsonb_build_object(
+            'es', 'Alguien respondió tu comentario', 'en', 'Someone replied to your comment',
+            'pt', 'Alguém respondeu seu comentário', 'it', 'Qualcuno ha risposto al tuo commento'
+          ),
+          jsonb_build_object('notificationId', v_notif_id)
+        );
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_follow_request() returns trigger as $$
+declare
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  if new.status <> 'pending' then
+    return new;
+  end if;
+  insert into notifications (user_id, type, actor_id) values (new.target_id, 'follow_request', new.requester_id) returning id into v_notif_id;
+  select notify_follow_requests into quiere_notif from profiles where id = new.target_id;
+  if coalesce(quiere_notif, true) then
+    perform enviar_push_notificacion(
+      new.target_id,
+      jsonb_build_object('es', 'Nueva solicitud', 'en', 'New request', 'pt', 'Nova solicitação', 'it', 'Nuova richiesta'),
+      jsonb_build_object(
+        'es', 'Alguien quiere seguirte', 'en', 'Someone wants to follow you',
+        'pt', 'Alguém quer te seguir', 'it', 'Qualcuno vuole seguirti'
+      ),
+      jsonb_build_object('notificationId', v_notif_id)
+    );
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_shared_title() returns trigger as $$
+declare
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  insert into notifications (user_id, type, actor_id, target_type, target_id)
+    values (new.receiver_id, 'shared_title', new.sender_id, 'shared_title_thread', new.id::text)
+    returning id into v_notif_id;
+  select notify_messages into quiere_notif from profiles where id = new.receiver_id;
+  if coalesce(quiere_notif, true) then
+    perform enviar_push_notificacion(
+      new.receiver_id,
+      jsonb_build_object(
+        'es', 'Te recomendaron algo', 'en', 'Someone recommended something',
+        'pt', 'Alguém recomendou algo', 'it', 'Qualcuno ti ha consigliato qualcosa'
+      ),
+      jsonb_build_object('es', 'Tocá para verlo', 'en', 'Tap to see it', 'pt', 'Toque para ver', 'it', 'Tocca per vedere'),
+      jsonb_build_object('notificationId', v_notif_id)
+    );
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_group_message() returns trigger as $$
+declare
+  es_privado boolean;
+  miembro record;
+  silencio record;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  if new.target_type <> 'group' or new.group_id is null then return new; end if;
+
+  select (visibility = 'private') into es_privado from groups where id = new.group_id;
+
+  for miembro in
+    select gm.user_id, p.notify_group_messages_private, p.notify_group_messages_public
+    from group_members gm
+    join profiles p on p.id = gm.user_id
+    where gm.group_id = new.group_id and gm.user_id <> new.user_id
+  loop
+    select * into silencio from group_silenced where group_id = new.group_id and user_id = miembro.user_id;
+    if silencio is not null and (silencio.silenced_forever or (silencio.silenced_until is not null and silencio.silenced_until > now())) then
+      continue;
+    end if;
+
+    insert into notifications (user_id, type, actor_id, target_type, target_id)
+      values (miembro.user_id, 'group_message', new.user_id, 'group', new.group_id::text)
+      returning id into v_notif_id;
+
+    quiere_notif := case when es_privado then coalesce(miembro.notify_group_messages_private, true) else coalesce(miembro.notify_group_messages_public, false) end;
+    if quiere_notif then
+      perform enviar_push_notificacion(
+        miembro.user_id,
+        jsonb_build_object(
+          'es', 'Actividad en tu grupo', 'en', 'Activity in your group',
+          'pt', 'Atividade no seu grupo', 'it', 'Attività nel tuo gruppo'
+        ),
+        jsonb_build_object(
+          'es', 'Hay algo nuevo para ver', 'en', 'There''s something new to see',
+          'pt', 'Tem algo novo para ver', 'it', 'C''è qualcosa di nuovo da vedere'
+        ),
+        jsonb_build_object('notificationId', v_notif_id)
+      );
+    end if;
+  end loop;
+
+  return new;
+exception
+  when others then
+    return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_poll() returns trigger as $$
+declare
+  es_privado boolean;
+  miembro record;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  if new.group_id is null then return new; end if;
+
+  select (visibility = 'private') into es_privado from groups where id = new.group_id;
+
+  for miembro in
+    select gm.user_id, p.notify_group_messages_private, p.notify_group_messages_public
+    from group_members gm
+    join profiles p on p.id = gm.user_id
+    where gm.group_id = new.group_id and gm.user_id <> new.user_id
+  loop
+    if exists (
+      select 1 from group_silenced
+      where group_silenced.group_id = new.group_id and group_silenced.user_id = miembro.user_id
+        and (group_silenced.silenced_forever or (group_silenced.silenced_until is not null and group_silenced.silenced_until > now()))
+    ) then
+      continue;
+    end if;
+    insert into notifications (user_id, type, actor_id, target_type, target_id)
+      values (miembro.user_id, 'group_message', new.user_id, 'group', new.group_id::text)
+      returning id into v_notif_id;
+
+    quiere_notif := case when es_privado then coalesce(miembro.notify_group_messages_private, true) else coalesce(miembro.notify_group_messages_public, false) end;
+    if quiere_notif then
+      perform enviar_push_notificacion(
+        miembro.user_id,
+        jsonb_build_object('es', 'Nueva encuesta', 'en', 'New poll', 'pt', 'Nova enquete', 'it', 'Nuovo sondaggio'),
+        jsonb_build_object(
+          'es', 'Hay una encuesta nueva en tu grupo', 'en', 'There''s a new poll in your group',
+          'pt', 'Tem uma enquete nova no seu grupo', 'it', 'C''è un nuovo sondaggio nel tuo gruppo'
+        ),
+        jsonb_build_object('notificationId', v_notif_id)
+      );
+    end if;
+  end loop;
+
+  return new;
+exception
+  when others then
+    return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_chat_message() returns trigger as $$
+declare
+  destinatario uuid;
+  quiere_notif boolean;
+  silencio record;
+  v_nombre text;
+  v_idioma text;
+  v_codigo text;
+  v_cuerpo jsonb;
+begin
+  select case when chats.user_a = new.sender_id then chats.user_b else chats.user_a end into destinatario
+    from chats where chats.id = new.chat_id;
+  if destinatario is null then return new; end if;
+
+  select * into silencio from chat_user_state where chat_id = new.chat_id and user_id = destinatario;
+  if silencio is not null and (silencio.silenced_forever or (silencio.silenced_until is not null and silencio.silenced_until > now())) then
+    return new;
+  end if;
+
+  if new.kind = 'shared_title' then
+    if new.tmdb_id is not null and new.item_type = 'series' then
+      if new.season_number is not null and new.episode_number is not null then
+        select coalesce(sc.name, '') || ' — ' || coalesce(ec.name, 'T' || new.season_number || 'E' || new.episode_number) into v_nombre
+          from series_cache sc
+          left join episodes_cache ec on ec.series_tmdb_id = sc.tmdb_id and ec.season_number = new.season_number and ec.episode_number = new.episode_number
+          where sc.tmdb_id = new.tmdb_id;
+      else
+        select name into v_nombre from series_cache where tmdb_id = new.tmdb_id;
+      end if;
+    elsif new.tmdb_id is not null and new.item_type = 'movie' then
+      select title into v_nombre from movies_cache where tmdb_id = new.tmdb_id;
+    elsif new.shared_group_id is not null then
+      select name into v_nombre from groups where id = new.shared_group_id;
+    elsif new.shared_list_id is not null then
+      select title into v_nombre from lists where id = new.shared_list_id;
+    end if;
+  end if;
+
+  select notify_messages, content_language into quiere_notif, v_idioma from profiles where id = destinatario;
+  if coalesce(quiere_notif, true) then
+    v_codigo := case
+      when v_idioma like 'en%' then 'en'
+      when v_idioma like 'pt%' then 'pt'
+      when v_idioma like 'it%' then 'it'
+      else 'es'
+    end;
+    -- El texto del mensaje en sí (new.content) no se traduce — es lo que
+    -- escribió la persona. Solo se traduce el "marco" alrededor
+    -- ("Te recomendó X" / "Te mandó un GIF"), igual que hace el resto de
+    -- la app con contenido escrito por usuarios.
+    if new.kind = 'shared_title' then
+      v_cuerpo := jsonb_build_object(
+        'es', coalesce('Te recomendó: ' || v_nombre, 'Te recomendó algo'),
+        'en', coalesce('Recommended: ' || v_nombre, 'Recommended something'),
+        'pt', coalesce('Recomendou: ' || v_nombre, 'Recomendou algo'),
+        'it', coalesce('Ha consigliato: ' || v_nombre, 'Ha consigliato qualcosa')
+      );
+    elsif new.content is not null then
+      v_cuerpo := jsonb_build_object('es', new.content, 'en', new.content, 'pt', new.content, 'it', new.content);
+    else
+      v_cuerpo := jsonb_build_object('es', 'Te mandó un GIF', 'en', 'Sent you a GIF', 'pt', 'Te mandou um GIF', 'it', 'Ti ha mandato una GIF');
+    end if;
+
+    perform enviar_push_notificacion(
+      destinatario,
+      jsonb_build_object('es', 'Nuevo mensaje', 'en', 'New message', 'pt', 'Nova mensagem', 'it', 'Nuovo messaggio'),
+      v_cuerpo,
+      jsonb_build_object('type', 'chat_message', 'chatId', new.chat_id)
+    );
+  end if;
+  return new;
+end;
+$$ language plpgsql;
