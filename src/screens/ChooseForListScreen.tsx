@@ -4,6 +4,7 @@ import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
+import { Alert } from "../lib/alert";
 import { posterUrl } from "../lib/tmdb";
 import { notificarAgregadoALista } from "../lib/lists";
 import OrdenTitulosModal, { CriterioOrdenTitulos } from "../components/OrdenTitulosModal";
@@ -103,10 +104,22 @@ export default function ChooseForListScreen({ route }: any) {
 
   async function toggle(item: ItemConEnLista) {
     if (item.enLista) {
-      await supabase.from("list_items").delete().eq("list_id", listId).eq("item_type", tipo).eq("tmdb_id", item.tmdb_id);
+      const { error } = await supabase.from("list_items").delete().eq("list_id", listId).eq("item_type", tipo).eq("tmdb_id", item.tmdb_id);
+      if (error) {
+        Alert.alert(t("No se pudo actualizar"), error.message);
+        return;
+      }
       agregadosEnSesionRef.current = agregadosEnSesionRef.current.filter((a) => a.nombre !== item.nombre);
     } else {
-      await supabase.from("list_items").insert({ list_id: listId, item_type: tipo, tmdb_id: item.tmdb_id });
+      // upsert (no insert simple): un doble toque rápido chocaba con la
+      // clave primaria y fallaba en silencio.
+      const { error } = await supabase
+        .from("list_items")
+        .upsert({ list_id: listId, item_type: tipo, tmdb_id: item.tmdb_id }, { onConflict: "list_id,item_type,tmdb_id" });
+      if (error) {
+        Alert.alert(t("No se pudo actualizar"), error.message);
+        return;
+      }
       agregadosEnSesionRef.current = [...agregadosEnSesionRef.current, { nombre: item.nombre }];
     }
     setItems((prev) => prev.map((i) => (i.tmdb_id === item.tmdb_id ? { ...i, enLista: !i.enLista } : i)));

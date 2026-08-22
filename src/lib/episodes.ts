@@ -210,7 +210,10 @@ export async function marcarTodaLaSerieVistaEnEstreno(userId: string, seriesTmdb
   await Promise.all(
     conFecha.map((e) => establecerFechaPrimeraVistaEpisodio(userId, seriesTmdbId, e.season_number, e.episode_number, new Date(e.air_date).toISOString()))
   );
-  await supabase.from("user_series").upsert({ user_id: userId, series_tmdb_id: seriesTmdbId, in_watchlist: true }, { onConflict: "user_id,series_tmdb_id" });
+  const { error } = await supabase
+    .from("user_series")
+    .upsert({ user_id: userId, series_tmdb_id: seriesTmdbId, in_watchlist: true }, { onConflict: "user_id,series_tmdb_id" });
+  if (error) throw error;
 }
 
 export async function desmarcarEpisodio(userId: string, seriesTmdbId: number, season: number, episode: number) {

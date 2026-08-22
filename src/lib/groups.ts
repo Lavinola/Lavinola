@@ -50,7 +50,8 @@ export async function crearGrupo(params: {
   if (error) throw error;
 
   // El creador se une automáticamente
-  await supabase.from("group_members").insert({ group_id: data.id, user_id: params.creatorId });
+  const { error: errorMiembro } = await supabase.from("group_members").insert({ group_id: data.id, user_id: params.creatorId });
+  if (errorMiembro) throw errorMiembro;
   return data;
 }
 
@@ -167,7 +168,11 @@ export async function listarGruposRecomendados(userId: string): Promise<Grupo[]>
 }
 
 export async function unirseAGrupo(groupId: string, userId: string) {
-  await supabase.from("group_members").insert({ group_id: groupId, user_id: userId });
+  // upsert (no insert simple): un doble toque rápido en "Unirse" chocaba
+  // con la clave primaria y fallaba en silencio — quedabas viendo el
+  // grupo como si ya fueras miembro, sin serlo de verdad.
+  const { error } = await supabase.from("group_members").upsert({ group_id: groupId, user_id: userId }, { onConflict: "group_id,user_id" });
+  if (error) throw error;
 }
 
 /** Solo los ids de los miembros de un grupo — para cosas como ¿Qué vemos?, que necesita mirar los pendientes de todos. */

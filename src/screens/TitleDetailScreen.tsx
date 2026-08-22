@@ -453,7 +453,12 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
             icono: favorito ? "heart" : "heart-outline",
             onPress: async () => {
               if (!userId) return;
-              await toggleFavorito(userId, tipo, tmdbId, favorito);
+              try {
+                await toggleFavorito(userId, tipo, tmdbId, favorito);
+              } catch (e: any) {
+                Alert.alert(t("No se pudo actualizar"), e.message ?? "");
+                return;
+              }
               setFavorito(!favorito);
             },
           },

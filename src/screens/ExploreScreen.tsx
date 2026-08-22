@@ -256,7 +256,12 @@ function Descubrir({ navigation }: any) {
 
   async function confirmarDescarte() {
     if (!userId || !descartarItem) return;
-    await marcarNoMeInteresa(userId, descartarItem.tipo, descartarItem.id);
+    try {
+      await marcarNoMeInteresa(userId, descartarItem.tipo, descartarItem.id);
+    } catch (e: any) {
+      Alert.alert(t("No se pudo actualizar"), e.message ?? "");
+      return;
+    }
     cargarTodo();
   }
 

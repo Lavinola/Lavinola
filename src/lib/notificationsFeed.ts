@@ -70,6 +70,31 @@ export async function listarNotificaciones(userId: string): Promise<Notificacion
   return agruparNotificaciones(notis);
 }
 
+/** Trae una sola notificación por su id — la usa el toque de una notificación push, para navegar exactamente igual que si la hubieras tocado en la campanita. */
+export async function obtenerNotificacion(notificationId: string): Promise<Notificacion | null> {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id, type, actor_id, target_type, target_id, comment_id, read, message, created_at, profiles!notifications_actor_id_fkey(username, avatar_url, display_name)")
+    .eq("id", notificationId)
+    .maybeSingle();
+  if (error || !data) return null;
+  const n: any = data;
+  return {
+    id: n.id,
+    type: n.type,
+    actor_id: n.actor_id,
+    actor_username: n.profiles?.username ?? null,
+    actor_display_name: n.profiles?.display_name ?? null,
+    actor_avatar_url: n.profiles?.avatar_url ?? null,
+    target_type: n.target_type,
+    target_id: n.target_id,
+    comment_id: n.comment_id ?? null,
+    read: n.read,
+    message: n.message ?? null,
+    created_at: n.created_at,
+  };
+}
+
 /**
  * Junta notificaciones de "like"/"follow" consecutivas (en el orden en que
  * ya vienen, de la más nueva a la más vieja) que apunten a lo mismo — así

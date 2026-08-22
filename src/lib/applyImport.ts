@@ -25,12 +25,16 @@ export async function aplicarMatch(
 
   if (resultado.tipo === "series") {
     await syncSeries(tmdbIdElegido);
-    await supabase.from("user_series").upsert({
+    const { error: errorSerie } = await supabase.from("user_series").upsert({
       user_id: userId,
       series_tmdb_id: tmdbIdElegido,
       in_watchlist: true,
       last_watched_at: new Date().toISOString(),
     });
+    if (errorSerie) {
+      console.error(`Error al agregar la serie "${resultado.nombreOriginal}" a la lista:`, errorSerie.message);
+      throw errorSerie;
+    }
 
     const episodiosPedidos = resultado.registros.filter((r) => r.temporada != null && r.episodio != null);
 

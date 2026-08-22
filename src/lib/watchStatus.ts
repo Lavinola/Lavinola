@@ -182,7 +182,7 @@ async function recalcularCacheEpisodio(userId: string, seriesTmdbId: number, sea
     await recalcularUltimaVistaSerie(userId, seriesTmdbId);
     return;
   }
-  await supabase.from("user_episodes_watched").upsert(
+  const { error: errorUpsert } = await supabase.from("user_episodes_watched").upsert(
     {
       user_id: userId,
       series_tmdb_id: seriesTmdbId,
@@ -194,6 +194,7 @@ async function recalcularCacheEpisodio(userId: string, seriesTmdbId: number, sea
     },
     { onConflict: "user_id,series_tmdb_id,season_number,episode_number" }
   );
+  if (errorUpsert) throw errorUpsert;
   // "La serie, última vez vista" tiene que ser el capítulo más reciente
   // de TODA la serie, no solo de este capítulo puntual — si no, corregir
   // (o volver a ver) un capítulo viejo podía pisar por error la fecha

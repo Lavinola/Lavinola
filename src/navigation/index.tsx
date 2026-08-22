@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
 import { View, Text, ActivityIndicator, StyleSheet, Platform, useWindowDimensions } from "react-native";
-import { NavigationContainer, DarkTheme } from "@react-navigation/native";
+import { NavigationContainer, DarkTheme, createNavigationContainerRef } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { Session } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
+import * as Notifications from "expo-notifications";
+import { navegarSegunNotificacion as navegarSegunNotificacionCompartido } from "../lib/notificationNav";
+import { obtenerNotificacion } from "../lib/notificationsFeed";
 import { supabase } from "../lib/supabase";
 import { Alert } from "../lib/alert";
 import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
@@ -402,6 +405,55 @@ const RUTAS_COMUNES: Record<string, string> = {
   AdminVerChat: "admin-ver-chat",
 };
 
+const navigationRef = createNavigationContainerRef();
+
+/**
+ * Traduce el "data" de una notificación push a una navegación real.
+ * Sin esto, tocar la notificación solo abría la app en la pantalla de
+ * siempre, sin llevarte a lo que avisaba.
+ *
+ * La mayoría de los tipos vienen con un "notificationId" — se busca esa
+ * notificación puntual y se reusa la MISMA función de navegación que ya
+ * usa la campanita (navegarSegunNotificacion, de notificationNav.ts), así
+ * las dos se comportan siempre igual. Los mensajes de chat son la
+ * excepción — a propósito no se guardan en la campanita (ya tienen su
+ * propio indicador de "no leído"), así que se navegan aparte, directo. Los
+ * recordatorios de estrenos tampoco pasan por la campanita, van directo
+ * al capítulo/película.
+ */
+async function procesarToqueDeNotificacion(data: any) {
+  if (!data?.type || !navigationRef.isReady()) return;
+  const nav = navigationRef as any;
+
+  if (data.notificationId) {
+    const notificacion = await obtenerNotificacion(data.notificationId);
+    if (notificacion) await navegarSegunNotificacionCompartido(notificacion, nav);
+    return;
+  }
+
+  switch (data.type) {
+    case "chat_message": {
+      const { data: userData } = await supabase.auth.getSession();
+      const miId = userData.session?.user?.id;
+      const { data: chat } = await supabase.from("chats").select("user_a, user_b").eq("id", data.chatId).maybeSingle();
+      const otroUserId = chat && miId ? (chat.user_a === miId ? chat.user_b : chat.user_a) : null;
+      const { data: perfil } = otroUserId ? await supabase.from("profiles").select("username").eq("id", otroUserId).maybeSingle() : { data: null };
+      nav.navigate("HiloActividad", { chatId: data.chatId, otroUserId, otroUsername: perfil?.username ?? null });
+      break;
+    }
+    case "episode_today":
+      nav.navigate("EpisodioDetalle", { seriesTmdbId: data.seriesTmdbId, seasonNumber: data.season, episodeNumber: data.episode });
+      break;
+    case "episodes_today":
+    case "season_today":
+      nav.navigate("DetalleTitulo", { tipo: "series", tmdbId: data.seriesTmdbId });
+      break;
+    case "movie_today":
+      nav.navigate("DetalleTitulo", { tipo: "movie", tmdbId: data.movieTmdbId });
+      break;
+  }
+}
+
 const linking = {
   prefixes: [Linking.createURL("/")],
   config: {
@@ -451,6 +503,16 @@ export default function RootNavigation() {
   const { t } = useT();
   const ultimoTapComunidadRef = useRef(0);
   const ultimoTapExplorarRef = useRef(0);
+
+  // Al tocar una notificación push (con la app abierta, en segundo plano,
+  // o directamente cerrada) hay que llevar a la persona a lo que la
+  // notificación decía, no dejarla en la pantalla de siempre.
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((respuesta) => {
+      procesarToqueDeNotificacion(respuesta.notification.request.content.data);
+    });
+    return () => sub.remove();
+  }, []);
 
   // Doble toque en Comunidad → Lobby, o en Explorar → Descubrir, estés
   // donde estés dentro de esa pestaña. tabPress se dispara siempre (incluso
@@ -603,7 +665,16 @@ export default function RootNavigation() {
 
   return (
     <>
-      <NavigationContainer theme={navigationTheme} linking={linking}>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={navigationTheme}
+        linking={linking}
+        onReady={() => {
+          Notifications.getLastNotificationResponseAsync().then((respuesta) => {
+            if (respuesta) procesarToqueDeNotificacion(respuesta.notification.request.content.data);
+          });
+        }}
+      >
         <Tab.Navigator
           initialRouteName="Comunidad"
           screenOptions={({ route }) => ({

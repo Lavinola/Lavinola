@@ -449,7 +449,17 @@ export function NodoComentario({
       setMiReaccion(emoji);
     }
     setReacciones(nuevasReacciones);
-    await reaccionar(userId, comentario.id, emoji, miReaccion);
+    try {
+      await reaccionar(userId, comentario.id, emoji, miReaccion);
+    } catch (e: any) {
+      // Si el guardado falla de verdad, deshacemos el cambio visual
+      // optimista de arriba para que no quede mostrando algo que en
+      // realidad no se guardó.
+      setReacciones(reacciones);
+      setMiReaccion(miReaccion);
+      Alert.alert(t("No se pudo guardar"), e.message ?? "");
+      return;
+    }
     // Sin esto, la reacción se veía bien al toque pero solo en esta
     // instancia puntual — si esta parte de la pantalla se volvía a armar
     // (cerrar/abrir respuestas, volver a la pantalla), usaba datos viejos

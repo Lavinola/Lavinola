@@ -287,9 +287,11 @@ export async function listarReaccionesDeComentario(commentId: string): Promise<R
 
 export async function reaccionar(userId: string, commentId: string, emoji: string, reaccionActual: string | null) {
   if (reaccionActual === emoji) {
-    await supabase.from("likes_comentario").delete().eq("user_id", userId).eq("comment_id", commentId);
+    const { error } = await supabase.from("likes_comentario").delete().eq("user_id", userId).eq("comment_id", commentId);
+    if (error) throw error;
   } else {
-    await supabase.from("likes_comentario").upsert({ user_id: userId, comment_id: commentId, emoji });
+    const { error } = await supabase.from("likes_comentario").upsert({ user_id: userId, comment_id: commentId, emoji }, { onConflict: "user_id,comment_id" });
+    if (error) throw error;
   }
 }
 

@@ -141,7 +141,12 @@ export async function recomendarPeliculas(userId: string): Promise<any[]> {
 }
 
 export async function marcarNoMeInteresa(userId: string, tipo: "series" | "movie", tmdbId: number) {
-  await supabase.from("user_disliked_titles").insert({ user_id: userId, item_type: tipo, tmdb_id: tmdbId });
+  // upsert (no insert simple): tocarlo dos veces rápido chocaba con la
+  // clave primaria y fallaba en silencio.
+  const { error } = await supabase
+    .from("user_disliked_titles")
+    .upsert({ user_id: userId, item_type: tipo, tmdb_id: tmdbId }, { onConflict: "user_id,item_type,tmdb_id" });
+  if (error) throw error;
 }
 
 export async function listarDescartados(userId: string): Promise<{ item_type: "series" | "movie"; tmdb_id: number; nombre: string; poster_path: string | null }[]> {

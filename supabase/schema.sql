@@ -3706,3 +3706,466 @@ create policy "polls_insert" on polls for insert with check (
     )
   )
 );
+
+-- ============================================================
+-- PUSH REAL PARA TODAS LAS NOTIFICACIONES + CAMPANITA SIEMPRE VISIBLE
+-- ============================================================
+-- Hasta ahora, "me gusta", respuestas, solicitudes de seguir, mensajes
+-- (chat y grupo) solo se guardaban en la campanita de adentro de la app
+-- — nunca mandaban un push real (con la app cerrada, nunca te enterabas).
+-- Además, el interruptor de Ajustes apagaba la campanita TAMBIÉN — ahora
+-- la campanita siempre se llena (así podés repasar después lo que te
+-- perdiste), y el interruptor solo controla si además te llega el push.
+--
+-- PASO MANUAL REQUERIDO (una sola vez, en el SQL Editor de Supabase —
+-- nunca va acá en el archivo, para no dejar la clave guardada en el
+-- repositorio de git):
+--
+--   alter database postgres set app.settings.service_role_key = 'TU_SERVICE_ROLE_KEY';
+--
+-- (la Service Role Key la encontrás en Project Settings → API →
+-- service_role). Sin correr eso, esta parte no puede mandar push — el
+-- resto de la app sigue funcionando bien igual mientras tanto.
+-- ============================================================
+create extension if not exists pg_net;
+
+create or replace function enviar_push_notificacion(destinatario uuid, titulo text, cuerpo text, datos jsonb default '{}'::jsonb) returns void as $$
+declare
+  token text;
+  clave text;
+begin
+  select push_token into token from profiles where id = destinatario;
+  if token is null then return; end if;
+  clave := current_setting('app.settings.service_role_key', true);
+  if clave is null or clave = '' then return; end if; -- todavía no se configuró el paso manual de arriba
+  perform net.http_post(
+    url := 'https://vrpnmypbyuspemnoshuu.supabase.co/functions/v1/send-push',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || clave),
+    body := jsonb_build_object('to', token, 'title', titulo, 'body', cuerpo, 'data', datos)
+  );
+exception when others then
+  null; -- un fallo al mandar el push no debe romper la acción real (el like, la respuesta, etc.)
+end;
+$$ language plpgsql security definer set search_path = public;
+
+-- ---------- Me gusta a un comentario ----------
+create or replace function notify_like() returns trigger as $$
+declare
+  autor_id uuid;
+  v_target_type text;
+  v_target_id text;
+  v_group_id uuid;
+  quiere_notif boolean;
+begin
+  select user_id, target_type, target_id, group_id into autor_id, v_target_type, v_target_id, v_group_id from comentarios where id = new.comment_id;
+  if autor_id is not null and autor_id <> new.user_id then
+    insert into notifications (user_id, type, actor_id, target_type, target_id, message, comment_id)
+      values (autor_id, 'like', new.user_id, 'comment', new.comment_id::text, new.emoji, new.comment_id);
+    select notify_likes into quiere_notif from profiles where id = autor_id;
+    if coalesce(quiere_notif, true) then
+      perform enviar_push_notificacion(autor_id, 'Nuevo me gusta', 'A alguien le gustó tu comentario',
+        jsonb_build_object('type', 'comment_like', 'targetType', v_target_type, 'targetId', v_target_id, 'groupId', v_group_id, 'commentId', new.comment_id));
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+-- ---------- Me gusta a un post ----------
+create or replace function notify_post_reaction() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+begin
+  select user_id into autor_id from posts where id = new.post_id;
+  if autor_id is not null and autor_id <> new.user_id then
+    insert into notifications (user_id, type, actor_id, target_type, target_id, message)
+      values (autor_id, 'like', new.user_id, 'post', new.post_id::text, new.emoji);
+    select notify_likes into quiere_notif from profiles where id = autor_id;
+    if coalesce(quiere_notif, true) then
+      perform enviar_push_notificacion(autor_id, 'Nuevo me gusta', 'A alguien le gustó tu post',
+        jsonb_build_object('type', 'post_like', 'postId', new.post_id));
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+-- ---------- Respuesta a un comentario ----------
+create or replace function notify_reply() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+begin
+  if new.parent_comment_id is not null then
+    select user_id into autor_id from comentarios where id = new.parent_comment_id;
+    if autor_id is not null and autor_id <> new.user_id then
+      insert into notifications (user_id, type, actor_id, target_type, target_id, comment_id, trigger_comment_id)
+        values (autor_id, 'reply', new.user_id, new.target_type, new.target_id, new.parent_comment_id, new.id);
+      select notify_replies into quiere_notif from profiles where id = autor_id;
+      if coalesce(quiere_notif, true) then
+        perform enviar_push_notificacion(autor_id, 'Nueva respuesta', 'Alguien respondió tu comentario',
+          jsonb_build_object('type', 'reply', 'targetType', new.target_type, 'targetId', new.target_id, 'groupId', new.group_id, 'commentId', new.parent_comment_id));
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+-- ---------- Solicitud de seguimiento ----------
+create or replace function notify_follow_request() returns trigger as $$
+declare
+  quiere_notif boolean;
+begin
+  if new.status <> 'pending' then
+    return new;
+  end if;
+  insert into notifications (user_id, type, actor_id)
+    values (new.target_id, 'follow_request', new.requester_id);
+  select notify_follow_requests into quiere_notif from profiles where id = new.target_id;
+  if coalesce(quiere_notif, true) then
+    perform enviar_push_notificacion(new.target_id, 'Nueva solicitud', 'Alguien quiere seguirte',
+      jsonb_build_object('type', 'follow_request', 'actorId', new.requester_id));
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+-- ---------- Título/lista/grupo compartido por chat ----------
+create or replace function notify_shared_title() returns trigger as $$
+declare
+  quiere_notif boolean;
+begin
+  insert into notifications (user_id, type, actor_id, target_type, target_id)
+    values (new.receiver_id, 'shared_title', new.sender_id, 'shared_title_thread', new.id::text);
+  select notify_messages into quiere_notif from profiles where id = new.receiver_id;
+  if coalesce(quiere_notif, true) then
+    perform enviar_push_notificacion(new.receiver_id, 'Te recomendaron algo', 'Tocá para verlo',
+      jsonb_build_object('type', 'shared_title', 'senderId', new.sender_id));
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+-- ---------- Mensaje de chat directo ----------
+create or replace function notify_chat_message() returns trigger as $$
+declare
+  destinatario uuid;
+  quiere_notif boolean;
+  silencio record;
+  v_nombre text;
+begin
+  select case when chats.user_a = new.sender_id then chats.user_b else chats.user_a end into destinatario
+    from chats where chats.id = new.chat_id;
+  if destinatario is null then return new; end if;
+
+  select * into silencio from chat_user_state where chat_id = new.chat_id and user_id = destinatario;
+  if silencio is not null and (silencio.silenced_forever or (silencio.silenced_until is not null and silencio.silenced_until > now())) then
+    return new; -- silenciado, no notifica
+  end if;
+
+  if new.kind = 'shared_title' then
+    if new.tmdb_id is not null and new.item_type = 'series' then
+      if new.season_number is not null and new.episode_number is not null then
+        select coalesce(sc.name, '') || ' — ' || coalesce(ec.name, 'T' || new.season_number || 'E' || new.episode_number) into v_nombre
+          from series_cache sc
+          left join episodes_cache ec on ec.series_tmdb_id = sc.tmdb_id and ec.season_number = new.season_number and ec.episode_number = new.episode_number
+          where sc.tmdb_id = new.tmdb_id;
+      else
+        select name into v_nombre from series_cache where tmdb_id = new.tmdb_id;
+      end if;
+    elsif new.tmdb_id is not null and new.item_type = 'movie' then
+      select title into v_nombre from movies_cache where tmdb_id = new.tmdb_id;
+    elsif new.shared_group_id is not null then
+      select name into v_nombre from groups where id = new.shared_group_id;
+    elsif new.shared_list_id is not null then
+      select title into v_nombre from lists where id = new.shared_list_id;
+    end if;
+  end if;
+
+  -- Los mensajes de chat, a propósito, NO se guardan acá en la campanita
+  -- — ya tienen su propio indicador de "no leído" en la pestaña de
+  -- chats. Solo se agrega el push nuevo, sin duplicar el aviso.
+  select notify_messages into quiere_notif from profiles where id = destinatario;
+  if coalesce(quiere_notif, true) then
+    perform enviar_push_notificacion(
+      destinatario,
+      'Nuevo mensaje',
+      case when new.kind = 'shared_title' then coalesce('Te recomendó: ' || v_nombre, 'Te recomendó algo') else coalesce(new.content, 'Te mandó un GIF') end,
+      jsonb_build_object('type', 'chat_message', 'chatId', new.chat_id)
+    );
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+-- ---------- Comentario o post nuevo en un grupo ----------
+create or replace function notify_group_message() returns trigger as $$
+declare
+  es_privado boolean;
+  miembro record;
+  silencio record;
+  quiere_notif boolean;
+begin
+  if new.target_type <> 'group' or new.group_id is null then return new; end if;
+
+  select (visibility = 'private') into es_privado from groups where id = new.group_id;
+
+  for miembro in
+    select gm.user_id, p.notify_group_messages_private, p.notify_group_messages_public
+    from group_members gm
+    join profiles p on p.id = gm.user_id
+    where gm.group_id = new.group_id and gm.user_id <> new.user_id
+  loop
+    select * into silencio from group_silenced where group_id = new.group_id and user_id = miembro.user_id;
+    if silencio is not null and (silencio.silenced_forever or (silencio.silenced_until is not null and silencio.silenced_until > now())) then
+      continue; -- silenciado, no le mandamos notificación (pero el circulito de "no leído" sigue funcionando aparte)
+    end if;
+
+    insert into notifications (user_id, type, actor_id, target_type, target_id)
+      values (miembro.user_id, 'group_message', new.user_id, 'group', new.group_id::text);
+
+    quiere_notif := case when es_privado then coalesce(miembro.notify_group_messages_private, true) else coalesce(miembro.notify_group_messages_public, false) end;
+    if quiere_notif then
+      perform enviar_push_notificacion(miembro.user_id, 'Actividad en tu grupo', 'Hay algo nuevo para ver',
+        jsonb_build_object('type', 'group_message', 'groupId', new.group_id));
+    end if;
+  end loop;
+
+  return new;
+exception
+  when others then
+    return new;
+end;
+$$ language plpgsql;
+
+-- ---------- Encuesta nueva en un grupo ----------
+create or replace function notify_poll() returns trigger as $$
+declare
+  es_privado boolean;
+  miembro record;
+  quiere_notif boolean;
+begin
+  if new.group_id is null then return new; end if; -- encuesta del Lobby, no de un grupo — no hay a quién avisarle acá
+
+  select (visibility = 'private') into es_privado from groups where id = new.group_id;
+
+  for miembro in
+    select gm.user_id, p.notify_group_messages_private, p.notify_group_messages_public
+    from group_members gm
+    join profiles p on p.id = gm.user_id
+    where gm.group_id = new.group_id and gm.user_id <> new.user_id
+  loop
+    if exists (
+      select 1 from group_silenced
+      where group_silenced.group_id = new.group_id and group_silenced.user_id = miembro.user_id
+        and (group_silenced.silenced_forever or (group_silenced.silenced_until is not null and group_silenced.silenced_until > now()))
+    ) then
+      continue;
+    end if;
+    insert into notifications (user_id, type, actor_id, target_type, target_id)
+      values (miembro.user_id, 'group_message', new.user_id, 'group', new.group_id::text);
+
+    quiere_notif := case when es_privado then coalesce(miembro.notify_group_messages_private, true) else coalesce(miembro.notify_group_messages_public, false) end;
+    if quiere_notif then
+      perform enviar_push_notificacion(miembro.user_id, 'Nueva encuesta', 'Hay una encuesta nueva en tu grupo',
+        jsonb_build_object('type', 'group_message', 'groupId', new.group_id));
+    end if;
+  end loop;
+
+  return new;
+exception
+  when others then
+    return new;
+end;
+$$ language plpgsql;
+
+-- Notificaciones de grupos PÚBLICOS: ahora viene desactivado por
+-- defecto (antes venía activado, sin que nadie lo hubiera elegido así).
+alter table profiles alter column notify_group_messages_public set default false;
+update profiles set notify_group_messages_public = false where notify_group_messages_public = true;
+
+-- ============================================================
+-- Ajuste a las funciones de arriba: en vez de mandar en el push datos
+-- sueltos por cada tipo, se manda el ID de la notificación recién
+-- guardada en la campanita — así, al tocar el push, se busca esa
+-- notificación puntual y se reusa EXACTAMENTE la misma función de
+-- navegación que ya usa la campanita (un solo lugar, sin duplicar lógica
+-- ni arriesgarse a que las dos se comporten distinto).
+-- ============================================================
+create or replace function notify_like() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  select user_id into autor_id from comentarios where id = new.comment_id;
+  if autor_id is not null and autor_id <> new.user_id then
+    insert into notifications (user_id, type, actor_id, target_type, target_id, message, comment_id)
+      values (autor_id, 'like', new.user_id, 'comment', new.comment_id::text, new.emoji, new.comment_id)
+      returning id into v_notif_id;
+    select notify_likes into quiere_notif from profiles where id = autor_id;
+    if coalesce(quiere_notif, true) then
+      perform enviar_push_notificacion(autor_id, 'Nuevo me gusta', 'A alguien le gustó tu comentario', jsonb_build_object('notificationId', v_notif_id));
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_post_reaction() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  select user_id into autor_id from posts where id = new.post_id;
+  if autor_id is not null and autor_id <> new.user_id then
+    insert into notifications (user_id, type, actor_id, target_type, target_id, message)
+      values (autor_id, 'like', new.user_id, 'post', new.post_id::text, new.emoji)
+      returning id into v_notif_id;
+    select notify_likes into quiere_notif from profiles where id = autor_id;
+    if coalesce(quiere_notif, true) then
+      perform enviar_push_notificacion(autor_id, 'Nuevo me gusta', 'A alguien le gustó tu post', jsonb_build_object('notificationId', v_notif_id));
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_reply() returns trigger as $$
+declare
+  autor_id uuid;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  if new.parent_comment_id is not null then
+    select user_id into autor_id from comentarios where id = new.parent_comment_id;
+    if autor_id is not null and autor_id <> new.user_id then
+      insert into notifications (user_id, type, actor_id, target_type, target_id, comment_id, trigger_comment_id)
+        values (autor_id, 'reply', new.user_id, new.target_type, new.target_id, new.parent_comment_id, new.id)
+        returning id into v_notif_id;
+      select notify_replies into quiere_notif from profiles where id = autor_id;
+      if coalesce(quiere_notif, true) then
+        perform enviar_push_notificacion(autor_id, 'Nueva respuesta', 'Alguien respondió tu comentario', jsonb_build_object('notificationId', v_notif_id));
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_follow_request() returns trigger as $$
+declare
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  if new.status <> 'pending' then
+    return new;
+  end if;
+  insert into notifications (user_id, type, actor_id) values (new.target_id, 'follow_request', new.requester_id) returning id into v_notif_id;
+  select notify_follow_requests into quiere_notif from profiles where id = new.target_id;
+  if coalesce(quiere_notif, true) then
+    perform enviar_push_notificacion(new.target_id, 'Nueva solicitud', 'Alguien quiere seguirte', jsonb_build_object('notificationId', v_notif_id));
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_shared_title() returns trigger as $$
+declare
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  insert into notifications (user_id, type, actor_id, target_type, target_id)
+    values (new.receiver_id, 'shared_title', new.sender_id, 'shared_title_thread', new.id::text)
+    returning id into v_notif_id;
+  select notify_messages into quiere_notif from profiles where id = new.receiver_id;
+  if coalesce(quiere_notif, true) then
+    perform enviar_push_notificacion(new.receiver_id, 'Te recomendaron algo', 'Tocá para verlo', jsonb_build_object('notificationId', v_notif_id));
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_group_message() returns trigger as $$
+declare
+  es_privado boolean;
+  miembro record;
+  silencio record;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  if new.target_type <> 'group' or new.group_id is null then return new; end if;
+
+  select (visibility = 'private') into es_privado from groups where id = new.group_id;
+
+  for miembro in
+    select gm.user_id, p.notify_group_messages_private, p.notify_group_messages_public
+    from group_members gm
+    join profiles p on p.id = gm.user_id
+    where gm.group_id = new.group_id and gm.user_id <> new.user_id
+  loop
+    select * into silencio from group_silenced where group_id = new.group_id and user_id = miembro.user_id;
+    if silencio is not null and (silencio.silenced_forever or (silencio.silenced_until is not null and silencio.silenced_until > now())) then
+      continue;
+    end if;
+
+    insert into notifications (user_id, type, actor_id, target_type, target_id)
+      values (miembro.user_id, 'group_message', new.user_id, 'group', new.group_id::text)
+      returning id into v_notif_id;
+
+    quiere_notif := case when es_privado then coalesce(miembro.notify_group_messages_private, true) else coalesce(miembro.notify_group_messages_public, false) end;
+    if quiere_notif then
+      perform enviar_push_notificacion(miembro.user_id, 'Actividad en tu grupo', 'Hay algo nuevo para ver', jsonb_build_object('notificationId', v_notif_id));
+    end if;
+  end loop;
+
+  return new;
+exception
+  when others then
+    return new;
+end;
+$$ language plpgsql;
+
+create or replace function notify_poll() returns trigger as $$
+declare
+  es_privado boolean;
+  miembro record;
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  if new.group_id is null then return new; end if;
+
+  select (visibility = 'private') into es_privado from groups where id = new.group_id;
+
+  for miembro in
+    select gm.user_id, p.notify_group_messages_private, p.notify_group_messages_public
+    from group_members gm
+    join profiles p on p.id = gm.user_id
+    where gm.group_id = new.group_id and gm.user_id <> new.user_id
+  loop
+    if exists (
+      select 1 from group_silenced
+      where group_silenced.group_id = new.group_id and group_silenced.user_id = miembro.user_id
+        and (group_silenced.silenced_forever or (group_silenced.silenced_until is not null and group_silenced.silenced_until > now()))
+    ) then
+      continue;
+    end if;
+    insert into notifications (user_id, type, actor_id, target_type, target_id)
+      values (miembro.user_id, 'group_message', new.user_id, 'group', new.group_id::text)
+      returning id into v_notif_id;
+
+    quiere_notif := case when es_privado then coalesce(miembro.notify_group_messages_private, true) else coalesce(miembro.notify_group_messages_public, false) end;
+    if quiere_notif then
+      perform enviar_push_notificacion(miembro.user_id, 'Nueva encuesta', 'Hay una encuesta nueva en tu grupo', jsonb_build_object('notificationId', v_notif_id));
+    end if;
+  end loop;
+
+  return new;
+exception
+  when others then
+    return new;
+end;
+$$ language plpgsql;

@@ -123,12 +123,13 @@ export async function toggleFavorito(
   esFavoritoActual: boolean
 ) {
   if (esFavoritoActual) {
-    await supabase
+    const { error } = await supabase
       .from("user_favorites")
       .delete()
       .eq("user_id", userId)
       .eq("item_type", itemType)
       .eq("tmdb_id", tmdbId);
+    if (error) throw error;
   } else {
     // Nuevo favorito va al final del orden personalizado.
     const { data: ultimo } = await supabase
@@ -140,7 +141,13 @@ export async function toggleFavorito(
       .limit(1)
       .maybeSingle();
     const siguienteOrden = (ultimo?.order_index ?? -1) + 1;
-    await supabase.from("user_favorites").insert({ user_id: userId, item_type: itemType, tmdb_id: tmdbId, order_index: siguienteOrden });
+    // upsert (no insert simple): un doble toque rápido podía chocar con la
+    // clave primaria y fallar en silencio — la app mostraba el corazón
+    // como marcado, pero el favorito nunca quedaba guardado de verdad.
+    const { error } = await supabase
+      .from("user_favorites")
+      .upsert({ user_id: userId, item_type: itemType, tmdb_id: tmdbId, order_index: siguienteOrden }, { onConflict: "user_id,item_type,tmdb_id" });
+    if (error) throw error;
   }
 }
 

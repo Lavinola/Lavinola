@@ -4,6 +4,7 @@ import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
+import { Alert } from "../lib/alert";
 import { posterUrl } from "../lib/tmdb";
 import { listarFavoritos, toggleFavorito } from "../lib/favorites";
 import { fetchAllRows } from "../lib/pagination";
@@ -135,7 +136,12 @@ export default function ManageFavoritesScreen({ route }: any) {
 
   async function toggle(item: ItemConFavorito) {
     if (!userId) return;
-    await toggleFavorito(userId, tipo, item.tmdb_id, item.favorito);
+    try {
+      await toggleFavorito(userId, tipo, item.tmdb_id, item.favorito);
+    } catch (e: any) {
+      Alert.alert(t("No se pudo actualizar"), e.message ?? "");
+      return;
+    }
     // A propósito NO reordenamos acá — si moviéramos la fila arriba de todo
     // al toque, el FlatList saltaría al principio y perderías el lugar en el
     // que estabas scrolleando. El reacomodo (favoritas arriba) se aplica

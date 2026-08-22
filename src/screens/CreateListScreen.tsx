@@ -28,7 +28,8 @@ export default function CreateListScreen({ route, navigation }: any) {
       if (!userId) return;
       const lista = await crearLista(userId, nombre.trim(), visibilidad, descripcion.trim() || null);
       if (pendingItem && lista) {
-        await supabase.from("list_items").upsert({ list_id: lista.id, item_type: pendingItem.itemType, tmdb_id: pendingItem.tmdbId });
+        const { error } = await supabase.from("list_items").upsert({ list_id: lista.id, item_type: pendingItem.itemType, tmdb_id: pendingItem.tmdbId });
+        if (error) throw error;
       }
       // Si veníamos de "Añadir a una lista" desde una ficha, volvemos directo ahí (sin pasar por la pantalla de elegir lista).
       if (pendingItem) {
