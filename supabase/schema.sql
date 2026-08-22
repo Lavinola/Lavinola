@@ -4604,3 +4604,51 @@ begin
   return new;
 end;
 $$ language plpgsql;
+
+-- ============================================================
+-- HALLAZGO: en algún momento anterior a hoy se perdió sin querer el
+-- aviso de "aceptaron tu solicitud de seguimiento" — la campanita ya
+-- tenía todo listo para mostrarlo (case "follow_accepted" en
+-- notificationsFeed.ts), pero el disparador que lo generaba había
+-- quedado recortado en una versión anterior. Se restaura acá, con el
+-- mismo criterio de hoy (campanita siempre, push según el interruptor).
+-- ============================================================
+create or replace function notify_follow_request() returns trigger as $$
+declare
+  quiere_notif boolean;
+  v_notif_id uuid;
+begin
+  if TG_OP = 'INSERT' and new.status = 'pending' then
+    insert into notifications (user_id, type, actor_id) values (new.target_id, 'follow_request', new.requester_id) returning id into v_notif_id;
+    select notify_follow_requests into quiere_notif from profiles where id = new.target_id;
+    if coalesce(quiere_notif, true) then
+      perform enviar_push_notificacion(
+        new.target_id,
+        jsonb_build_object('es', 'Nueva solicitud', 'en', 'New request', 'pt', 'Nova solicitação', 'it', 'Nuova richiesta'),
+        jsonb_build_object(
+          'es', 'Alguien quiere seguirte', 'en', 'Someone wants to follow you',
+          'pt', 'Alguém quer te seguir', 'it', 'Qualcuno vuole seguirti'
+        ),
+        jsonb_build_object('notificationId', v_notif_id)
+      );
+    end if;
+  elsif TG_OP = 'UPDATE' and new.status = 'accepted' and old.status is distinct from 'accepted' then
+    insert into notifications (user_id, type, actor_id, target_type, target_id)
+      values (new.requester_id, 'follow_accepted', new.target_id, 'user', new.target_id::text)
+      returning id into v_notif_id;
+    select notify_follow_requests into quiere_notif from profiles where id = new.requester_id;
+    if coalesce(quiere_notif, true) then
+      perform enviar_push_notificacion(
+        new.requester_id,
+        jsonb_build_object('es', 'Solicitud aceptada', 'en', 'Request accepted', 'pt', 'Solicitação aceita', 'it', 'Richiesta accettata'),
+        jsonb_build_object(
+          'es', 'Aceptaron tu solicitud de seguimiento', 'en', 'Your follow request was accepted',
+          'pt', 'Sua solicitação de seguir foi aceita', 'it', 'La tua richiesta di seguire è stata accettata'
+        ),
+        jsonb_build_object('notificationId', v_notif_id)
+      );
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
