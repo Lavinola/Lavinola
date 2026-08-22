@@ -4652,3 +4652,31 @@ begin
   return new;
 end;
 $$ language plpgsql;
+
+-- ============================================================
+-- HALLAZGO: en algún momento se le sacó a esta función el chequeo de
+-- is_moderator (quedó solo is_admin) — inconsistente con el resto del
+-- trabajo de hoy, que le dio a los moderadores el mismo poder que a
+-- admin para moderar contenido. Sin esto, un moderador no podía ni
+-- siquiera VER el contenido de un grupo privado para revisar un reporte.
+-- ============================================================
+create or replace function puede_ver_contenido_de_grupo(p_group_id uuid) returns boolean as $$
+  select
+    p_group_id is null
+    or exists (select 1 from groups where groups.id = p_group_id and groups.visibility = 'public')
+    or exists (select 1 from group_members where group_members.group_id = p_group_id and group_members.user_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and (is_admin = true or is_moderator = true));
+$$ language sql stable security definer set search_path = public;
+
+-- ============================================================
+-- CORRECCIÓN: vuelve a ser exclusivo de admin — a pedido explícito, los
+-- moderadores NO deben poder ver contenido de grupos privados de los
+-- que no son miembros. Esto no era un bug, era intencional.
+-- ============================================================
+create or replace function puede_ver_contenido_de_grupo(p_group_id uuid) returns boolean as $$
+  select
+    p_group_id is null
+    or exists (select 1 from groups where groups.id = p_group_id and groups.visibility = 'public')
+    or exists (select 1 from group_members where group_members.group_id = p_group_id and group_members.user_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and is_admin = true);
+$$ language sql stable security definer set search_path = public;

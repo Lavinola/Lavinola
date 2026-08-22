@@ -65,6 +65,8 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
       }
       const todos = [...sinDuplicados.values()]
         .filter((c: any) => c.poster_path)
+        // TMDB marca los talk shows con el género 10767 ("Talk") — los sacamos de la filmografía.
+        .filter((c: any) => !(c.genre_ids ?? []).includes(10767))
         .sort((a: any, b: any) => {
           const fechaA = a.release_date || a.first_air_date || "";
           const fechaB = b.release_date || b.first_air_date || "";
@@ -112,14 +114,18 @@ export default function ActorDetailScreen({ route, navigation }: Props) {
           <Text style={styles.filmografiaTitulo}>{t("Filmografía")}</Text>
         </View>
       }
-      renderItem={({ item }) => (
-        <Pressable style={styles.item} onPress={() => abrir(item)}>
-          <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.poster} />
-          <Text numberOfLines={2} style={styles.tituloItem}>
-            {item.title ?? item.name}
-          </Text>
-        </Pressable>
-      )}
+      renderItem={({ item }) => {
+        const anio = (item.release_date || item.first_air_date || "").slice(0, 4);
+        return (
+          <Pressable style={styles.item} onPress={() => abrir(item)}>
+            <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.poster} />
+            <Text numberOfLines={2} style={styles.tituloItem}>
+              {item.title ?? item.name}
+            </Text>
+            {anio ? <Text style={styles.anioItem}>({anio})</Text> : null}
+          </Pressable>
+        );
+      }}
       ListFooterComponent={
         cantidadMostrada < creditos.length ? (
           <Pressable style={styles.mostrarMasBtn} onPress={() => setCantidadMostrada((c) => c + 15)}>
@@ -145,4 +151,5 @@ const styles = StyleSheet.create({
   item: { flex: 1 / 3, padding: 6 },
   poster: { width: "100%", aspectRatio: 2 / 3, borderRadius: 6, backgroundColor: theme.colors.surfaceAlt },
   tituloItem: { fontSize: 11, marginTop: 4 },
+  anioItem: { fontSize: 10, color: theme.colors.textMuted, marginTop: 2 },
 });
