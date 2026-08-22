@@ -104,7 +104,7 @@ function ListaPendiente({ navigation }: any) {
         setLoading(true);
       }
 
-      const datos = yaListo ? await cargarDatosListaPendiente(userId) : await obtenerListaPendiente(userId);
+      const datos = yaListo || silencioso ? await cargarDatosListaPendiente(userId) : await obtenerListaPendiente(userId);
       if (miId !== idCargaRef.current) return; // llegó una recarga más nueva mientras esperábamos — descartamos esta
       setSeries(datos.series);
       setHistorial(datos.historial);
@@ -129,7 +129,7 @@ function ListaPendiente({ navigation }: any) {
    * serie puntual que acabás de marcar: mucho más rápido, y sin la carrera.
    * El resto de la lista (Historial, que es chico) sí se refresca entero.
    */
-  async function actualizarSerieLocal(userId: string, seriesTmdbId: number) {
+  async function actualizarSerieLocal(userId: string, seriesTmdbId: number, cantidadRecienMarcados = 1) {
     const [proximo, hist] = await Promise.all([getProximoEpisodio(userId, seriesTmdbId), historialReciente(userId, 50)]);
     setHistorial(hist);
 
@@ -147,7 +147,7 @@ function ListaPendiente({ navigation }: any) {
           next_episode_number: proximo?.episode_number ?? null,
           next_episode_name: proximo?.name ?? null,
           next_episode_label: proximo ? `T${proximo.season_number} - E${proximo.episode_number}${proximo.name ? `: ${proximo.name}` : ""}` : null,
-          episodios_restantes: Math.max(0, s.episodios_restantes - 1),
+          episodios_restantes: Math.max(0, s.episodios_restantes - cantidadRecienMarcados),
         };
       })
     );
@@ -210,6 +210,11 @@ function ListaPendiente({ navigation }: any) {
         resolver();
         return;
       }
+      // Sin esto, la pantalla no se enteraba en el momento de que la serie
+      // pasó a "Ver a continuación" — recién se veía al salir y volver a
+      // entrar (el otro camino, sin capítulos previos pendientes, ya lo
+      // hacía bien).
+      await actualizarSerieLocal(userId, item.tmdb_id, lista.length);
     }
     resolver();
   }
