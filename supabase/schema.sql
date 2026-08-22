@@ -4169,3 +4169,83 @@ exception
     return new;
 end;
 $$ language plpgsql;
+
+-- ============================================================
+-- CORRECCIÓN: "alter database ... set app.settings..." no funciona en
+-- Supabase alojado (da error de permisos) — la forma correcta y pensada
+-- para esto es Supabase Vault, un sistema propio para guardar secretos.
+--
+-- PASO MANUAL REQUERIDO (una sola vez, en el SQL Editor — nunca va acá
+-- en el archivo, para no dejar la clave guardada en el repositorio):
+--
+--   select vault.create_secret('TU_SERVICE_ROLE_KEY', 'service_role_key');
+--
+-- (la Service Role Key la encontrás en Project Settings → API →
+-- service_role). Sin correr eso, el push no se manda — el resto de la
+-- app sigue funcionando bien igual mientras tanto.
+-- ============================================================
+-- (la extensión Vault no está disponible en este proyecto — se resolvió más abajo con una tabla propia protegida en su lugar)
+
+create or replace function enviar_push_notificacion(destinatario uuid, titulo text, cuerpo text, datos jsonb default '{}'::jsonb) returns void as $$
+declare
+  token text;
+  clave text;
+begin
+  select push_token into token from profiles where id = destinatario;
+  if token is null then return; end if;
+  select decrypted_secret into clave from vault.decrypted_secrets where name = 'service_role_key';
+  if clave is null or clave = '' then return; end if; -- todavía no se configuró el paso manual de arriba
+  perform net.http_post(
+    url := 'https://vrpnmypbyuspemnoshuu.supabase.co/functions/v1/send-push',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || clave),
+    body := jsonb_build_object('to', token, 'title', titulo, 'body', cuerpo, 'data', datos)
+  );
+exception when others then
+  null; -- un fallo al mandar el push no debe romper la acción real (el like, la respuesta, etc.)
+end;
+$$ language plpgsql security definer set search_path = public;
+
+-- ============================================================
+-- SEGUNDA CORRECCIÓN: Vault tampoco está disponible en este proyecto
+-- (no aparece ni en Database → Extensions). Se resuelve con una tabla
+-- propia, sin ninguna política de RLS que la abra — eso significa que
+-- NADIE puede leerla por la API (ni la app, ni un usuario común), pase
+-- lo que pase. Solo la función interna (que corre con permisos
+-- elevados, saltándose la RLS) puede verla.
+--
+-- PASO MANUAL REQUERIDO (una sola vez, en el SQL Editor — nunca va acá
+-- en el archivo, para no dejar la clave guardada en el repositorio):
+--
+--   insert into app_secrets (name, value) values ('service_role_key', 'TU_SERVICE_ROLE_KEY')
+--     on conflict (name) do update set value = excluded.value;
+--
+-- (la Service Role Key la encontrás en Project Settings → API →
+-- service_role). Sin correr eso, el push no se manda — el resto de la
+-- app sigue funcionando bien igual mientras tanto.
+-- ============================================================
+create table if not exists app_secrets (
+  name text primary key,
+  value text not null
+);
+alter table app_secrets enable row level security;
+-- A propósito, ninguna política de select/insert/update/delete acá —
+-- eso hace que quede totalmente inaccesible por la API para cualquiera.
+
+create or replace function enviar_push_notificacion(destinatario uuid, titulo text, cuerpo text, datos jsonb default '{}'::jsonb) returns void as $$
+declare
+  token text;
+  clave text;
+begin
+  select push_token into token from profiles where id = destinatario;
+  if token is null then return; end if;
+  select value into clave from app_secrets where name = 'service_role_key';
+  if clave is null or clave = '' then return; end if; -- todavía no se configuró el paso manual de arriba
+  perform net.http_post(
+    url := 'https://vrpnmypbyuspemnoshuu.supabase.co/functions/v1/send-push',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || clave),
+    body := jsonb_build_object('to', token, 'title', titulo, 'body', cuerpo, 'data', datos)
+  );
+exception when others then
+  null; -- un fallo al mandar el push no debe romper la acción real (el like, la respuesta, etc.)
+end;
+$$ language plpgsql security definer set search_path = public;
