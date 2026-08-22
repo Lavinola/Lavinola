@@ -177,7 +177,12 @@ function ListaPendiente({ navigation }: any) {
       return;
     }
 
-    await marcarEpisodioVisto(userId, item.tmdb_id, item.next_episode_season, item.next_episode_number);
+    try {
+      await marcarEpisodioVisto(userId, item.tmdb_id, item.next_episode_season, item.next_episode_number);
+    } catch (e: any) {
+      Alert.alert(t("No se pudo marcar como visto"), e.message ?? "");
+      return;
+    }
     await actualizarSerieLocal(userId, item.tmdb_id);
     setCalificarModal({
       tmdbId: item.tmdb_id,
@@ -198,7 +203,13 @@ function ListaPendiente({ navigation }: any) {
       const lista = conAnteriores
         ? [...anteriores, { season_number: item.next_episode_season, episode_number: item.next_episode_number }]
         : [{ season_number: item.next_episode_season, episode_number: item.next_episode_number }];
-      await marcarVariosEpisodios(userId, item.tmdb_id, lista);
+      try {
+        await marcarVariosEpisodios(userId, item.tmdb_id, lista);
+      } catch (e: any) {
+        Alert.alert(t("No se pudo marcar como visto"), e.message ?? "");
+        resolver();
+        return;
+      }
     }
     resolver();
   }

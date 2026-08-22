@@ -49,25 +49,36 @@ export async function marcarEpisodioVisto(
   episodeNumber: number
 ) {
   const ahora = new Date().toISOString();
-  await supabase.from("episode_watch_events").insert({
+  const { error: errorEvento } = await supabase.from("episode_watch_events").insert({
     user_id: userId,
     series_tmdb_id: seriesTmdbId,
     season_number: seasonNumber,
     episode_number: episodeNumber,
     watched_at: ahora,
   });
-  await supabase.from("user_episodes_watched").insert({
-    user_id: userId,
-    series_tmdb_id: seriesTmdbId,
-    season_number: seasonNumber,
-    episode_number: episodeNumber,
-    watched_at: ahora,
-    first_watched_at: ahora,
-  });
+  if (errorEvento) throw errorEvento;
 
-  await supabase
+  // upsert (no insert simple): si por lo que sea esto se llama dos veces
+  // para el mismo capítulo (doble toque, reintento), antes fallaba en
+  // silencio por la clave primaria repetida — la app actuaba como si
+  // hubiese funcionado, pero el capítulo nunca quedaba realmente marcado.
+  const { error: errorVisto } = await supabase.from("user_episodes_watched").upsert(
+    {
+      user_id: userId,
+      series_tmdb_id: seriesTmdbId,
+      season_number: seasonNumber,
+      episode_number: episodeNumber,
+      watched_at: ahora,
+      first_watched_at: ahora,
+    },
+    { onConflict: "user_id,series_tmdb_id,season_number,episode_number" }
+  );
+  if (errorVisto) throw errorVisto;
+
+  const { error: errorSerie } = await supabase
     .from("user_series")
     .upsert({ user_id: userId, series_tmdb_id: seriesTmdbId, in_watchlist: true, last_watched_at: ahora }, { onConflict: "user_id,series_tmdb_id" });
+  if (errorSerie) throw errorSerie;
 }
 
 export interface EpisodioConEstado {
@@ -163,7 +174,17 @@ export async function marcarVariosEpisodios(
     watched_at: ahora,
     first_watched_at: ahora,
   }));
-  if (filas.length > 0) await supabase.from("user_episodes_watched").upsert(filas, { onConflict: "user_id,series_tmdb_id,season_number,episode_number" });
+  if (filas.length > 0) {
+    const { error } = await supabase
+      .from("user_episodes_watched")
+      .upsert(filas, { onConflict: "user_id,series_tmdb_id,season_number,episode_number" });
+    // Puede fallar si el capítulo todavía no está sincronizado en
+    // episodes_cache (la relación entre las dos tablas lo exige) — sin
+    // este chequeo, quedaba como "marcado" en la pantalla pero nunca se
+    // guardaba de verdad, y por eso tampoco se disparaban los confetis
+    // al terminar una serie.
+    if (error) throw error;
+  }
   await supabase
     .from("user_series")
     .upsert({ user_id: userId, series_tmdb_id: seriesTmdbId, in_watchlist: true, last_watched_at: ahora }, { onConflict: "user_id,series_tmdb_id" });

@@ -279,6 +279,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  "No se pudo marcar como visto": { en: "Couldn't mark as watched", pt: "Não foi possível marcar como visto", it: "Impossibile segnare come visto" },
   Actores: { en: "Actors", pt: "Atores", it: "Attori" },
   Directores: { en: "Directors", pt: "Diretores", it: "Registi" },
   "Cambiar tapa/banner": { en: "Change cover/banner", pt: "Mudar capa/banner", it: "Cambia copertina/banner" },

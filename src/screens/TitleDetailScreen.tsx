@@ -1077,7 +1077,12 @@ function EpisodiosTab({
     const anteriores = await episodiosAnterioresNoVistos(userId, tmdbId, ep.season_number, ep.episode_number);
     const marcarEste = async (conAnteriores: boolean) => {
       const lista = conAnteriores ? [...anteriores, { season_number: ep.season_number, episode_number: ep.episode_number }] : [{ season_number: ep.season_number, episode_number: ep.episode_number }];
-      await marcarVariosEpisodios(userId, tmdbId, lista);
+      try {
+        await marcarVariosEpisodios(userId, tmdbId, lista);
+      } catch (e: any) {
+        Alert.alert(t("No se pudo marcar como visto"), e.message ?? "");
+        return;
+      }
       onSerieAgregada?.();
       cargar();
       if (await serieRecienCompletada(userId, tmdbId)) onSerieCompletada?.();
@@ -1118,7 +1123,12 @@ function EpisodiosTab({
         accion: async () => {
           impactoLiviano();
           const lista = emitidos.map((e) => ({ season_number: e.season_number, episode_number: e.episode_number }));
-          await marcarVariosEpisodios(userId, tmdbId, lista);
+          try {
+            await marcarVariosEpisodios(userId, tmdbId, lista);
+          } catch (e: any) {
+            Alert.alert(t("No se pudo marcar como visto"), e.message ?? "");
+            return;
+          }
           onSerieAgregada?.();
           cargar();
           if (await serieRecienCompletada(userId, tmdbId)) onSerieCompletada?.();

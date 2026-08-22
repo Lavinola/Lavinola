@@ -65,6 +65,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   }
   const [publishModalVisible, setPublishModalVisible] = useState(false);
   const [visto, setVisto] = useState(false);
+  const [cantidadReseñas, setCantidadReseñas] = useState(0);
   const [menuVistoVisible, setMenuVistoVisible] = useState(false);
   const [confirmAnterioresVisible, setConfirmAnterioresVisible] = useState(false);
   const [anteriores, setAnteriores] = useState<{ season_number: number; episode_number: number }[]>([]);
@@ -152,6 +153,13 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
 
     const { data: serieCache } = await supabase.from("series_cache").select("name").eq("tmdb_id", seriesTmdbId).maybeSingle();
     if (serieCache?.name) setNombreSerieParaRecomendar(serieCache.name);
+
+    supabase
+      .from("comentarios")
+      .select("id", { count: "exact", head: true })
+      .eq("target_type", "episode")
+      .eq("target_id", targetId)
+      .then(({ count }) => setCantidadReseñas(count ?? 0));
 
     const { data: ep } = await supabase
       .from("episodes_cache")
@@ -399,14 +407,14 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
         {(adyacentes.anterior || adyacentes.siguiente) && (
           <View style={styles.flechasRow}>
             {adyacentes.anterior ? (
-              <Pressable onPress={() => irAEpisodio(adyacentes.anterior!)} hitSlop={12}>
+              <Pressable onPress={() => irAEpisodio(adyacentes.anterior!)} style={styles.flechaBtn} hitSlop={8}>
                 <Ionicons name="chevron-back" size={28} color={theme.colors.primary} />
               </Pressable>
             ) : (
               <View />
             )}
             {adyacentes.siguiente ? (
-              <Pressable onPress={() => irAEpisodio(adyacentes.siguiente!)} hitSlop={12}>
+              <Pressable onPress={() => irAEpisodio(adyacentes.siguiente!)} style={styles.flechaBtn} hitSlop={8}>
                 <Ionicons name="chevron-forward" size={28} color={theme.colors.primary} />
               </Pressable>
             ) : (
@@ -487,7 +495,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
             style={styles.comentariosBanner}
             onPress={() => navigation.navigate("Comentarios", { targetType: "episode", targetId })}
           >
-            <Text style={styles.comentariosBannerTexto}>{t("COMENTARIOS/POSTS")}</Text>
+            <Text style={styles.comentariosBannerTexto}>{t("RESEÑAS")} ({cantidadReseñas})</Text>
             <Text style={styles.comentariosBannerFlecha}>›</Text>
           </Pressable>
 
@@ -599,7 +607,17 @@ const styles = StyleSheet.create({
   comentariosBannerTexto: { color: "#000000", fontWeight: "800", fontSize: 15, letterSpacing: 0.5 },
   comentariosBannerFlecha: { color: "#000000", fontWeight: "800", fontSize: 22 },
   container: { padding: 16 },
-  flechasRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 8, paddingTop: 4, marginBottom: -16 },
+  flechasRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    marginBottom: -16,
+    zIndex: 10,
+    elevation: 10,
+  },
+  flechaBtn: { width: 48, height: 48, alignItems: "center", justifyContent: "center" },
   nombreSerie: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 2 },
   titulo: { fontSize: 19, fontWeight: "700" },
   fecha: { fontSize: 13, color: theme.colors.textMuted, marginTop: 4 },
