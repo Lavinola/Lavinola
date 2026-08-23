@@ -159,8 +159,6 @@ function StatsPeliculasTab({ navigation }: any) {
 
   if (!stats) return <ActivityIndicator style={{ marginTop: 32 }} />;
 
-  console.log("[StatsPeliculasTab] render — favoritos en este momento:", JSON.stringify(favoritos));
-
   const tiempo = formatTiempo(stats.tiempoTotalMinutos);
   const tPendientes = formatTiempo(stats.minutosPeliculasPendientes);
 
