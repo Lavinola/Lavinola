@@ -92,7 +92,7 @@ export default function RecomendarTituloScreen({ route, navigation }: Props) {
       navigation.goBack();
     } catch (e: any) {
       console.error("Error al recomendar título:", e);
-      Alert.alert(t("No se pudo enviar"), e.message ?? "");
+      Alert.alert(t("No se pudo enviar"), e.message ?? t(""));
     } finally {
       setEnviando(false);
     }

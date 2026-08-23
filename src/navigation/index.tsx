@@ -638,9 +638,11 @@ export default function RootNavigation() {
   async function procesarUrlDeRecuperacion(url: string) {
     if (!url.includes("reset-password") && !url.includes("code=")) return;
     try {
-      await supabase.auth.exchangeCodeForSession(url);
-    } catch (e) {
+      const { error } = await supabase.auth.exchangeCodeForSession(url);
+      if (error) throw error;
+    } catch (e: any) {
       console.error("No se pudo procesar el link de recuperación:", e);
+      Alert.alert(t("No se pudo procesar el link"), e.message ?? t("El link puede haber vencido — probá pedir uno nuevo."));
     }
   }
 

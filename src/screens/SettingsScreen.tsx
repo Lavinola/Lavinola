@@ -304,7 +304,7 @@ function TabAplicacion({ navigation }: any) {
     try {
       await exportarDatosZip(userId);
     } catch (e: any) {
-      Alert.alert("No se pudo exportar", e.message ?? "Probá de nuevo.");
+      Alert.alert(t("No se pudo exportar"), e.message ?? t("Probá de nuevo."));
     } finally {
       setExportando(false);
     }

@@ -42,7 +42,7 @@ export default function BadgesScreen() {
       setPuntos(await obtenerPuntosInsignias(uid));
     } catch (e: any) {
       console.error("Error al cargar los puntos de insignias:", e);
-      setError(e.message ?? "No se pudo cargar.");
+      setError(e.message ?? t("No se pudo cargar."));
     } finally {
       setCargando(false);
     }

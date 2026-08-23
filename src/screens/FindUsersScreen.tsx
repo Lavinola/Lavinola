@@ -60,7 +60,7 @@ export default function FindUsersScreen({ navigation }: any) {
       }
       buscarCon(userId, query);
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     }
   }
 
@@ -78,7 +78,7 @@ export default function FindUsersScreen({ navigation }: any) {
           <View style={styles.card}>
             <Pressable style={styles.cardInfo} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
               <Avatar uri={item.avatar_url} size={36} style={{ marginRight: 10 }} />
-              <Text style={styles.username}>{item.username ?? "Usuario"}</Text>
+              <Text style={styles.username}>{item.username ?? t("Usuario")}</Text>
             </Pressable>
             <Pressable
               style={[styles.followBtn, (item.siguiendo || item.solicitudPendiente) && styles.followBtnActivo]}

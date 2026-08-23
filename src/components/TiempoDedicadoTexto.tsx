@@ -1,6 +1,7 @@
 import React from "react";
 import { Text } from "./Themed";
 import { formatTiempo } from "../lib/stats";
+import { useT } from "../i18n/i18n";
 
 interface Props {
   minutos: number;
@@ -15,6 +16,7 @@ interface Props {
  * quedaban en negro en vez de blanco.
  */
 export default function TiempoDedicadoTexto({ minutos, tamanoNumero = 17, color }: Props) {
+  const { t } = useT();
   const { anios, meses, dias, horas } = formatTiempo(minutos);
   const estiloNumero = { fontSize: tamanoNumero, fontWeight: "700" as const, ...(color ? { color } : {}) };
   const estiloLetra = { fontSize: Math.max(tamanoNumero - 4, 9), fontWeight: "700" as const, ...(color ? { color } : {}) };
@@ -24,15 +26,15 @@ export default function TiempoDedicadoTexto({ minutos, tamanoNumero = 17, color 
       {anios > 0 && (
         <>
           <Text style={estiloNumero}>{anios}</Text>
-          <Text style={estiloLetra}>A </Text>
+          <Text style={estiloLetra}>{t("A")} </Text>
         </>
       )}
       <Text style={estiloNumero}>{meses}</Text>
       <Text style={estiloLetra}>M </Text>
       <Text style={estiloNumero}>{dias}</Text>
-      <Text style={estiloLetra}>D </Text>
+      <Text style={estiloLetra}>{t("D")} </Text>
       <Text style={estiloNumero}>{horas}</Text>
-      <Text style={estiloLetra}>H</Text>
+      <Text style={estiloLetra}>{t("H")}</Text>
     </Text>
   );
 }

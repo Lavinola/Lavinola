@@ -35,7 +35,7 @@ export default function AdminSuggestionsScreen() {
       ListEmptyComponent={<Text style={styles.vacio}>No hay sugerencias todavía.</Text>}
       renderItem={({ item }) => (
         <View style={styles.card}>
-          <Text style={styles.autor}>{item.autor_username ?? "Usuario"}</Text>
+          <Text style={styles.autor}>{item.autor_username ?? t("Usuario")}</Text>
           <Text style={styles.contenido}>{item.content}</Text>
 
           {item.admin_reply ? (

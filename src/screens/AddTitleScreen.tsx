@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useT } from "../i18n/i18n";
 import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { searchSeries, searchMovies, posterUrl } from "../lib/tmdb";
 import { seguirSerie, agregarPelicula } from "../lib/sync";
@@ -17,6 +18,7 @@ interface Resultado {
 }
 
 export default function AddTitleScreen() {
+  const { t } = useT();
   const [query, setQuery] = useState("");
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
   const [tipo, setTipo] = useState<Tipo>("series");
@@ -59,7 +61,7 @@ export default function AddTitleScreen() {
       setResultados(mapeados);
     } catch (e: any) {
       console.error(e);
-      setErrorBusqueda(e?.message ?? "Error desconocido buscando en TMDB.");
+      setErrorBusqueda(e?.message ?? t("Error desconocido buscando en TMDB."));
     } finally {
       setLoading(false);
     }

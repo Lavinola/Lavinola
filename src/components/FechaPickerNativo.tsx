@@ -67,7 +67,7 @@ export default function FechaPickerNativo({ value, maximumDate, onElegida, onCer
                 setDia(v.replace(/[^0-9]/g, ""));
               }}
               keyboardType="number-pad"
-              placeholder="DD"
+              placeholder={t("DD")}
               placeholderTextColor={theme.colors.textFaint}
               maxLength={2}
             />
@@ -93,7 +93,7 @@ export default function FechaPickerNativo({ value, maximumDate, onElegida, onCer
                 setAnio(v.replace(/[^0-9]/g, ""));
               }}
               keyboardType="number-pad"
-              placeholder="AAAA"
+              placeholder={t("AAAA")}
               placeholderTextColor={theme.colors.textFaint}
               maxLength={4}
             />

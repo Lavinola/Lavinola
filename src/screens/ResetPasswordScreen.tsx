@@ -18,21 +18,21 @@ export default function ResetPasswordScreen({ onListo }: { onListo: () => void }
 
   async function guardar() {
     if (!passwordValida(pass1)) {
-      Alert.alert("Contraseña débil", "Tiene que tener al menos 6 caracteres y un número.");
+      Alert.alert(t("Contraseña débil"), t("Tiene que tener al menos 6 caracteres y un número."));
       return;
     }
     if (pass1 !== pass2) {
-      Alert.alert("No coinciden", "Las dos contraseñas tienen que ser iguales.");
+      Alert.alert(t("No coinciden"), t("Las dos contraseñas tienen que ser iguales."));
       return;
     }
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: pass1 });
       if (error) throw error;
-      Alert.alert("Listo", "Tu contraseña se actualizó.");
+      Alert.alert(t("Listo"), t("Tu contraseña se actualizó."));
       onListo();
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     } finally {
       setLoading(false);
     }
@@ -40,7 +40,7 @@ export default function ResetPasswordScreen({ onListo }: { onListo: () => void }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Elegí una contraseña nueva</Text>
+      <Text style={styles.titulo}>{t("Elegí una contraseña nueva")}</Text>
       <TextInput
         style={styles.input}
         placeholder={t("Contraseña nueva")}
@@ -57,9 +57,9 @@ export default function ResetPasswordScreen({ onListo }: { onListo: () => void }
         value={pass2}
         onChangeText={setPass2}
       />
-      <Text style={styles.hint}>Mínimo 6 caracteres, con al menos un número.</Text>
+      <Text style={styles.hint}>{t("Mínimo 6 caracteres, con al menos un número.")}</Text>
       <Pressable style={styles.boton} onPress={guardar} disabled={loading}>
-        {loading ? <ActivityIndicator color={theme.colors.text} /> : <Text style={styles.botonTexto}>Guardar contraseña</Text>}
+        {loading ? <ActivityIndicator color={theme.colors.text} /> : <Text style={styles.botonTexto}>{t("Guardar contraseña")}</Text>}
       </Pressable>
     </View>
   );

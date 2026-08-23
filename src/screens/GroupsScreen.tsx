@@ -105,7 +105,7 @@ export default function GroupsScreen({ navigation }: any) {
       }
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     }
   }
 
@@ -125,7 +125,7 @@ export default function GroupsScreen({ navigation }: any) {
       await salirDeGrupo(grupoMenuAccion.id, userId);
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo salir del grupo", e.message);
+      Alert.alert(t("No se pudo salir del grupo"), e.message);
     }
   }
 
@@ -146,7 +146,7 @@ export default function GroupsScreen({ navigation }: any) {
       await silenciarGrupo(userId, grupoMenuAccion.id, duracion);
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo silenciar", e.message);
+      Alert.alert(t("No se pudo silenciar"), e.message);
     }
   }
 
@@ -157,7 +157,7 @@ export default function GroupsScreen({ navigation }: any) {
       await quitarSilencioGrupoLista(userId, grupoMenuAccion.id);
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     }
   }
 

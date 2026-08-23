@@ -138,7 +138,7 @@ export default function CommentsScreen({ route, navigation }: any) {
       setPreguntarLobbyVisible(true);
     } catch (e: any) {
       console.error("Error al comentar:", e);
-      Alert.alert(t("No se pudo publicar"), e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo publicar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     }
   }
 
@@ -148,7 +148,7 @@ export default function CommentsScreen({ route, navigation }: any) {
       await marcarComentarioVisibleEnLobby(postIdParaLobby);
     } catch (e: any) {
       console.error("Error al publicar en el Lobby:", e);
-      Alert.alert(t("No se pudo publicar en el Lobby"), e.message ?? "Tu comentario igual quedó guardado.");
+      Alert.alert(t("No se pudo publicar en el Lobby"), e.message ?? t("Tu comentario igual quedó guardado."));
     } finally {
       setPostIdParaLobby(null);
     }
@@ -175,7 +175,7 @@ export default function CommentsScreen({ route, navigation }: any) {
         ]);
         setContexto({
           poster_path: serie?.poster_path ?? null,
-          titulo: `${serie?.name ?? "Serie"} — ${ep?.name ?? `T${season}E${episode}`}`,
+          titulo: `${serie?.name ?? t("Serie")} — ${ep?.name ?? `T${season}E${episode}`}`,
           subtitulo: `T${season} - E${episode}`,
         });
       }

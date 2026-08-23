@@ -180,7 +180,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       }
     } catch (e: any) {
       console.error("Error al cargar la ficha de título:", e);
-      Alert.alert("No se pudo cargar", e.message ?? "Revisá tu conexión a Supabase y probá de nuevo.");
+      Alert.alert(t("No se pudo cargar"), e.message ?? t("Revisá tu conexión a Supabase y probá de nuevo."));
     } finally {
       setLoading(false);
     }
@@ -207,7 +207,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       if (nuevoValor) setAgregada(true);
       setVistaVersion((v) => v + 1);
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -217,7 +217,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       await establecerFechaPrimeraVistaPelicula(userId, tmdbId, fecha.toISOString());
       setVistaVersion((v) => v + 1);
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -236,7 +236,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       setVistaVersion((v) => v + 1);
       celebrarSerieCompletada();
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -247,7 +247,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       await marcarTodaLaSerieVistaEnEstreno(userId, tmdbId);
       setVistaVersion((v) => v + 1);
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -261,7 +261,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       setVista(false);
       setVistaVersion((v) => v + 1);
     } catch (e: any) {
-      Alert.alert("No se pudo eliminar", e.message);
+      Alert.alert(t("No se pudo eliminar"), e.message);
     }
   }
 
@@ -272,7 +272,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       setVista(true);
       setVistaVersion((v) => v + 1);
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -284,7 +284,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       else await agregarPelicula(userId, tmdbId);
       setAgregada(true);
     } catch (e: any) {
-      Alert.alert("No se pudo agregar", e.message);
+      Alert.alert(t("No se pudo agregar"), e.message);
     } finally {
       setAgregando(false);
     }
@@ -456,7 +456,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
               try {
                 await toggleFavorito(userId, tipo, tmdbId, favorito);
               } catch (e: any) {
-                Alert.alert(t("No se pudo actualizar"), e.message ?? "");
+                Alert.alert(t("No se pudo actualizar"), e.message ?? t(""));
                 return;
               }
               setFavorito(!favorito);
@@ -778,7 +778,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       setMiRating(valor);
       setPromedio(tipo === "series" ? await promedioSerie(tmdbId) : await promedioPelicula(tmdbId));
     } catch (e: any) {
-      Alert.alert("No se pudo calificar", e.message);
+      Alert.alert(t("No se pudo calificar"), e.message);
     }
   }
 
@@ -795,7 +795,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       await elegirMood(userId, targetType, targetId, mood);
       setMoodStats(await getMoodStats(targetType, targetId, userId));
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -805,7 +805,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       await votarActor(userId, targetType, targetId, actor.id, actor.name);
       setCastStats(await getCastVoteStats(targetType, targetId, userId));
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -815,7 +815,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       await editarEventoVistaPelicula(userId, eventoId, tmdbId, fechaISO);
       setEventosVista(await listarEventosVistaPelicula(userId, tmdbId));
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -825,7 +825,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       await eliminarEventoVistaPelicula(userId, eventoId, tmdbId);
       setEventosVista(await listarEventosVistaPelicula(userId, tmdbId));
     } catch (e: any) {
-      Alert.alert("No se pudo eliminar", e.message);
+      Alert.alert(t("No se pudo eliminar"), e.message);
     }
   }
 
@@ -1085,7 +1085,7 @@ function EpisodiosTab({
       try {
         await marcarVariosEpisodios(userId, tmdbId, lista);
       } catch (e: any) {
-        Alert.alert(t("No se pudo marcar como visto"), e.message ?? "");
+        Alert.alert(t("No se pudo marcar como visto"), e.message ?? t(""));
         return;
       }
       onSerieAgregada?.();
@@ -1131,7 +1131,7 @@ function EpisodiosTab({
           try {
             await marcarVariosEpisodios(userId, tmdbId, lista);
           } catch (e: any) {
-            Alert.alert(t("No se pudo marcar como visto"), e.message ?? "");
+            Alert.alert(t("No se pudo marcar como visto"), e.message ?? t(""));
             return;
           }
           onSerieAgregada?.();
@@ -1159,7 +1159,7 @@ function EpisodiosTab({
       await volverAVerEpisodio(userId, tmdbId, ep.season_number, ep.episode_number);
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 

@@ -96,7 +96,7 @@ export default function EditProfileScreen({ navigation }: any) {
       const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(nombreArchivo);
       setPerfil((p) => (p ? { ...p, avatar_url: publicUrl.publicUrl } : p));
     } catch (e: any) {
-      Alert.alert(t("No se pudo subir la foto"), e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo subir la foto"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     }
   }
 
@@ -136,7 +136,7 @@ export default function EditProfileScreen({ navigation }: any) {
       if (e.message?.includes("profiles_username_key") || e.message?.includes("duplicate key")) {
         Alert.alert(t("Usuario ocupado"), t("Ese nombre de usuario ya lo tiene otra persona, probá con otro."));
       } else {
-        Alert.alert("Error", e.message);
+        Alert.alert(t("Error"), e.message);
       }
     } finally {
       setGuardando(false);

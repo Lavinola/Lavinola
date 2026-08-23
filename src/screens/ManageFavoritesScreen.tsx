@@ -139,7 +139,7 @@ export default function ManageFavoritesScreen({ route }: any) {
     try {
       await toggleFavorito(userId, tipo, item.tmdb_id, item.favorito);
     } catch (e: any) {
-      Alert.alert(t("No se pudo actualizar"), e.message ?? "");
+      Alert.alert(t("No se pudo actualizar"), e.message ?? t(""));
       return;
     }
     // A propósito NO reordenamos acá — si moviéramos la fila arriba de todo

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useT } from "../i18n/i18n";
 import { View, FlatList, Image, Pressable, StyleSheet } from "react-native";
 import { Text } from "../components/Themed";
 import Avatar from "../components/Avatar";
@@ -12,6 +13,7 @@ interface Miembro {
 }
 
 export default function GroupMembersScreen({ route, navigation }: any) {
+  const { t } = useT();
   const { groupId } = route.params;
   const [miembros, setMiembros] = useState<Miembro[]>([]);
 
@@ -33,7 +35,7 @@ export default function GroupMembersScreen({ route, navigation }: any) {
       renderItem={({ item }) => (
         <Pressable style={styles.card} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
           <Avatar uri={item.avatar_url} size={42} style={{ marginRight: 12 }} />
-          <Text style={styles.nombre}>{item.username ?? "Usuario"}</Text>
+          <Text style={styles.nombre}>{item.username ?? t("Usuario")}</Text>
         </Pressable>
       )}
     />

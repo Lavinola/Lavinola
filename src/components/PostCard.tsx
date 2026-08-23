@@ -148,7 +148,7 @@ export default function PostCard({
       await cargarRespuestas();
     } catch (e: any) {
       console.error("Error al postear respuesta:", e);
-      Alert.alert(t("No se pudo publicar"), e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo publicar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     }
   }
 
@@ -162,7 +162,7 @@ export default function PostCard({
         else await guardarItem(userId, "post", post.id);
       } catch (e: any) {
         setGuardado(anterior);
-        Alert.alert("No se pudo guardar", e.message);
+        Alert.alert(t("No se pudo guardar"), e.message);
       }
     })();
   }
@@ -189,7 +189,7 @@ export default function PostCard({
       } catch (e: any) {
         setMiReaccion(anteriorEmoji); // no se pudo guardar — volvemos a como estaba
         setReaccionesConteo(anteriorConteo);
-        Alert.alert("No se pudo reaccionar", e.message);
+        Alert.alert(t("No se pudo reaccionar"), e.message);
       }
     })();
   }
@@ -203,7 +203,7 @@ export default function PostCard({
         setReacciones(await listarReaccionesDePost(post.id));
         setReaccionesModalVisible(true);
       } catch (e: any) {
-        Alert.alert("No se pudo cargar", e.message);
+        Alert.alert(t("No se pudo cargar"), e.message);
       }
     } else {
       setPickerVisible((v) => !v);
@@ -226,7 +226,7 @@ export default function PostCard({
       }
       setTraduccion(await traducirTexto(post.content, idiomaDestino));
     } catch (e: any) {
-      Alert.alert("No se pudo traducir", e.message);
+      Alert.alert(t("No se pudo traducir"), e.message);
     } finally {
       setTraduciendo(false);
     }
@@ -244,7 +244,7 @@ export default function PostCard({
       await marcarPostNoInteresa(userId, post.id, post.user_id);
       onCambio?.();
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     }
   }
 
@@ -260,7 +260,7 @@ export default function PostCard({
       setEliminado(true);
       onCambio?.();
     } catch (e: any) {
-      Alert.alert("No se pudo eliminar", e.message);
+      Alert.alert(t("No se pudo eliminar"), e.message);
     }
   }
 

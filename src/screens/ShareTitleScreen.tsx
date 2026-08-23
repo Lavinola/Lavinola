@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useT } from "../i18n/i18n";
 import { View, TextInput, FlatList, Pressable, Image, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
 import { supabase } from "../lib/supabase";
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function ShareTitleScreen({ route, navigation }: Props) {
+  const { t } = useT();
   const { itemType, tmdbId, tituloNombre } = route.params;
   const [siguiendo, setSiguiendo] = useState<UsuarioBasico[]>([]);
   const [destinatario, setDestinatario] = useState<UsuarioBasico | null>(null);
@@ -44,7 +46,7 @@ export default function ShareTitleScreen({ route, navigation }: Props) {
       });
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert("No se pudo enviar", e.message);
+      Alert.alert(t("No se pudo enviar"), e.message);
     } finally {
       setEnviando(false);
     }
@@ -65,14 +67,14 @@ export default function ShareTitleScreen({ route, navigation }: Props) {
             renderItem={({ item }) => (
               <Pressable style={styles.card} onPress={() => setDestinatario(item)}>
                 <Avatar uri={item.avatar_url} size={36} style={{ marginRight: 10 }} />
-                <Text style={styles.username}>{item.username ?? "Usuario"}</Text>
+                <Text style={styles.username}>{item.username ?? t("Usuario")}</Text>
               </Pressable>
             )}
           />
         </>
       ) : (
         <>
-          <Text style={styles.label}>Para: {destinatario.username ?? "Usuario"}</Text>
+          <Text style={styles.label}>Para: {destinatario.username ?? t("Usuario")}</Text>
           <TextInput placeholderTextColor={theme.colors.textFaint}
             style={styles.input}
             placeholder={`Notita opcional (máx. ${LIMITE_NOTA} caracteres, sin fotos)`}

@@ -40,7 +40,7 @@ export default function AdminGroupsScreen({ navigation }: any) {
       await aceptarSolicitudGrupo(s.id);
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo aceptar", e.message);
+      Alert.alert(t("No se pudo aceptar"), e.message);
     }
   }
 
@@ -49,7 +49,7 @@ export default function AdminGroupsScreen({ navigation }: any) {
       await rechazarSolicitudGrupo(s.id);
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo rechazar", e.message);
+      Alert.alert(t("No se pudo rechazar"), e.message);
     }
   }
 
@@ -65,7 +65,7 @@ export default function AdminGroupsScreen({ navigation }: any) {
       await suspenderComentariosGrupo(grupoAccion.id, hasta);
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     }
   }
 

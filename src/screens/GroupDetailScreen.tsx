@@ -220,7 +220,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
                 <Pressable style={styles.miembroCard} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
                   <Avatar uri={item.avatar_url} size={48} style={{ marginBottom: 4 }} />
                   <Text style={styles.miembroNombre} numberOfLines={1}>
-                    {item.username ?? "Usuario"}
+                    {item.username ?? t("Usuario")}
                   </Text>
                 </Pressable>
               )}

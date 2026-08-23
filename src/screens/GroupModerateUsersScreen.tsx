@@ -59,7 +59,7 @@ export default function GroupModerateUsersScreen({ route, navigation }: Props) {
       setMotivo("");
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo aplicar", e.message);
+      Alert.alert(t("No se pudo aplicar"), e.message);
     } finally {
       setEnviando(false);
     }
@@ -70,7 +70,7 @@ export default function GroupModerateUsersScreen({ route, navigation }: Props) {
       await quitarSilencioGrupo(groupId, m.id);
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     }
   }
 

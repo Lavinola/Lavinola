@@ -115,7 +115,7 @@ export default function AuthScreen() {
 
   async function olvideContrasena() {
     if (!email.trim()) {
-      Alert.alert("Escribí tu email", "Poné tu email arriba y volvé a tocar el link para recuperar tu contraseña.");
+      Alert.alert(t("Escribí tu email"), t("Poné tu email arriba y volvé a tocar el link para recuperar tu contraseña."));
       return;
     }
     setEnviandoReset(true);
@@ -123,9 +123,9 @@ export default function AuthScreen() {
       const redirectTo = Platform.OS === "web" ? window.location.origin : "lavinola://reset-password";
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
       if (error) throw error;
-      Alert.alert("Listo", "Te mandamos un mail para elegir una contraseña nueva. Revisá tu bandeja de entrada (y spam).");
+      Alert.alert(t("Listo"), t("Te mandamos un mail para elegir una contraseña nueva. Revisá tu bandeja de entrada (y spam)."));
     } catch (e: any) {
-      Alert.alert("No se pudo enviar", e.message);
+      Alert.alert(t("No se pudo enviar"), e.message);
     } finally {
       setEnviandoReset(false);
     }
@@ -134,25 +134,25 @@ export default function AuthScreen() {
   async function handleSubmit() {
     setErrorLogin("");
     if (!email.trim() || !password) {
-      Alert.alert("Faltan datos", "Completá el email y la contraseña.");
+      Alert.alert(t("Faltan datos"), t("Completá el email y la contraseña."));
       return;
     }
 
     if (isSignUp) {
       if (!username.trim()) {
-        Alert.alert("Falta el usuario", "Elegí un nombre de usuario.");
+        Alert.alert(t("Falta el usuario"), t("Elegí un nombre de usuario."));
         return;
       }
       if (estadoUsername === "ocupado") {
-        Alert.alert("Usuario ocupado", "Ese nombre de usuario ya lo tiene otra persona, probá con otro.");
+        Alert.alert(t("Usuario ocupado"), t("Ese nombre de usuario ya lo tiene otra persona, probá con otro."));
         return;
       }
       if (estadoUsername === "invalido") {
-        Alert.alert("Usuario inválido", "Solo se permiten letras, números, puntos o guiones bajos.");
+        Alert.alert(t("Usuario inválido"), t("Solo se permiten letras, números, puntos o guiones bajos."));
         return;
       }
       if (!passwordValida(password)) {
-        Alert.alert("Contraseña débil", "Tiene que tener al menos 6 caracteres y un número.");
+        Alert.alert(t("Contraseña débil"), t("Tiene que tener al menos 6 caracteres y un número."));
         return;
       }
     }
@@ -169,7 +169,7 @@ export default function AuthScreen() {
           TIMEOUT_MS
         );
         if (existente) {
-          Alert.alert("Usuario ocupado", "Ese nombre de usuario ya lo tiene otra persona, probá con otro.");
+          Alert.alert(t("Usuario ocupado"), t("Ese nombre de usuario ya lo tiene otra persona, probá con otro."));
           setLoading(false);
           return;
         }
@@ -199,8 +199,8 @@ export default function AuthScreen() {
 
         if (!data.session) {
           Alert.alert(
-            "Cuenta creada",
-            "Te mandamos un mail para confirmar la cuenta. Abrilo, tocá el link de confirmación, y después volvé acá para iniciar sesión."
+            t("Cuenta creada"),
+            t("Te mandamos un mail para confirmar la cuenta. Abrilo, tocá el link de confirmación, y después volvé acá para iniciar sesión.")
           );
           setIsSignUp(false);
         }
@@ -209,7 +209,7 @@ export default function AuthScreen() {
         if (error) {
           const mensaje = error.message.toLowerCase();
           if (mensaje.includes("email not confirmed")) {
-            Alert.alert("Falta confirmar el mail", "Revisá tu casilla y tocá el link de confirmación antes de entrar.");
+            Alert.alert(t("Falta confirmar el mail"), t("Revisá tu casilla y tocá el link de confirmación antes de entrar."));
           } else if (mensaje.includes("invalid login credentials") || mensaje.includes("invalid_credentials")) {
             setErrorLogin(t("Email o contraseña inválida."));
           } else {
@@ -219,7 +219,7 @@ export default function AuthScreen() {
         }
       }
     } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Algo salió mal, probá de nuevo.");
+      Alert.alert(t("Error"), e.message ?? t("Algo salió mal, probá de nuevo."));
     } finally {
       setLoading(false);
     }

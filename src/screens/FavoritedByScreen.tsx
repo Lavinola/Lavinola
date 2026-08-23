@@ -54,7 +54,7 @@ export default function FavoritedByScreen({ route, navigation }: any) {
         renderItem={({ item }) => (
           <Pressable style={styles.card} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.user_id })}>
             <Avatar uri={item.avatar_url} size={42} style={{ marginRight: 12 }} />
-            <Text style={styles.nombre}>{item.username ?? "Usuario"}</Text>
+            <Text style={styles.nombre}>{item.username ?? t("Usuario")}</Text>
           </Pressable>
         )}
       />

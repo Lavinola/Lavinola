@@ -232,7 +232,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       cargar();
       if (await serieRecienCompletada(userId, seriesTmdbId)) celebrarSerieCompletada();
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -259,7 +259,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       await volverAVerEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber);
       cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -282,7 +282,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       await establecerFechaPrimeraVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber, new Date(episodio.air_date).toISOString());
       setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -292,7 +292,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       await establecerFechaPrimeraVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber, fecha.toISOString());
       setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -302,7 +302,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       await editarEventoVistaEpisodio(userId, eventoId, seriesTmdbId, seasonNumber, episodeNumber, fechaISO);
       setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -312,7 +312,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       await eliminarEventoVistaEpisodio(userId, eventoId, seriesTmdbId, seasonNumber, episodeNumber);
       setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
     } catch (e: any) {
-      Alert.alert("No se pudo eliminar", e.message);
+      Alert.alert(t("No se pudo eliminar"), e.message);
     }
   }
 
@@ -326,7 +326,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       await elegirMood(userId, "episode", targetId, mood);
       setMoodStats(await getMoodStats("episode", targetId, userId));
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 
@@ -336,7 +336,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       await votarActor(userId, "episode", targetId, actor.id, actor.name);
       setCastStats(await getCastVoteStats("episode", targetId, userId));
     } catch (e: any) {
-      Alert.alert("No se pudo guardar", e.message);
+      Alert.alert(t("No se pudo guardar"), e.message);
     }
   }
 

@@ -96,7 +96,7 @@ export default function CrearEncuestaModal({ visible, onCerrar, userId, groupId,
       onCreada();
     } catch (e: any) {
       console.error("Error al crear la encuesta:", e);
-      Alert.alert(t("No se pudo publicar"), e.message ?? "Probá de nuevo.");
+      Alert.alert(t("No se pudo publicar"), e.message ?? t("Probá de nuevo."));
     } finally {
       setPublicando(false);
     }

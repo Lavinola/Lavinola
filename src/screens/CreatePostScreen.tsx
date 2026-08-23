@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useT } from "../i18n/i18n";
 import { View, TextInput, Image, Pressable, StyleSheet } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function CreatePostScreen({ route, navigation }: Props) {
+  const { t } = useT();
   const { itemType, tmdbId, seasonNumber, episodeNumber, nombre, subtitulo, posterPath } = route.params;
   const [texto, setTexto] = useState("");
   const [esSpoiler, setEsSpoiler] = useState(false);
@@ -46,7 +48,7 @@ export default function CreatePostScreen({ route, navigation }: Props) {
       });
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert("No se pudo publicar", e.message);
+      Alert.alert(t("No se pudo publicar"), e.message);
     } finally {
       setPublicando(false);
     }
@@ -66,7 +68,7 @@ export default function CreatePostScreen({ route, navigation }: Props) {
 
       <TextInput
         style={styles.input}
-        placeholder="¿Qué querés contar sobre esto?"
+        placeholder={t("¿Qué querés contar sobre esto?")}
         placeholderTextColor={theme.colors.textFaint}
         value={texto}
         onChangeText={setTexto}

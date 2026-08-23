@@ -29,7 +29,7 @@ export default function GifPickerScreen({ route, navigation }: Props) {
         setLoading(false);
       })
       .catch((e: any) => {
-        setError(e.message ?? "No se pudo cargar GIFs.");
+        setError(e.message ?? t("No se pudo cargar GIFs."));
         setLoading(false);
       });
   }, []);
@@ -43,7 +43,7 @@ export default function GifPickerScreen({ route, navigation }: Props) {
       setResultados(r);
       setHayMas(r.length >= TANDA);
     } catch (e: any) {
-      setError(e.message ?? "No se pudo buscar GIFs.");
+      setError(e.message ?? t("No se pudo buscar GIFs."));
       setResultados([]);
     } finally {
       setLoading(false);
@@ -60,7 +60,7 @@ export default function GifPickerScreen({ route, navigation }: Props) {
       setResultados((prev) => [...prev, ...masNuevos]);
       setHayMas(masNuevos.length >= TANDA);
     } catch (e: any) {
-      setError(e.message ?? "No se pudieron cargar más GIFs.");
+      setError(e.message ?? t("No se pudieron cargar más GIFs."));
     } finally {
       setCargandoMas(false);
     }

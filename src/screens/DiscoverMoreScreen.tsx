@@ -146,7 +146,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
       else await agregarPelicula(userId, item.id);
       setAgregados((prev) => new Set(prev).add(clave));
     } catch (e: any) {
-      Alert.alert("No se pudo agregar", e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo agregar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     } finally {
       setAgregando(null);
     }

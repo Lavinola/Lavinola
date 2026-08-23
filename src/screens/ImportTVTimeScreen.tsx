@@ -226,7 +226,7 @@ export default function ImportTVTimeScreen() {
 
       const { data, error } = await supabase.functions.invoke("process-tvtime-import", { body: { grupos: gruposArray, idiomaUsuario } });
       if (error) throw error;
-      if (!data?.ok) throw new Error(data?.motivo ?? "No se pudo iniciar la importación.");
+      if (!data?.ok) throw new Error(data?.motivo ?? t("No se pudo iniciar la importación."));
       setJobId(data.job_id);
     } catch (e: any) {
       console.error("Error al iniciar la importación:", e);

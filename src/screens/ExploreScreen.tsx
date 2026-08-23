@@ -231,7 +231,7 @@ function Descubrir({ navigation }: any) {
       navigation.navigate("DetalleTitulo", { tmdbId: item.id, tipo: item.tipo });
     } catch (e: any) {
       console.error("Error al abrir el título:", e);
-      Alert.alert("No se pudo abrir", e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo abrir"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     }
   }
 
@@ -245,7 +245,7 @@ function Descubrir({ navigation }: any) {
       setAgregadosEnSesion((prev) => new Set(prev).add(`${item.tipo}-${item.id}`));
     } catch (e: any) {
       console.error("Error al agregar rápido:", e);
-      Alert.alert("No se pudo agregar", e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo agregar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     }
   }
 
@@ -259,7 +259,7 @@ function Descubrir({ navigation }: any) {
     try {
       await marcarNoMeInteresa(userId, descartarItem.tipo, descartarItem.id);
     } catch (e: any) {
-      Alert.alert(t("No se pudo actualizar"), e.message ?? "");
+      Alert.alert(t("No se pudo actualizar"), e.message ?? t(""));
       return;
     }
     cargarTodo();

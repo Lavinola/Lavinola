@@ -98,7 +98,7 @@ export default function MoviesScreen({ navigation }: any) {
       actualizarCachePeliculas(userId, datos);
     } catch (e: any) {
       console.error("Error al cargar tus películas:", e);
-      Alert.alert(t("No se pudieron cargar tus películas"), e.message ?? "Probá de nuevo.");
+      Alert.alert(t("No se pudieron cargar tus películas"), e.message ?? t("Probá de nuevo."));
     } finally {
       if (!yaListo) setLoading(false);
     }

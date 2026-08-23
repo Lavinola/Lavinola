@@ -235,10 +235,10 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
     try {
       await bloquearUsuario(viewerId, targetId);
       setLoSigo(false);
-      Alert.alert("Listo", "Bloqueaste a este usuario. No va a poder seguirte ni mandarte nada.");
+      Alert.alert(t("Listo"), t("Bloqueaste a este usuario. No va a poder seguirte ni mandarte nada."));
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert("No se pudo bloquear", e.message);
+      Alert.alert(t("No se pudo bloquear"), e.message);
     }
   }
 
@@ -248,7 +248,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
       const chatId = await obtenerOCrearChat(targetId);
       navigation.navigate("HiloActividad", { chatId, otroUsername: perfil?.username ?? null, otroUserId: targetId });
     } catch (e: any) {
-      Alert.alert("No se pudo abrir el chat", e.message);
+      Alert.alert(t("No se pudo abrir el chat"), e.message);
     }
   }
 
@@ -266,7 +266,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
         return nuevo;
       });
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     }
   }
 
@@ -304,7 +304,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
         setEsModeradorTarget(true);
       }
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     }
   }
 
@@ -320,10 +320,10 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
           onPress: async () => {
             const resultado = await eliminarUsuarioComoAdmin(targetId);
             if (resultado.ok) {
-              Alert.alert("Listo", "La cuenta fue eliminada.");
+              Alert.alert(t("Listo"), t("La cuenta fue eliminada."));
               navigation.goBack();
             } else {
-              Alert.alert("Error", resultado.motivo ?? "No se pudo eliminar.");
+              Alert.alert(t("Error"), resultado.motivo ?? t("No se pudo eliminar."));
             }
           },
         },

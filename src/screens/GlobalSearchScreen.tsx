@@ -132,12 +132,12 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           return await ejecutarBusqueda(texto);
         } catch (e2: any) {
           console.error("Error al buscar (tras reintentar):", e2);
-          if (idPedidoRef.current === miId) setErrorBusqueda(e2?.message ?? "Error desconocido buscando en TMDB.");
+          if (idPedidoRef.current === miId) setErrorBusqueda(e2?.message ?? t("Error desconocido buscando en TMDB."));
           return;
         }
       }
       console.error("Error al buscar:", e);
-      if (idPedidoRef.current === miId) setErrorBusqueda(e?.message ?? "Error desconocido buscando en TMDB.");
+      if (idPedidoRef.current === miId) setErrorBusqueda(e?.message ?? t("Error desconocido buscando en TMDB."));
     } finally {
       if (idPedidoRef.current === miId) setLoading(false);
     }
@@ -171,7 +171,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
       navigation.navigate("DetalleTitulo", { tmdbId: item.id, tipo: item.tipo });
     } catch (e: any) {
       console.error("Error al abrir título desde el buscador:", e);
-      Alert.alert("No se pudo abrir", e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo abrir"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     } finally {
       setAbriendo(null);
     }
@@ -189,7 +189,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
       if (query.trim().length >= 2) buscar(query);
       else cargarRecomendaciones(userId, "usuarios");
     } catch (e: any) {
-      Alert.alert("No se pudo actualizar", e.message);
+      Alert.alert(t("No se pudo actualizar"), e.message);
     }
   }
 
@@ -279,7 +279,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
             <View style={styles.card}>
               <Pressable style={styles.cardInfo} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
                 <Avatar uri={item.avatar_url} size={40} style={{ marginRight: 12 }} />
-                <Text style={styles.nombre}>{item.username ?? "Usuario"}</Text>
+                <Text style={styles.nombre}>{item.username ?? t("Usuario")}</Text>
               </Pressable>
               <Pressable
                 style={[styles.followBtn, (item.siguiendo || item.solicitudPendiente) && styles.followBtnActivo]}

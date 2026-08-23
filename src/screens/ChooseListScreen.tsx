@@ -34,7 +34,7 @@ export default function ChooseListScreen({ route, navigation }: any) {
   async function agregarA(listId: string) {
     const { error } = await supabase.from("list_items").upsert({ list_id: listId, item_type: itemType, tmdb_id: tmdbId });
     if (error) {
-      Alert.alert("No se pudo agregar", error.message);
+      Alert.alert(t("No se pudo agregar"), error.message);
       return;
     }
     navigation.goBack();

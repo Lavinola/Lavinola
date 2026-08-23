@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useT } from "../i18n/i18n";
 import { Pressable, StyleSheet } from "react-native";
 import { Text } from "./Themed";
 import ActionSheetModal from "./ActionSheetModal";
@@ -19,13 +20,14 @@ interface Props {
 /** Selector tipo "dropdown", pero con nuestro propio modal (evita el bug de
  * texto invisible del Picker nativo de Android en algunos dispositivos). */
 export default function SelectField({ opciones, valor, onCambiar, titulo }: Props) {
+  const { t } = useT();
   const [abierto, setAbierto] = useState(false);
   const actual = opciones.find((o) => o.value === valor);
 
   return (
     <>
       <Pressable style={styles.campo} onPress={() => setAbierto(true)}>
-        <Text style={styles.texto}>{actual?.label ?? "Elegir..."}</Text>
+        <Text style={styles.texto}>{actual?.label ?? t("Elegir...")}</Text>
         <Text style={styles.flecha}>▾</Text>
       </Pressable>
       <ActionSheetModal

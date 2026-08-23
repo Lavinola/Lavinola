@@ -23,10 +23,10 @@ export default function AdminBroadcastScreen({ navigation }: any) {
     const resultado = await crearAnuncio(mensaje.trim());
     setEnviando(false);
     if (resultado.ok) {
-      Alert.alert("Enviado", "El anuncio ya está visible para todos.");
+      Alert.alert(t("Enviado"), t("El anuncio ya está visible para todos."));
       navigation.goBack();
     } else {
-      Alert.alert("Error", resultado.motivo ?? "No se pudo enviar.");
+      Alert.alert(t("Error"), resultado.motivo ?? t("No se pudo enviar."));
     }
   }
 

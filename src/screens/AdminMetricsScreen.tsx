@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useT } from "../i18n/i18n";
 import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { Text, AppButton } from "../components/Themed";
 import { supabase } from "../lib/supabase";
@@ -38,6 +39,7 @@ function Card({ titulo, valor, destacado }: { titulo: string; valor: number | st
 }
 
 export default function AdminMetricsScreen() {
+  const { t } = useT();
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -54,7 +56,7 @@ export default function AdminMetricsScreen() {
       if (error) throw error;
       setMetricas(data as Metricas);
     } catch (e: any) {
-      setError(e.message ?? "No se pudieron cargar las métricas.");
+      setError(e.message ?? t("No se pudieron cargar las métricas."));
     } finally {
       setCargando(false);
     }

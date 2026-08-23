@@ -80,7 +80,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
       if (uid) setUserId(uid);
     }
     if (!uid) {
-      Alert.alert("No se pudo enviar", "No pudimos confirmar tu sesión. Cerrá esta pantalla y volvé a intentar.");
+      Alert.alert(t("No se pudo enviar"), t("No pudimos confirmar tu sesión. Cerrá esta pantalla y volvé a intentar."));
       return;
     }
     setEnviando(true);
@@ -98,7 +98,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
       setNota("");
     } catch (e: any) {
       console.error("Error al recomendar a usuario:", e);
-      Alert.alert("No se pudo enviar", e.message ?? "Ocurrió un error inesperado. Probá de nuevo.");
+      Alert.alert(t("No se pudo enviar"), e.message ?? t("Ocurrió un error inesperado. Probá de nuevo."));
     } finally {
       setEnviando(false);
     }
@@ -112,7 +112,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
       if (uid) setUserId(uid);
     }
     if (!uid) {
-      Alert.alert("No se pudo enviar", "No pudimos confirmar tu sesión. Cerrá esta pantalla y volvé a intentar.");
+      Alert.alert(t("No se pudo enviar"), t("No pudimos confirmar tu sesión. Cerrá esta pantalla y volvé a intentar."));
       return;
     }
     setEnviando(true);
@@ -135,7 +135,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
       setEsSpoiler(false);
     } catch (e: any) {
       console.error("Error al recomendar en grupo:", e);
-      Alert.alert("No se pudo enviar", e.message ?? "Ocurrió un error inesperado. Probá de nuevo.");
+      Alert.alert(t("No se pudo enviar"), e.message ?? t("Ocurrió un error inesperado. Probá de nuevo."));
     } finally {
       setEnviando(false);
     }

@@ -116,7 +116,7 @@ function ListaPendiente({ navigation }: any) {
       }
     } catch (e: any) {
       console.error("Error al cargar tus series:", e);
-      Alert.alert(t("No se pudieron cargar tus series"), e.message ?? "Probá de nuevo.");
+      Alert.alert(t("No se pudieron cargar tus series"), e.message ?? t("Probá de nuevo."));
     } finally {
       if (!silencioso) setLoading(false);
     }
@@ -180,7 +180,7 @@ function ListaPendiente({ navigation }: any) {
     try {
       await marcarEpisodioVisto(userId, item.tmdb_id, item.next_episode_season, item.next_episode_number);
     } catch (e: any) {
-      Alert.alert(t("No se pudo marcar como visto"), e.message ?? "");
+      Alert.alert(t("No se pudo marcar como visto"), e.message ?? t(""));
       return;
     }
     await actualizarSerieLocal(userId, item.tmdb_id);
@@ -206,7 +206,7 @@ function ListaPendiente({ navigation }: any) {
       try {
         await marcarVariosEpisodios(userId, item.tmdb_id, lista);
       } catch (e: any) {
-        Alert.alert(t("No se pudo marcar como visto"), e.message ?? "");
+        Alert.alert(t("No se pudo marcar como visto"), e.message ?? t(""));
         resolver();
         return;
       }

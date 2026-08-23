@@ -232,7 +232,7 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
     } catch (e: any) {
       console.error("Error al votar:", e);
       setOpciones(opcionesAnteriores); // no se pudo guardar — volvemos a como estaba
-      Alert.alert(t("No se pudo votar"), e.message ?? "Probá de nuevo.");
+      Alert.alert(t("No se pudo votar"), e.message ?? t("Probá de nuevo."));
     } finally {
       setVotando(null);
     }
@@ -333,7 +333,7 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
       await cargarRespuestas();
     } catch (e: any) {
       console.error("Error al postear respuesta:", e);
-      Alert.alert(t("No se pudo publicar"), e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo publicar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     }
   }
 

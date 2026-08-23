@@ -60,7 +60,7 @@ export default function CreateGroupScreen({ navigation }: any) {
       });
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert("No se pudo crear el grupo", e.message);
+      Alert.alert(t("No se pudo crear el grupo"), e.message);
     } finally {
       setCreando(false);
     }

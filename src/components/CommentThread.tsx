@@ -157,7 +157,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
       await cargar();
     } catch (e: any) {
       console.error("Error al postear comentario:", e);
-      Alert.alert("No se pudo publicar", e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo publicar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     }
   }
 
@@ -367,7 +367,7 @@ export function NodoComentario({
     try {
       setTraduccion(await traducirTexto(comentario.content, idiomaUsuario));
     } catch (e: any) {
-      Alert.alert("No se pudo traducir", e.message ?? "Probá de nuevo en un rato.");
+      Alert.alert(t("No se pudo traducir"), e.message ?? t("Probá de nuevo en un rato."));
     } finally {
       setTraduciendo(false);
     }
@@ -417,7 +417,7 @@ export function NodoComentario({
       setExpandido(true);
     } catch (e: any) {
       console.error("Error al postear respuesta:", e);
-      Alert.alert("No se pudo publicar", e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo publicar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     }
   }
 
@@ -431,7 +431,7 @@ export function NodoComentario({
         else await guardarItem(userId, "comment", comentario.id);
       } catch (e: any) {
         setGuardado(anterior);
-        Alert.alert("No se pudo guardar", e.message);
+        Alert.alert(t("No se pudo guardar"), e.message);
       }
     })();
   }
@@ -457,7 +457,7 @@ export function NodoComentario({
       // realidad no se guardó.
       setReacciones(reacciones);
       setMiReaccion(miReaccion);
-      Alert.alert(t("No se pudo guardar"), e.message ?? "");
+      Alert.alert(t("No se pudo guardar"), e.message ?? t(""));
       return;
     }
     // Sin esto, la reacción se veía bien al toque pero solo en esta
@@ -479,7 +479,7 @@ export function NodoComentario({
       setEliminado(true);
       await onReply(); // avisa al padre para que actualice su lista — si no, al volver a montar este comentario (ej: cerrar y abrir la burbujita) reaparecía
     } catch (e: any) {
-      Alert.alert("No se pudo eliminar", e.message);
+      Alert.alert(t("No se pudo eliminar"), e.message);
     }
   }
 
@@ -494,7 +494,7 @@ export function NodoComentario({
         setListaReacciones(await listarReaccionesDeComentario(comentario.id));
         setReaccionesModalVisible(true);
       } catch (e: any) {
-        Alert.alert("No se pudo cargar", e.message);
+        Alert.alert(t("No se pudo cargar"), e.message);
       }
     } else {
       setReaccionesPickerVisible((v) => !v);

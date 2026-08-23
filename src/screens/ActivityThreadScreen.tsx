@@ -245,7 +245,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
         setTexto("");
         await cargar();
       } catch (e: any) {
-        Alert.alert("No se pudo editar", e.message ?? "Puede que ya haya pasado la hora para editarlo.");
+        Alert.alert(t("No se pudo editar"), e.message ?? t("Puede que ya haya pasado la hora para editarlo."));
       }
       return;
     }
@@ -259,7 +259,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       await cargar();
     } catch (e: any) {
       console.error("Error al enviar mensaje:", e);
-      Alert.alert("No se pudo enviar", e.message ?? "Revisá tu conexión y probá de nuevo.");
+      Alert.alert(t("No se pudo enviar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
     }
   }
 
@@ -302,7 +302,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       await eliminarMensajeChat(mensajeMenuAccion.id);
       await cargar();
     } catch (e: any) {
-      Alert.alert("No se pudo eliminar", e.message ?? "Puede que ya haya pasado la hora para eliminarlo.");
+      Alert.alert(t("No se pudo eliminar"), e.message ?? t("Puede que ya haya pasado la hora para eliminarlo."));
     }
   }
 
@@ -362,7 +362,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
       navigation.navigate("DetalleGrupo", { groupId: m.shared_group_id, groupName: previews[clave]?.nombre ?? t("Grupo") });
     } else if (m.shared_list_id) {
       const clave = `list-${m.shared_list_id}`;
-      navigation.navigate("DetalleLista", { listId: m.shared_list_id, listTitle: previews[clave]?.nombre ?? "Lista", soloLectura: m.sender_id !== userId });
+      navigation.navigate("DetalleLista", { listId: m.shared_list_id, listTitle: previews[clave]?.nombre ?? t("Lista"), soloLectura: m.sender_id !== userId });
     }
   }
 
