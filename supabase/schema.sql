@@ -4680,3 +4680,51 @@ create or replace function puede_ver_contenido_de_grupo(p_group_id uuid) returns
     or exists (select 1 from group_members where group_members.group_id = p_group_id and group_members.user_id = auth.uid())
     or exists (select 1 from profiles where id = auth.uid() and is_admin = true);
 $$ language sql stable security definer set search_path = public;
+
+-- ============================================================
+-- CORRECCIÓN CRÍTICA: "language sql" en una función security definer
+-- puede perder esa protección — Postgres "aplana" (inlinea) funciones
+-- SQL simples durante la planificación, y al hacerlo pierde el contexto
+-- de security definer justo cuando se ejecuta. Esto causaba
+-- "infinite recursion detected in policy for relation comentarios" al
+-- intentar comentar/publicar en cualquier grupo, y probablemente
+-- afectaba también "¿Qué vemos?" en grupos. Se corrige cambiando a
+-- "language plpgsql", que no sufre este problema.
+-- ============================================================
+create or replace function puede_ver_contenido_de_grupo(p_group_id uuid) returns boolean as $$
+begin
+  return
+    p_group_id is null
+    or exists (select 1 from groups where groups.id = p_group_id and groups.visibility = 'public')
+    or exists (select 1 from group_members where group_members.group_id = p_group_id and group_members.user_id = auth.uid())
+    or exists (select 1 from profiles where id = auth.uid() and is_admin = true);
+end;
+$$ language plpgsql stable security definer set search_path = public;
+
+-- ============================================================
+-- Mismo problema que arriba (inlineado de funciones "language sql" que
+-- pierde la protección de security definer) — corregido en las otras
+-- dos funciones que se usan dentro de políticas de seguridad en toda la
+-- app: bloqueos entre usuarios, y baneos/silencios de grupo.
+-- ============================================================
+create or replace function existe_bloqueo(a uuid, b uuid) returns boolean as $$
+begin
+  return exists (
+    select 1 from blocks
+    where (blocker_id = a and blocked_id = b) or (blocker_id = b and blocked_id = a)
+  );
+end;
+$$ language plpgsql stable security definer set search_path = public;
+
+create or replace function esta_baneado_o_silenciado(p_group_id uuid, p_user_id uuid) returns boolean as $$
+begin
+  return
+    exists (select 1 from group_bans where group_bans.group_id = p_group_id and group_bans.user_id = p_user_id)
+    or exists (
+      select 1 from group_mutes
+      where group_mutes.group_id = p_group_id
+        and group_mutes.user_id = p_user_id
+        and (group_mutes.muted_until is null or group_mutes.muted_until > now())
+    );
+end;
+$$ language plpgsql stable security definer set search_path = public;

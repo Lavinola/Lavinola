@@ -1,4 +1,5 @@
 import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Modal, View, Pressable, StyleSheet } from "react-native";
 import { Text } from "./Themed";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,6 +37,7 @@ export default function GroupFiltersModal({
   mostrarFiltroCreador,
   mostrarUltimoMensaje,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const { t } = useT();
   const OPCIONES_ORDEN_BASE: { key: OrdenGrupos; label: string }[] = [
     { key: "popularidad", label: t("Popularidad (cantidad de miembros)") },
@@ -48,7 +50,7 @@ export default function GroupFiltersModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
       <Pressable style={styles.fondo} onPress={onCerrar}>
-        <Pressable style={styles.hoja} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.hoja, { paddingBottom: 20 + insets.bottom }]} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.seccionTitulo}>{t("Ordenar por")}</Text>
           {opcionesOrden.map((o) => {
             const activo = orden === o.key;

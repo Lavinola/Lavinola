@@ -1,5 +1,6 @@
 import React from "react";
 import { Modal, View, Pressable, ScrollView, StyleSheet, Dimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
 import { theme } from "../theme";
@@ -21,10 +22,11 @@ interface Props {
 }
 
 export default function ActionSheetModal({ visible, onCerrar, titulo, opciones }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
       <Pressable style={styles.fondo} onPress={onCerrar}>
-        <Pressable style={styles.hoja} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.hoja, { paddingBottom: 24 + insets.bottom }]} onPress={(e) => e.stopPropagation()}>
           <View style={styles.header}>
             {!!titulo && (
               <Text style={styles.titulo} numberOfLines={1}>
@@ -74,7 +76,7 @@ export default function ActionSheetModal({ visible, onCerrar, titulo, opciones }
 
 const styles = StyleSheet.create({
   fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  hoja: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, paddingBottom: 24, maxHeight: Dimensions.get("window").height * 0.7 },
+  hoja: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, maxHeight: Dimensions.get("window").height * 0.7 },
   lista: { flexGrow: 0 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   titulo: { fontSize: 15, fontWeight: "700", flex: 1 },

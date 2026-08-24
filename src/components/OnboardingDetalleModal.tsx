@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   titulo: { fontSize: 17, fontWeight: "800", color: theme.colors.text, textAlign: "center", marginBottom: 12 },
-  scrollWrap: { flexDirection: "row", flex: 1, alignSelf: "stretch" },
+  scrollWrap: { flexDirection: "row", flexGrow: 1, flexShrink: 1, minHeight: 0, alignSelf: "stretch" },
   lista: { flex: 1 },
   scrollTrack: { width: 3, marginLeft: 6, backgroundColor: theme.colors.surfaceAlt, borderRadius: 2 },
   scrollThumb: { position: "absolute", width: 3, borderRadius: 2, backgroundColor: theme.colors.primary, left: 0 },

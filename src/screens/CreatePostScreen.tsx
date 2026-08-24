@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useT } from "../i18n/i18n";
-import { View, TextInput, Image, Pressable, StyleSheet } from "react-native";
+import { View, TextInput, Image, Pressable, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import { supabase } from "../lib/supabase";
@@ -55,39 +55,41 @@ export default function CreatePostScreen({ route, navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.tituloRow}>
-        {posterPath && <Image source={{ uri: posterUrl(posterPath, "w185")! }} style={styles.poster} />}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.tituloNombre} numberOfLines={2}>
-            {nombre}
-          </Text>
-          {subtitulo && <Text style={styles.subtitulo}>{subtitulo}</Text>}
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+        <View style={styles.tituloRow}>
+          {posterPath && <Image source={{ uri: posterUrl(posterPath, "w185")! }} style={styles.poster} />}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tituloNombre} numberOfLines={2}>
+              {nombre}
+            </Text>
+            {subtitulo && <Text style={styles.subtitulo}>{subtitulo}</Text>}
+          </View>
         </View>
-      </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder={t("¿Qué querés contar sobre esto?")}
-        placeholderTextColor={theme.colors.textFaint}
-        value={texto}
-        onChangeText={setTexto}
-        multiline
-        maxLength={2000}
-        autoFocus
-      />
+        <TextInput
+          style={styles.input}
+          placeholder={t("¿Qué querés contar sobre esto?")}
+          placeholderTextColor={theme.colors.textFaint}
+          value={texto}
+          onChangeText={setTexto}
+          multiline
+          maxLength={2000}
+          autoFocus
+        />
 
-      <Pressable style={styles.spoilerRow} onPress={() => setEsSpoiler(!esSpoiler)}>
-        <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.spoilerLabel}>¿Tiene spoiler?</Text>
-          <Text style={styles.spoilerHint}>Si decís que sí, tu mensaje aparece oculto hasta que alguien toque "Ver".</Text>
-        </View>
-      </Pressable>
+        <Pressable style={styles.spoilerRow} onPress={() => setEsSpoiler(!esSpoiler)}>
+          <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.spoilerLabel}>{t("¿Tiene spoiler?")}</Text>
+            <Text style={styles.spoilerHint}>{t('Si decís que sí, tu mensaje aparece oculto hasta que alguien toque "Ver".')}</Text>
+          </View>
+        </Pressable>
 
-      <View style={{ height: 16 }} />
-      <AppButton title={publicando ? "Publicando..." : "Publicar en el Lobby"} onPress={publicar} disabled={publicando || !texto.trim()} />
-    </View>
+        <View style={{ height: 16 }} />
+        <AppButton title={publicando ? t("Publicando...") : t("Publicar en el Lobby")} onPress={publicar} disabled={publicando || !texto.trim()} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
