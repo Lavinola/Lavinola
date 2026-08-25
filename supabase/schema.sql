@@ -4728,3 +4728,60 @@ begin
     );
 end;
 $$ language plpgsql stable security definer set search_path = public;
+
+-- ============================================================
+-- CORRECCIÓN REAL del bug de "infinite recursion" al publicar
+-- comentarios: la política de INSERT de "comentarios" consultaba la
+-- propia tabla "comentarios" desde adentro de sí misma (para chequear si
+-- bloqueaste al autor del comentario padre) — aunque esa parte no debería
+-- hacer falta cuando no hay comentario padre, Postgres no garantiza que
+-- el "or" corte camino ahí, y termina generando el ciclo. Se soluciona
+-- moviendo ese chequeo a su propia función protegida (mismo patrón que
+-- ya usamos en existe_bloqueo/esta_baneado_o_silenciado/
+-- puede_ver_contenido_de_grupo), en vez de una subconsulta directa
+-- dentro de la política de la misma tabla.
+-- ============================================================
+create or replace function puede_responder_a_comentario(p_parent_comment_id uuid, p_yo uuid) returns boolean as $$
+declare
+  autor_padre uuid;
+begin
+  if p_parent_comment_id is null then
+    return true;
+  end if;
+  select user_id into autor_padre from comentarios where id = p_parent_comment_id;
+  if autor_padre is null then
+    return true;
+  end if;
+  return not existe_bloqueo(p_yo, autor_padre);
+end;
+$$ language plpgsql stable security definer set search_path = public;
+
+drop policy if exists "comentarios_insert_auth" on comentarios;
+create policy "comentarios_insert_auth" on comentarios for insert with check (
+  auth.uid() = user_id
+  and puede_responder_a_comentario(parent_comment_id, auth.uid())
+  and (
+    target_type <> 'group'
+    or (
+      exists (select 1 from group_members where group_members.group_id = comentarios.group_id and group_members.user_id = auth.uid())
+      and not esta_baneado_o_silenciado(comentarios.group_id, auth.uid())
+    )
+  )
+);
+
+-- ============================================================
+-- Mismo patrón de riesgo que el de comentarios (una política que
+-- consulta su propia tabla desde adentro) — corregido acá también, antes
+-- de que llegue a causar un problema real. Esta se dispara cada vez que
+-- se actualiza cualquier perfil, algo muy frecuente en toda la app.
+-- ============================================================
+create or replace function soy_admin_o_moderador() returns boolean as $$
+begin
+  return exists (select 1 from profiles p where p.id = auth.uid() and (p.is_admin = true or p.is_moderator = true));
+end;
+$$ language plpgsql stable security definer set search_path = public;
+
+drop policy if exists "profiles_update_own" on profiles;
+create policy "profiles_update_own" on profiles for update using (
+  auth.uid() = id or soy_admin_o_moderador()
+);
