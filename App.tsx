@@ -1,5 +1,6 @@
 import React from "react";
 import { View, ActivityIndicator, Platform } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, RobotoSlab_700Bold } from "@expo-google-fonts/roboto-slab";
 import RootNavigation from "./src/navigation";
@@ -35,25 +36,29 @@ export default function App() {
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color={theme.colors.primary} />
-      </View>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={theme.colors.primary} />
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   const contenido = (
-    <ErrorBoundary>
-      <AppLanguageProvider>
-        <StatusBar style="auto" />
-        <UpdateGate>
-          <View style={{ flex: 1 }}>
-            <OfflineBanner />
-            <RootNavigation />
-          </View>
-        </UpdateGate>
-        <GlobalAlertHost />
-      </AppLanguageProvider>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <AppLanguageProvider>
+          <StatusBar style="auto" />
+          <UpdateGate>
+            <View style={{ flex: 1 }}>
+              <OfflineBanner />
+              <RootNavigation />
+            </View>
+          </UpdateGate>
+          <GlobalAlertHost />
+        </AppLanguageProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 
   // En la web, en pantallas anchas (compu), mostramos la app centrada con un
