@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { Modal, View, Pressable, ScrollView, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text, AppButton } from "./Themed";
@@ -46,7 +46,6 @@ export default function FiltroPeliculasModal({
   soloOpcionesBasicas,
   onAplicar,
 }: Props) {
-  const insets = useSafeAreaInsets();
   const { t } = useT();
   const [orden, setOrden] = useState<OrdenPeliculas>(ordenActual);
   const [ascendente, setAscendente] = useState(ascendenteActual);
@@ -89,8 +88,11 @@ export default function FiltroPeliculasModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
+      <SafeAreaProvider>
+        <SafeAreaInsetsContext.Consumer>
+          {(insets) => (
       <Pressable style={styles.fondo} onPress={onCerrar}>
-        <Pressable style={[styles.hoja, { paddingBottom: 20 + insets.bottom }]} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.hoja, { paddingBottom: 20 + (insets?.bottom ?? 0) }]} onPress={(e) => e.stopPropagation()}>
           <ScrollView bounces={false}>
             <Text style={styles.titulo}>{t("Ordenar por")}</Text>
             <View style={styles.pillsRow}>
@@ -180,6 +182,9 @@ export default function FiltroPeliculasModal({
           </View>
         </Pressable>
       </Pressable>
+          )}
+        </SafeAreaInsetsContext.Consumer>
+      </SafeAreaProvider>
     </Modal>
   );
 }

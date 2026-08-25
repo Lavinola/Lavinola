@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Modal, View, Pressable, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { Modal, View, Pressable, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from "react-native";
 import { Text } from "./Themed";
 import { theme } from "../theme";
 import { useT } from "../i18n/i18n";
@@ -16,6 +16,7 @@ interface Seccion {
 
 export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
   const { t } = useT();
+  const { height: alturaVentana } = useWindowDimensions();
   const [alturaVisible, setAlturaVisible] = useState(0);
   const [alturaContenido, setAlturaContenido] = useState(0);
   const [scrollY, setScrollY] = useState(0);
@@ -91,7 +92,7 @@ export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
       <Pressable style={styles.fondo} onPress={onCerrar}>
-        <Pressable style={styles.caja} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.caja, { height: alturaVentana * 0.75 }]} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.titulo}>{t("Cómo usar Lavinola")}</Text>
 
           <View style={styles.scrollWrap}>
@@ -136,7 +137,6 @@ const styles = StyleSheet.create({
   caja: {
     width: "100%",
     maxWidth: 420,
-    maxHeight: "85%",
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     padding: 20,

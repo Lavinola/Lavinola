@@ -10,7 +10,13 @@ import { theme } from "../theme";
  * sin salir de la app, en vez de que la mande a abrir YouTube aparte.
  */
 export default function TrailerEmbed({ youtubeKey }: { youtubeKey: string }) {
-  const src = `https://www.youtube.com/embed/${youtubeKey}?playsinline=1&rel=0`;
+  // El "origin" y el header "Referer" son necesarios para que YouTube
+  // autorice la reproducción embebida — sin ellos, el reproductor
+  // rechaza el video con el "Error 153: Error de configuración del
+  // reproductor de video" (un problema documentado y común al mostrar
+  // YouTube dentro de un WebView nativo, no algo propio de esta app).
+  const origen = "https://lavinola.app";
+  const src = `https://www.youtube.com/embed/${youtubeKey}?playsinline=1&rel=0&origin=${encodeURIComponent(origen)}`;
 
   return (
     <View style={styles.wrap}>
@@ -24,7 +30,7 @@ export default function TrailerEmbed({ youtubeKey }: { youtubeKey: string }) {
         />
       ) : (
         <WebView
-          source={{ uri: src }}
+          source={{ uri: src, headers: { Referer: origen } }}
           style={{ flex: 1, backgroundColor: "#000000" }}
           allowsFullscreenVideo
           mediaPlaybackRequiresUserAction={false}

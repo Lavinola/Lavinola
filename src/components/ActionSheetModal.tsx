@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal, View, Pressable, ScrollView, StyleSheet, Dimensions } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaProvider } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
 import { theme } from "../theme";
@@ -22,55 +22,66 @@ interface Props {
 }
 
 export default function ActionSheetModal({ visible, onCerrar, titulo, opciones }: Props) {
-  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
-      <Pressable style={styles.fondo} onPress={onCerrar}>
-        <Pressable style={[styles.hoja, { paddingBottom: 24 + insets.bottom }]} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.header}>
-            {!!titulo && (
-              <Text style={styles.titulo} numberOfLines={1}>
-                {titulo}
-              </Text>
-            )}
-            <Pressable onPress={onCerrar} hitSlop={12} style={[styles.cerrarBtn, !titulo && { marginLeft: "auto" }]}>
-              <Text style={styles.cerrarTexto}>✕</Text>
-            </Pressable>
-          </View>
-          <ScrollView style={styles.lista} bounces={false}>
-            {opciones.map((op, i) => (
-              <Pressable
-                key={i}
-                style={styles.opcion}
-                onPress={() => {
-                  onCerrar();
-                  if (!op.deshabilitado) op.onPress();
-                }}
-              >
-                {op.icono && (
-                  <Ionicons
-                    name={op.icono}
-                    size={19}
-                    color={op.deshabilitado ? theme.colors.textFaint : op.destructivo ? theme.colors.danger : theme.colors.primaryLight}
-                    style={styles.opcionIcono}
-                  />
-                )}
-                <Text
-                  style={[
-                    styles.opcionTexto,
-                    op.destructivo && styles.opcionDestructiva,
-                    op.violeta && styles.opcionVioleta,
-                    op.deshabilitado && styles.opcionDeshabilitada,
-                  ]}
-                >
-                  {op.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
+      {/* El Modal de React Native se renderiza en un árbol nativo aparte —
+      el SafeAreaProvider de la raíz de la app no llega hasta acá adentro,
+      por eso hace falta uno propio, local a este modal. */}
+      <SafeAreaProvider>
+        <ContenidoHoja onCerrar={onCerrar} titulo={titulo} opciones={opciones} />
+      </SafeAreaProvider>
     </Modal>
+  );
+}
+
+function ContenidoHoja({ onCerrar, titulo, opciones }: Omit<Props, "visible">) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Pressable style={styles.fondo} onPress={onCerrar}>
+      <Pressable style={[styles.hoja, { paddingBottom: 24 + insets.bottom }]} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.header}>
+          {!!titulo && (
+            <Text style={styles.titulo} numberOfLines={1}>
+              {titulo}
+            </Text>
+          )}
+          <Pressable onPress={onCerrar} hitSlop={12} style={[styles.cerrarBtn, !titulo && { marginLeft: "auto" }]}>
+            <Text style={styles.cerrarTexto}>✕</Text>
+          </Pressable>
+        </View>
+        <ScrollView style={styles.lista} bounces={false}>
+          {opciones.map((op, i) => (
+            <Pressable
+              key={i}
+              style={styles.opcion}
+              onPress={() => {
+                onCerrar();
+                if (!op.deshabilitado) op.onPress();
+              }}
+            >
+              {op.icono && (
+                <Ionicons
+                  name={op.icono}
+                  size={19}
+                  color={op.deshabilitado ? theme.colors.textFaint : op.destructivo ? theme.colors.danger : theme.colors.primaryLight}
+                  style={styles.opcionIcono}
+                />
+              )}
+              <Text
+                style={[
+                  styles.opcionTexto,
+                  op.destructivo && styles.opcionDestructiva,
+                  op.violeta && styles.opcionVioleta,
+                  op.deshabilitado && styles.opcionDeshabilitada,
+                ]}
+              >
+                {op.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </Pressable>
+    </Pressable>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { View, Modal, Pressable, ScrollView, Image, StyleSheet } from "react-native";
 import { Text, AppButton } from "./Themed";
 import { OrdenDescubrir, EstadoSerie, ETIQUETAS_ORDEN } from "../lib/discover";
@@ -38,7 +38,6 @@ export default function DiscoverFilterModal({
   onCerrar,
   onAplicar,
 }: Props) {
-  const insets = useSafeAreaInsets();
   const { t } = useT();
   const [orden, setOrden] = useState(ordenActual);
   const [generoId, setGeneroId] = useState<number | null>(generoActual);
@@ -79,8 +78,11 @@ export default function DiscoverFilterModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCerrar}>
+      <SafeAreaProvider>
+        <SafeAreaInsetsContext.Consumer>
+          {(insets) => (
       <Pressable style={styles.fondo} onPress={onCerrar}>
-        <Pressable style={[styles.hoja, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
+        <Pressable style={[styles.hoja, { paddingBottom: 20 + (insets?.bottom ?? 0) }]} onPress={() => {}}>
           <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
             <Text style={styles.titulo}>{t("Filtrar")}</Text>
 
@@ -151,6 +153,9 @@ export default function DiscoverFilterModal({
           </ScrollView>
         </Pressable>
       </Pressable>
+          )}
+        </SafeAreaInsetsContext.Consumer>
+      </SafeAreaProvider>
     </Modal>
   );
 }

@@ -54,43 +54,55 @@ export default function CreatePostScreen({ route, navigation }: Props) {
     }
   }
 
-  return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
-        <View style={styles.tituloRow}>
-          {posterPath && <Image source={{ uri: posterUrl(posterPath, "w185")! }} style={styles.poster} />}
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tituloNombre} numberOfLines={2}>
-              {nombre}
-            </Text>
-            {subtitulo && <Text style={styles.subtitulo}>{subtitulo}</Text>}
-          </View>
+  const contenido = (
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+      <View style={styles.tituloRow}>
+        {posterPath && <Image source={{ uri: posterUrl(posterPath, "w185")! }} style={styles.poster} />}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.tituloNombre} numberOfLines={2}>
+            {nombre}
+          </Text>
+          {subtitulo && <Text style={styles.subtitulo}>{subtitulo}</Text>}
         </View>
+      </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder={t("¿Qué querés contar sobre esto?")}
-          placeholderTextColor={theme.colors.textFaint}
-          value={texto}
-          onChangeText={setTexto}
-          multiline
-          maxLength={2000}
-          autoFocus
-        />
+      <TextInput
+        style={styles.input}
+        placeholder={t("¿Qué querés contar sobre esto?")}
+        placeholderTextColor={theme.colors.textFaint}
+        value={texto}
+        onChangeText={setTexto}
+        multiline
+        maxLength={2000}
+        autoFocus
+      />
 
-        <Pressable style={styles.spoilerRow} onPress={() => setEsSpoiler(!esSpoiler)}>
-          <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.spoilerLabel}>{t("¿Tiene spoiler?")}</Text>
-            <Text style={styles.spoilerHint}>{t('Si decís que sí, tu mensaje aparece oculto hasta que alguien toque "Ver".')}</Text>
-          </View>
-        </Pressable>
+      <Pressable style={styles.spoilerRow} onPress={() => setEsSpoiler(!esSpoiler)}>
+        <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.spoilerLabel}>{t("¿Tiene spoiler?")}</Text>
+          <Text style={styles.spoilerHint}>{t('Si decís que sí, tu mensaje aparece oculto hasta que alguien toque "Ver".')}</Text>
+        </View>
+      </Pressable>
 
-        <View style={{ height: 16 }} />
-        <AppButton title={publicando ? t("Publicando...") : t("Publicar en el Lobby")} onPress={publicar} disabled={publicando || !texto.trim()} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <View style={{ height: 16 }} />
+      <AppButton title={publicando ? t("Publicando...") : t("Publicar en el Lobby")} onPress={publicar} disabled={publicando || !texto.trim()} />
+    </ScrollView>
   );
+
+  // En Android confiamos en windowSoftInputMode="resize" (ya configurado
+  // en app.json) para que achique la ventana sola — envolver esto acá
+  // además con KeyboardAvoidingView generaba conflicto entre los dos
+  // mecanismos y el cuadro de texto quedaba tapado igual. iOS no tiene
+  // ese ajuste automático, así que ahí sí lo sigue necesitando.
+  if (Platform.OS === "ios") {
+    return (
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={90}>
+        {contenido}
+      </KeyboardAvoidingView>
+    );
+  }
+  return contenido;
 }
 
 const styles = StyleSheet.create({
