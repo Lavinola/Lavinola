@@ -36,7 +36,12 @@ export default function TrailerIdiomaSelector({ opciones, valor, onCambiar }: Pr
     const l = layouts.current[key];
     if (!l) return;
     Animated.parallel([
-      Animated.timing(animX, { toValue: l.x, duration: 220, useNativeDriver: true }),
+      // Los dos en useNativeDriver: false a propósito — mezclar true/false
+      // en el MISMO Animated.View (acá, width y transform juntos) causaba
+      // "Attempting to run JS driven animation on animated node that has
+      // been moved to native" y tildaba la pantalla entera al abrir
+      // cualquier detalle de título.
+      Animated.timing(animX, { toValue: l.x, duration: 220, useNativeDriver: false }),
       Animated.timing(animAncho, { toValue: l.width, duration: 220, useNativeDriver: false }),
     ]).start();
   }
