@@ -22,6 +22,7 @@
     "android": {
       "package": "com.lavinola.app",
       "softwareKeyboardLayoutMode": "resize",
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"

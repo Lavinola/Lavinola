@@ -90,19 +90,17 @@ export default function CreatePostScreen({ route, navigation }: Props) {
     </ScrollView>
   );
 
-  // En Android confiamos en windowSoftInputMode="resize" (ya configurado
-  // en app.json) para que achique la ventana sola — envolver esto acá
-  // además con KeyboardAvoidingView generaba conflicto entre los dos
-  // mecanismos y el cuadro de texto quedaba tapado igual. iOS no tiene
-  // ese ajuste automático, así que ahí sí lo sigue necesitando.
-  if (Platform.OS === "ios") {
-    return (
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={90}>
-        {contenido}
-      </KeyboardAvoidingView>
-    );
-  }
-  return contenido;
+  // La causa real de fondo era que faltaba "edgeToEdgeEnabled: true" en
+  // app.json (obligatorio desde Android 15/16) — sin eso, ni el ajuste
+  // nativo ni KeyboardAvoidingView tenían información correcta de dónde
+  // está el teclado. Con esa base ya corregida, el comportamiento
+  // recomendado para Android es "height" (no "padding", que es el que
+  // necesita iOS).
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+      {contenido}
+    </KeyboardAvoidingView>
+  );
 }
 
 const styles = StyleSheet.create({
