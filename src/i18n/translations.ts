@@ -279,6 +279,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
+  Versión: { en: "Version", pt: "Versão", it: "Versione" },
   DD: { en: "DD", pt: "DD", it: "GG" },
   AAAA: { en: "YYYY", pt: "AAAA", it: "AAAA" },
   A: { en: "Y", pt: "A", it: "A" },

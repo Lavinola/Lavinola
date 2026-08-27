@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import * as Application from "expo-application";
 import { View, Image, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
@@ -463,6 +464,9 @@ function TabAplicacion({ navigation }: any) {
           This product uses the TMDB API but is not endorsed or certified by TMDB.{"\n"}Datos de streaming con atribución a JustWatch.
         </Text>
       </View>
+      <Text style={styles.versionTexto}>
+        {t("Versión")} {Application.nativeApplicationVersion} ({Application.nativeBuildVersion})
+      </Text>
     </ScrollView>
   );
 }
@@ -519,4 +523,5 @@ const styles = StyleSheet.create({
   tmdbFooter: { alignItems: "center", marginTop: 32, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   tmdbFooterLogo: { width: 140, height: 14, marginBottom: 8 },
   tmdbFooterTexto: { fontSize: 10, color: theme.colors.textMuted, textAlign: "center", lineHeight: 14 },
+  versionTexto: { fontSize: 11, color: theme.colors.textFaint, textAlign: "center", marginTop: 12, marginBottom: 8 },
 });
