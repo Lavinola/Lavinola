@@ -88,7 +88,7 @@ function ContenidoHoja({ onCerrar, titulo, opciones }: Omit<Props, "visible">) {
 const styles = StyleSheet.create({
   fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   hoja: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, maxHeight: Dimensions.get("window").height * 0.7 },
-  lista: { flexGrow: 0 },
+  lista: { flexGrow: 1, flexShrink: 1 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   titulo: { fontSize: 15, fontWeight: "700", flex: 1 },
   cerrarBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: theme.colors.surfaceAlt, alignItems: "center", justifyContent: "center", marginLeft: 12 },

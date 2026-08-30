@@ -83,7 +83,7 @@ export default function DiscoverFilterModal({
           {(insets) => (
       <Pressable style={styles.fondo} onPress={onCerrar}>
         <Pressable style={[styles.hoja, { paddingBottom: 20 + (insets?.bottom ?? 0) }]} onPress={() => {}}>
-          <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <ScrollView style={{ flexGrow: 1, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
             <Text style={styles.titulo}>{t("Filtrar")}</Text>
 
             <Text style={styles.seccion}>{t("Ordenar por")}</Text>

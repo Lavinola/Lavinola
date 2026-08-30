@@ -94,7 +94,7 @@ export default function FiltroSeriesModal({
           {(insets) => (
       <Pressable style={styles.fondo} onPress={onCerrar}>
         <Pressable style={[styles.hoja, { paddingBottom: 20 + (insets?.bottom ?? 0) }]} onPress={(e) => e.stopPropagation()}>
-          <ScrollView bounces={false}>
+          <ScrollView style={{ flexGrow: 1, flexShrink: 1 }} bounces={false}>
             <Text style={styles.titulo}>{t("Ordenar por")}</Text>
             <View style={styles.pillsRow}>
               {mostrarOrdenPropio && (
