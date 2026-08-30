@@ -93,6 +93,9 @@ export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
       <Pressable style={styles.fondo} onPress={onCerrar}>
         <Pressable style={[styles.caja, { height: alturaVentana * 0.75 }]} onPress={(e) => e.stopPropagation()}>
+          <Text style={{ backgroundColor: "red", color: "white", padding: 8, fontSize: 12, fontWeight: "700" }}>
+            DEBUG onboarding: altura ventana={alturaVentana} altura caja={alturaVentana * 0.75}
+          </Text>
           <Text style={styles.titulo}>{t("Cómo usar Lavinola")}</Text>
 
           <View style={styles.scrollWrap}>

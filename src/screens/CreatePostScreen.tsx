@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useT } from "../i18n/i18n";
 import { View, TextInput, Image, Pressable, StyleSheet, ScrollView } from "react-native";
-import { AvoidSoftInputView } from "react-native-avoid-softinput";
+import { AvoidSoftInputView, useSoftInputState } from "react-native-avoid-softinput";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "../components/Themed";
 import { supabase } from "../lib/supabase";
@@ -30,6 +30,7 @@ export default function CreatePostScreen({ route, navigation }: Props) {
   const [texto, setTexto] = useState("");
   const [esSpoiler, setEsSpoiler] = useState(false);
   const [publicando, setPublicando] = useState(false);
+  const estadoTeclado = useSoftInputState();
 
   async function publicar() {
     if (!texto.trim()) return;
@@ -58,7 +59,10 @@ export default function CreatePostScreen({ route, navigation }: Props) {
   return (
     <AvoidSoftInputView style={{ flex: 1 }} avoidOffset={16}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
-        <View style={styles.tituloRow}>
+        <Text style={{ backgroundColor: "red", color: "white", padding: 8, fontSize: 12, fontWeight: "700" }}>
+        DEBUG teclado: visible={String(estadoTeclado.isSoftInputShown)} altura={estadoTeclado.softInputHeight}
+      </Text>
+      <View style={styles.tituloRow}>
           {posterPath && <Image source={{ uri: posterUrl(posterPath, "w185")! }} style={styles.poster} />}
           <View style={{ flex: 1 }}>
             <Text style={styles.tituloNombre} numberOfLines={2}>
