@@ -17,8 +17,6 @@ interface Seccion {
 export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
   const { t } = useT();
   const { height: alturaVentana } = useWindowDimensions();
-  const [alturaVisible, setAlturaVisible] = useState(0);
-  const [alturaContenido, setAlturaContenido] = useState(0);
   const [scrollY, setScrollY] = useState(0);
 
   const secciones: Seccion[] = [
@@ -84,47 +82,36 @@ export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
     setScrollY(e.nativeEvent.contentOffset.y);
   }
 
-  const necesitaScroll = alturaContenido > alturaVisible && alturaVisible > 0;
-  const alturaBarra = necesitaScroll ? Math.max((alturaVisible / alturaContenido) * alturaVisible, 24) : 0;
-  const maxScroll = Math.max(alturaContenido - alturaVisible, 1);
-  const topBarra = necesitaScroll ? (Math.min(Math.max(scrollY, 0), maxScroll) / maxScroll) * (alturaVisible - alturaBarra) : 0;
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
       <Pressable style={styles.fondo} onPress={onCerrar}>
         <Pressable style={[styles.caja, { height: alturaVentana * 0.75 }]} onPress={(e) => e.stopPropagation()}>
           <Text style={{ backgroundColor: "red", color: "white", padding: 8, fontSize: 12, fontWeight: "700" }}>
-            DEBUG onboarding: altura ventana={alturaVentana} altura caja={alturaVentana * 0.75}
+            DEBUG onboarding: scrollY={Math.round(scrollY)} (tocá y deslizá arriba — si este número no cambia, el toque no está llegando al ScrollView)
           </Text>
           <Text style={styles.titulo}>{t("Cómo usar Lavinola")}</Text>
 
-          <View style={styles.scrollWrap}>
-            <ScrollView
-              style={styles.lista}
-              showsVerticalScrollIndicator={false}
-              onScroll={alScrollear}
-              scrollEventThrottle={16}
-              onLayout={(e) => setAlturaVisible(e.nativeEvent.layout.height)}
-              onContentSizeChange={(_, h) => setAlturaContenido(h)}
-            >
-              {secciones.map((s, i) => (
-                <View key={i} style={styles.seccion}>
-                  <Text style={styles.seccionTitulo}>{s.titulo}</Text>
-                  {s.pasos.map((p, j) => (
-                    <View key={j} style={styles.pasoFila}>
-                      <Text style={styles.pasoPunto}>•</Text>
-                      <Text style={styles.pasoTexto}>{p}</Text>
-                    </View>
-                  ))}
-                </View>
-              ))}
-            </ScrollView>
-            {necesitaScroll && (
-              <View style={styles.scrollTrack}>
-                <View style={[styles.scrollThumb, { height: alturaBarra, top: topBarra }]} />
+          <ScrollView
+            style={styles.lista}
+            contentContainerStyle={styles.listaContenido}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled
+            overScrollMode="always"
+            onScroll={alScrollear}
+            scrollEventThrottle={16}
+          >
+            {secciones.map((s, i) => (
+              <View key={i} style={styles.seccion}>
+                <Text style={styles.seccionTitulo}>{s.titulo}</Text>
+                {s.pasos.map((p, j) => (
+                  <View key={j} style={styles.pasoFila}>
+                    <Text style={styles.pasoPunto}>•</Text>
+                    <Text style={styles.pasoTexto}>{p}</Text>
+                  </View>
+                ))}
               </View>
-            )}
-          </View>
+            ))}
+          </ScrollView>
 
           <Pressable style={styles.boton} onPress={onCerrar}>
             <Text style={styles.botonTexto}>{t("Cerrar")}</Text>
@@ -143,12 +130,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     padding: 20,
+    overflow: "hidden",
   },
   titulo: { fontSize: 17, fontWeight: "800", color: theme.colors.text, textAlign: "center", marginBottom: 12 },
-  scrollWrap: { flexDirection: "row", flexGrow: 1, flexShrink: 1, minHeight: 0, alignSelf: "stretch" },
-  lista: { flex: 1 },
-  scrollTrack: { width: 3, marginLeft: 6, backgroundColor: theme.colors.surfaceAlt, borderRadius: 2 },
-  scrollThumb: { position: "absolute", width: 3, borderRadius: 2, backgroundColor: theme.colors.primary, left: 0 },
+  lista: { flexGrow: 1, flexShrink: 1, minHeight: 0, alignSelf: "stretch" },
+  listaContenido: { paddingRight: 4 },
   seccion: { marginBottom: 14 },
   seccionTitulo: { fontSize: 13, fontWeight: "700", color: theme.colors.primaryLight, marginBottom: 5 },
   pasoFila: { flexDirection: "row", marginBottom: 3, paddingRight: 4 },

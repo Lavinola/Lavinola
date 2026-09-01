@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { View, Modal, TextInput, Pressable, StyleSheet } from "react-native";
+import { useSafeAreaInsets, SafeAreaProvider } from "react-native-safe-area-context";
+import { AvoidSoftInputView } from "react-native-avoid-softinput";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "./Themed";
 import { crearPost, crearPostDeLista, crearPostDeGrupo } from "../lib/posts";
@@ -99,8 +101,55 @@ export default function PublishActionModal({
   return (
     <>
     <Modal visible={visible} transparent animationType="fade" onRequestClose={cerrar}>
+      {/* El Modal de React Native se renderiza en un árbol nativo aparte —
+      el SafeAreaProvider de la raíz de la app no llega hasta acá adentro,
+      por eso hace falta uno propio, local a este modal (mismo patrón que ActionSheetModal). */}
+      <SafeAreaProvider>
+        <ContenidoModal
+          modo={modo}
+          setModo={setModo}
+          texto={texto}
+          setTexto={setTexto}
+          esSpoiler={esSpoiler}
+          setEsSpoiler={setEsSpoiler}
+          publicando={publicando}
+          publicado={publicado}
+          publicarListaParams={publicarListaParams}
+          publicarGrupoParams={publicarGrupoParams}
+          publicarParams={publicarParams}
+          cerrar={cerrar}
+          irARecomendar={irARecomendar}
+          publicar={publicar}
+        />
+      </SafeAreaProvider>
+    </Modal>
+    <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
+    </>
+  );
+}
+
+function ContenidoModal({
+  modo,
+  setModo,
+  texto,
+  setTexto,
+  esSpoiler,
+  setEsSpoiler,
+  publicando,
+  publicado,
+  publicarListaParams,
+  publicarGrupoParams,
+  publicarParams,
+  cerrar,
+  irARecomendar,
+  publicar,
+}: any) {
+  const { t } = useT();
+  const insets = useSafeAreaInsets();
+  return (
+    <AvoidSoftInputView style={{ flex: 1 }} avoidOffset={16}>
       <Pressable style={styles.fondo} onPress={cerrar}>
-        <Pressable style={styles.caja} onPress={() => {}}>
+        <Pressable style={[styles.caja, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
           {modo === "menu" ? (
             <>
               <Pressable style={styles.opcionRect} onPress={irARecomendar}>
@@ -141,9 +190,7 @@ export default function PublishActionModal({
           )}
         </Pressable>
       </Pressable>
-    </Modal>
-    <NivelUpModal nivel={nivelSubido} onCerrar={() => setNivelSubido(null)} />
-    </>
+    </AvoidSoftInputView>
   );
 }
 
