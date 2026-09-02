@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Modal, TextInput, Pressable, StyleSheet } from "react-native";
+import { View, Modal, TextInput, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets, SafeAreaProvider } from "react-native-safe-area-context";
 import { AvoidSoftInputView } from "react-native-avoid-softinput";
 import { Alert } from "../lib/alert";
@@ -163,23 +163,29 @@ function ContenidoModal({
             </>
           ) : (
             <>
-              <TextInput
-                style={styles.input}
-                placeholder={t("¿Qué querés contar sobre esto?")}
-                placeholderTextColor={theme.colors.textFaint}
-                value={texto}
-                onChangeText={setTexto}
-                multiline
-                maxLength={2000}
-                editable={!publicado}
-                autoFocus
-              />
-              {!publicarListaParams && !publicarGrupoParams && (
-                <Pressable style={styles.spoilerRow} onPress={() => !publicado && setEsSpoiler(!esSpoiler)}>
-                  <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
-                  <Text style={styles.spoilerLabel}>{t('¿Tiene spoiler? (aparece oculto hasta que alguien toque "Ver")')}</Text>
-                </Pressable>
-              )}
+              <ScrollView
+                style={styles.scrollPublicar}
+                contentContainerStyle={{ flexGrow: 1 }}
+                keyboardShouldPersistTaps="handled"
+              >
+                <TextInput
+                  style={styles.input}
+                  placeholder={t("¿Qué querés contar sobre esto?")}
+                  placeholderTextColor={theme.colors.textFaint}
+                  value={texto}
+                  onChangeText={setTexto}
+                  multiline
+                  maxLength={2000}
+                  editable={!publicado}
+                  autoFocus
+                />
+                {!publicarListaParams && !publicarGrupoParams && (
+                  <Pressable style={styles.spoilerRow} onPress={() => !publicado && setEsSpoiler(!esSpoiler)}>
+                    <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
+                    <Text style={styles.spoilerLabel}>{t('¿Tiene spoiler? (aparece oculto hasta que alguien toque "Ver")')}</Text>
+                  </Pressable>
+                )}
+              </ScrollView>
               <View style={{ height: 12 }} />
               <AppButton
                 title={publicado ? t("Publicado ✓") : publicando ? t("Publicando...") : t("Publicar")}
@@ -196,7 +202,8 @@ function ContenidoModal({
 
 const styles = StyleSheet.create({
   fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  caja: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, padding: 20, gap: 10 },
+  caja: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, padding: 20, gap: 10, maxHeight: "85%" },
+  scrollPublicar: { flexGrow: 0, flexShrink: 1 },
   opcionRect: {
     paddingVertical: 14,
     borderRadius: 6,

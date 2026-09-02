@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, View, Pressable, ScrollView, Image, StyleSheet } from "react-native";
+import { SafeAreaProvider, SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { Text, AppButton } from "./Themed";
 import { GENEROS_PELICULAS } from "../lib/tmdbGenres";
 import { getWatchProvidersDisponibles, posterUrl, GrupoPlataforma } from "../lib/tmdb";
@@ -46,8 +47,12 @@ export default function FiltroPendientesModal({ visible, onCerrar, watchRegion, 
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
+      {/* Modal en árbol nativo aparte: SafeAreaProvider propio, mismo patrón que ActionSheetModal/FiltroPeliculasModal */}
+      <SafeAreaProvider>
+        <SafeAreaInsetsContext.Consumer>
+          {(insets) => (
       <Pressable style={styles.fondo} onPress={onCerrar}>
-        <Pressable style={styles.hoja} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.hoja, { paddingBottom: 20 + (insets?.bottom ?? 0) }]} onPress={(e) => e.stopPropagation()}>
           <ScrollView bounces={false}>
             <Text style={styles.titulo}>{t("Género")}</Text>
             <View style={styles.chipsWrap}>
@@ -95,6 +100,9 @@ export default function FiltroPendientesModal({ visible, onCerrar, watchRegion, 
           <AppButton title={t("Aplicar filtros")} onPress={() => onAplicar(generoId, plataformas)} />
         </Pressable>
       </Pressable>
+          )}
+        </SafeAreaInsetsContext.Consumer>
+      </SafeAreaProvider>
     </Modal>
   );
 }

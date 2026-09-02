@@ -37,7 +37,12 @@ export default function ExpandableText({ texto, style, maxLines = 5, indicador =
 
   return (
     <View>
-      {/* Copia invisible (altura 0, no se ve ni ocupa lugar) solo para medir cuánto mediría el texto sin cortar. */}
+      {/* Copia invisible (posición absoluta + opacidad 0, no altura 0) solo
+      para medir cuánto mediría el texto sin cortar. Con height:0+overflow:
+      hidden (como se hacía antes) Android a veces ni siquiera calcula el
+      layout interno de la copia y el onLayout nunca se dispara — con
+      position:absolute+opacity:0 el texto sí se layoutea igual en las dos
+      plataformas, solo que no se ve ni ocupa lugar en el flujo visible. */}
       <View style={styles.medidorWrap} pointerEvents="none">
         <Text
           style={style}
@@ -77,6 +82,6 @@ export default function ExpandableText({ texto, style, maxLines = 5, indicador =
 
 const styles = StyleSheet.create({
   flechaBtn: { position: "absolute", right: 0, bottom: 0 },
-  medidorWrap: { height: 0, overflow: "hidden" },
+  medidorWrap: { position: "absolute", top: 0, left: 0, right: 0, opacity: 0 },
   puntosTexto: { color: theme.colors.primary, fontSize: 18, fontWeight: "800", letterSpacing: 2, marginTop: 2 },
 });

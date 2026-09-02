@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, FlatList, Image, Pressable, Modal, StyleSheet, Platform, ActivityIndicator, useWindowDimensions } from "react-native";
+import { View, FlatList, Image, Pressable, Modal, StyleSheet, ActivityIndicator, useWindowDimensions } from "react-native";
+import { BlurView } from "expo-blur";
 import { Text } from "../components/Themed";
 import { supabase } from "../lib/supabase";
 import { NIVELES_INSIGNIAS, NivelInsignia, obtenerPuntosInsignias } from "../lib/badges";
@@ -70,6 +71,14 @@ export default function BadgesScreen() {
   const nivelActualIndex = [...NIVELES_INSIGNIAS].reverse().findIndex((n) => puntos >= n.puntos);
   const nivelActualNumero = nivelActualIndex === -1 ? 0 : NIVELES_INSIGNIAS.length - nivelActualIndex;
 
+  // Tamaño de la imagen del modal de detalle: ancho numérico fijo (no
+  // porcentaje) — mezclar width:"100%" + aspectRatio en <Image> en Android
+  // hace que a veces se ignore el límite y la imagen se dibuje a tamaño
+  // nativo, tapando la pantalla. Con número fijo, igual que en la grilla
+  // (que sí anda bien), se evita ese bug.
+  const anchoModal = Math.min(anchoPantalla - 24 * 2 - 20 * 2, 360 - 20 * 2);
+  const altoModal = anchoModal / RATIO_TARJETA;
+
   // Se calcula el tamaño de cada tarjeta para que las 10 (2 columnas, 5
   // filas) entren siempre de una sola vez en la pantalla, sin scrollear —
   // el límite real puede ser el ancho (2 por fila) o el alto (5 filas), así
@@ -110,11 +119,16 @@ export default function BadgesScreen() {
           const desbloqueada = puntos >= item.puntos;
           return (
             <Pressable onPress={() => setSeleccionado(item)}>
-              <Image
-                source={IMAGENES_INSIGNIAS_GRANDES[idioma][item.nivel]}
-                style={[{ width: anchoTarjeta, height: altoTarjeta }, !desbloqueada && styles.tarjetaBloqueada]}
-                resizeMode="contain"
-              />
+              <View style={{ width: anchoTarjeta, height: altoTarjeta, borderRadius: 10, overflow: "hidden" }}>
+                <Image
+                  source={IMAGENES_INSIGNIAS_GRANDES[idioma][item.nivel]}
+                  style={{ width: anchoTarjeta, height: altoTarjeta }}
+                  resizeMode="contain"
+                />
+                {!desbloqueada && (
+                  <BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFill} />
+                )}
+              </View>
             </Pressable>
           );
         }}
@@ -148,11 +162,14 @@ export default function BadgesScreen() {
           <Pressable style={styles.caja} onPress={(e) => e.stopPropagation()}>
             {seleccionado && (
               <>
-                <Image
-                  source={IMAGENES_INSIGNIAS_GRANDES[idioma][seleccionado.nivel]}
-                  style={[{ width: "100%", aspectRatio: RATIO_TARJETA }, puntos < seleccionado.puntos && styles.tarjetaBloqueada]}
-                  resizeMode="contain"
-                />
+                <View style={{ width: anchoModal, height: altoModal, borderRadius: 10, overflow: "hidden" }}>
+                  <Image
+                    source={IMAGENES_INSIGNIAS_GRANDES[idioma][seleccionado.nivel]}
+                    style={{ width: anchoModal, height: altoModal }}
+                    resizeMode="contain"
+                  />
+                  {puntos < seleccionado.puntos && <BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFill} />}
+                </View>
                 {puntos >= seleccionado.puntos ? (
                   <Text style={styles.cajaLogrado}>{t("¡Ya la tenés! 🎉")}</Text>
                 ) : (
@@ -203,15 +220,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ayudaBotonTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 14 },
-  // El "bloqueado" (gris + desenfocado) se logra distinto según la plataforma:
-  // en la web (donde se prueba/usa esta app principalmente) el filter de CSS
-  // sí funciona a través de react-native-web; en nativo no hay blur real sin
-  // agregar una librería nueva, así que ahí queda solo la opacidad baja como
-  // aproximación (se nota igual que está bloqueada, aunque no desenfocada).
-  tarjetaBloqueada: Platform.select({
-    web: { opacity: 0.45, filter: "grayscale(1) blur(2px)" } as any,
-    default: { opacity: 0.35 },
-  }),
   fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 24 },
   caja: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, padding: 20, alignItems: "center", width: "100%", maxWidth: 360 },
   cajaLogrado: { fontSize: 14, color: theme.colors.primaryLight, fontWeight: "700", marginTop: 14 },

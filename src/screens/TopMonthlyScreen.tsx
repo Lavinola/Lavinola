@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, FlatList, Image, Pressable, Modal, ScrollView, TextInput, StyleSheet, ActivityIndicator } from "react-native";
+import { SafeAreaProvider, SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Text, AppButton } from "../components/Themed";
 import { supabase } from "../lib/supabase";
@@ -227,8 +228,12 @@ export default function TopMonthlyScreen({ navigation }: any) {
       )}
 
       <Modal visible={filtrosVisible} transparent animationType="fade" onRequestClose={() => setFiltrosVisible(false)}>
+        {/* Modal en árbol nativo aparte: SafeAreaProvider propio, mismo patrón que FiltroPeliculasModal */}
+        <SafeAreaProvider>
+          <SafeAreaInsetsContext.Consumer>
+            {(insets) => (
         <Pressable style={styles.filtrosFondo} onPress={() => setFiltrosVisible(false)}>
-          <Pressable style={styles.filtrosBox} onPress={() => {}}>
+          <Pressable style={[styles.filtrosBox, { paddingBottom: 20 + (insets?.bottom ?? 0) }]} onPress={() => {}}>
             <Text style={styles.filtrosTitulo}>{t("Filtrar por género")}</Text>
             <ScrollView contentContainerStyle={styles.chipsWrap}>
               <Pressable
@@ -278,6 +283,9 @@ export default function TopMonthlyScreen({ navigation }: any) {
             <AppButton title={t("Aplicar filtros")} onPress={() => setFiltrosVisible(false)} />
           </Pressable>
         </Pressable>
+            )}
+          </SafeAreaInsetsContext.Consumer>
+        </SafeAreaProvider>
       </Modal>
 
       <Modal visible={paisPickerVisible} animationType="slide" onRequestClose={() => setPaisPickerVisible(false)}>

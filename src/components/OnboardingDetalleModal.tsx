@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Modal, View, Pressable, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from "react-native";
+import React, { useEffect } from "react";
+import { View, Pressable, ScrollView, StyleSheet, BackHandler, useWindowDimensions } from "react-native";
 import { Text } from "./Themed";
 import { theme } from "../theme";
 import { useT } from "../i18n/i18n";
@@ -17,7 +17,20 @@ interface Seccion {
 export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
   const { t } = useT();
   const { height: alturaVentana } = useWindowDimensions();
-  const [scrollY, setScrollY] = useState(0);
+
+  // Este componente se abre desde ADENTRO del <Modal> de OnboardingModal.
+  // Usar acá otro <Modal> de React Native crea dos ventanas nativas de Android
+  // superpuestas al mismo tiempo, lo que rompe la captura de gestos de scroll.
+  // Por eso esto es una capa superpuesta común (position: absolute) dentro del
+  // mismo árbol nativo del modal padre, no un modal nativo nuevo.
+  useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      onCerrar();
+      return true;
+    });
+    return () => sub.remove();
+  }, [visible, onCerrar]);
 
   const secciones: Seccion[] = [
     {
@@ -78,27 +91,19 @@ export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
     },
   ];
 
-  function alScrollear(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    setScrollY(e.nativeEvent.contentOffset.y);
-  }
+  if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCerrar}>
+    <View style={styles.overlayAbs} pointerEvents="box-none">
       <Pressable style={styles.fondo} onPress={onCerrar}>
         <Pressable style={[styles.caja, { height: alturaVentana * 0.75 }]} onPress={(e) => e.stopPropagation()}>
-          <Text style={{ backgroundColor: "red", color: "white", padding: 8, fontSize: 12, fontWeight: "700" }}>
-            DEBUG onboarding: scrollY={Math.round(scrollY)} (tocá y deslizá arriba — si este número no cambia, el toque no está llegando al ScrollView)
-          </Text>
           <Text style={styles.titulo}>{t("Cómo usar Lavinola")}</Text>
 
           <ScrollView
             style={styles.lista}
             contentContainerStyle={styles.listaContenido}
             showsVerticalScrollIndicator={true}
-            nestedScrollEnabled
             overScrollMode="always"
-            onScroll={alScrollear}
-            scrollEventThrottle={16}
           >
             {secciones.map((s, i) => (
               <View key={i} style={styles.seccion}>
@@ -118,11 +123,12 @@ export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
           </Pressable>
         </Pressable>
       </Pressable>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  overlayAbs: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, elevation: 50 },
   fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 24 },
   caja: {
     width: "100%",
