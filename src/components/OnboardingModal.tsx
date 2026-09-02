@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { Modal, View, Pressable, ScrollView, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
 import { theme } from "../theme";
 import { useT } from "../i18n/i18n";
-import OnboardingDetalleModal from "./OnboardingDetalleModal";
+import { navigationRef } from "../navigation";
 
 interface Props {
   visible: boolean;
@@ -19,7 +19,17 @@ interface Punto {
 
 export default function OnboardingModal({ visible, onCerrar }: Props) {
   const { t } = useT();
-  const [verDetalle, setVerDetalle] = useState(false);
+
+  function verComoFunciona() {
+    onCerrar();
+    // OnboardingModal vive afuera del NavigationContainer (se monta desde
+    // GlobalOnboardingHost, en la raíz), por eso se navega con el ref
+    // imperativo en vez del hook useNavigation() (que acá no anda, no hay
+    // contexto de navegación disponible en este punto del árbol).
+    if (navigationRef.isReady()) {
+      (navigationRef as any).navigate("ComoUsarLavinola");
+    }
+  }
 
   const puntos: Punto[] = [
     {
@@ -71,7 +81,7 @@ export default function OnboardingModal({ visible, onCerrar }: Props) {
             ))}
           </ScrollView>
 
-          <Pressable style={styles.verMasBtn} onPress={() => setVerDetalle(true)}>
+          <Pressable style={styles.verMasBtn} onPress={verComoFunciona}>
             <Text style={styles.verMasTexto}>{t("Cómo funciona")}</Text>
           </Pressable>
 
@@ -80,8 +90,6 @@ export default function OnboardingModal({ visible, onCerrar }: Props) {
           </Pressable>
         </Pressable>
       </Pressable>
-
-      <OnboardingDetalleModal visible={verDetalle} onCerrar={() => setVerDetalle(false)} />
     </Modal>
   );
 }

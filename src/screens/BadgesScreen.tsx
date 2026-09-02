@@ -127,7 +127,7 @@ export default function BadgesScreen() {
                 />
                 {!desbloqueada && (
                   <View style={styles.bloqueadaOverlay}>
-                    <Ionicons name="lock-closed" size={Math.max(anchoTarjeta * 0.14, 16)} color="rgba(255,255,255,0.85)" />
+                    <Ionicons name="lock-closed" size={Math.max(anchoTarjeta * 0.11, 14)} color="rgba(255,255,255,0.4)" />
                   </View>
                 )}
               </View>
@@ -172,7 +172,7 @@ export default function BadgesScreen() {
                   />
                   {puntos < seleccionado.puntos && (
                     <View style={styles.bloqueadaOverlay}>
-                      <Ionicons name="lock-closed" size={Math.max(anchoModal * 0.12, 22)} color="rgba(255,255,255,0.85)" />
+                      <Ionicons name="lock-closed" size={Math.max(anchoModal * 0.1, 20)} color="rgba(255,255,255,0.4)" />
                     </View>
                   )}
                 </View>
@@ -228,11 +228,11 @@ const styles = StyleSheet.create({
   ayudaBotonTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 14 },
   // expo-blur no hace blur real en Android (solo en iOS, según su propia
   // documentación) — en Android muestra una vista semitransparente lisa.
-  // Para que se note claramente que está bloqueada sin agregar otra
-  // librería nativa nueva, se oscurece fuerte y se pone un candado encima.
+  // Se tapa casi del todo (0.92 de opacidad) para que sea sorpresa real al
+  // desbloquearla, con un candado tenue en vez de uno bien marcado.
   bloqueadaOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.72)",
+    backgroundColor: "rgba(8,8,10,0.94)",
     alignItems: "center",
     justifyContent: "center",
   },

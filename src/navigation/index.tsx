@@ -51,6 +51,7 @@ import PrivacyPolicyScreen from "../screens/PrivacyPolicyScreen";
 import AdminUsersScreen from "../screens/AdminUsersScreen";
 import SeleccionarTituloPostScreen from "../screens/SeleccionarTituloPostScreen";
 import BadgesScreen from "../screens/BadgesScreen";
+import ComoUsarLavinolaScreen from "../screens/ComoUsarLavinolaScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
 import ChooseCoverPhotoScreen from "../screens/ChooseCoverPhotoScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -234,6 +235,7 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
         options={{ title: t("¿Sobre qué querés publicar?"), presentation: "modal" }}
       />
       <Stack.Screen name="Insignias" component={BadgesScreen} options={{ title: t("Insignias") }} />
+      <Stack.Screen name="ComoUsarLavinola" component={ComoUsarLavinolaScreen} options={{ title: t("Cómo usar Lavinola") }} />
     </>
   );
 }
@@ -405,7 +407,7 @@ const RUTAS_COMUNES: Record<string, string> = {
   AdminVerChat: "admin-ver-chat",
 };
 
-const navigationRef = createNavigationContainerRef();
+export const navigationRef = createNavigationContainerRef();
 
 /**
  * Traduce el "data" de una notificación push a una navegación real.
