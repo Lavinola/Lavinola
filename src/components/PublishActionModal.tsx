@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { View, Modal, TextInput, ScrollView, Pressable, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Modal, TextInput, Pressable, Keyboard, StyleSheet, KeyboardEvent } from "react-native";
 import { useSafeAreaInsets, SafeAreaProvider } from "react-native-safe-area-context";
-import { AvoidSoftInputView } from "react-native-avoid-softinput";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "./Themed";
 import { crearPost, crearPostDeLista, crearPostDeGrupo } from "../lib/posts";
@@ -146,64 +145,78 @@ function ContenidoModal({
 }: any) {
   const { t } = useT();
   const insets = useSafeAreaInsets();
+  const [alturaTeclado, setAlturaTeclado] = useState(0);
+
+  // Se maneja el desplazamiento del teclado a mano (en vez de con
+  // react-native-avoid-softinput, que acá solo levantaba el cuadro de
+  // texto y dejaba el spoiler/botón tapados) para tener control total:
+  // el margin-bottom se le pone directo a la "caja" (no al fondo), así
+  // TODA la tarjeta (texto + spoiler + botón) sube junta como un bloque.
+  useEffect(() => {
+    const mostrar = Keyboard.addListener("keyboardDidShow", (e: KeyboardEvent) => {
+      setAlturaTeclado(e.endCoordinates.height);
+    });
+    const ocultar = Keyboard.addListener("keyboardDidHide", () => {
+      setAlturaTeclado(0);
+    });
+    return () => {
+      mostrar.remove();
+      ocultar.remove();
+    };
+  }, []);
+
   return (
-    <AvoidSoftInputView style={{ flex: 1 }} avoidOffset={16}>
-      <Pressable style={styles.fondo} onPress={cerrar}>
-        <Pressable style={[styles.caja, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-          {modo === "menu" ? (
-            <>
-              <Pressable style={styles.opcionRect} onPress={irARecomendar}>
-                <Text style={styles.opcionRectTexto}>{t("Recomendar (Chat/Grupo)")}</Text>
+    <Pressable style={styles.fondo} onPress={cerrar}>
+      <Pressable
+        style={[styles.caja, { paddingBottom: 20 + insets.bottom, marginBottom: alturaTeclado }]}
+        onPress={() => {}}
+      >
+        {modo === "menu" ? (
+          <>
+            <Pressable style={styles.opcionRect} onPress={irARecomendar}>
+              <Text style={styles.opcionRectTexto}>{t("Recomendar (Chat/Grupo)")}</Text>
+            </Pressable>
+            {(publicarParams || publicarListaParams || publicarGrupoParams) && (
+              <Pressable style={styles.opcionRect} onPress={() => setModo("publicar")}>
+                <Text style={styles.opcionRectTexto}>{t("Publicar en el Lobby")}</Text>
               </Pressable>
-              {(publicarParams || publicarListaParams || publicarGrupoParams) && (
-                <Pressable style={styles.opcionRect} onPress={() => setModo("publicar")}>
-                  <Text style={styles.opcionRectTexto}>{t("Publicar en el Lobby")}</Text>
-                </Pressable>
-              )}
-            </>
-          ) : (
-            <>
-              <ScrollView
-                style={styles.scrollPublicar}
-                contentContainerStyle={{ flexGrow: 1 }}
-                keyboardShouldPersistTaps="handled"
-              >
-                <TextInput
-                  style={styles.input}
-                  placeholder={t("¿Qué querés contar sobre esto?")}
-                  placeholderTextColor={theme.colors.textFaint}
-                  value={texto}
-                  onChangeText={setTexto}
-                  multiline
-                  maxLength={2000}
-                  editable={!publicado}
-                  autoFocus
-                />
-                {!publicarListaParams && !publicarGrupoParams && (
-                  <Pressable style={styles.spoilerRow} onPress={() => !publicado && setEsSpoiler(!esSpoiler)}>
-                    <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
-                    <Text style={styles.spoilerLabel}>{t('¿Tiene spoiler? (aparece oculto hasta que alguien toque "Ver")')}</Text>
-                  </Pressable>
-                )}
-              </ScrollView>
-              <View style={{ height: 12 }} />
-              <AppButton
-                title={publicado ? t("Publicado ✓") : publicando ? t("Publicando...") : t("Publicar")}
-                onPress={publicar}
-                disabled={publicado || publicando || !texto.trim()}
-              />
-            </>
-          )}
-        </Pressable>
+            )}
+          </>
+        ) : (
+          <>
+            <TextInput
+              style={styles.input}
+              placeholder={t("¿Qué querés contar sobre esto?")}
+              placeholderTextColor={theme.colors.textFaint}
+              value={texto}
+              onChangeText={setTexto}
+              multiline
+              maxLength={2000}
+              editable={!publicado}
+              autoFocus
+            />
+            {!publicarListaParams && !publicarGrupoParams && (
+              <Pressable style={styles.spoilerRow} onPress={() => !publicado && setEsSpoiler(!esSpoiler)}>
+                <View style={[styles.checkbox, esSpoiler && styles.checkboxActivo]}>{esSpoiler && <Text style={styles.checkboxTilde}>✓</Text>}</View>
+                <Text style={styles.spoilerLabel}>{t('¿Tiene spoiler? (aparece oculto hasta que alguien toque "Ver")')}</Text>
+              </Pressable>
+            )}
+            <View style={{ height: 12 }} />
+            <AppButton
+              title={publicado ? t("Publicado ✓") : publicando ? t("Publicando...") : t("Publicar")}
+              onPress={publicar}
+              disabled={publicado || publicando || !texto.trim()}
+            />
+          </>
+        )}
       </Pressable>
-    </AvoidSoftInputView>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  caja: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, padding: 20, gap: 10, maxHeight: "85%" },
-  scrollPublicar: { flexGrow: 0, flexShrink: 1 },
+  caja: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, padding: 20, gap: 10 },
   opcionRect: {
     paddingVertical: 14,
     borderRadius: 6,

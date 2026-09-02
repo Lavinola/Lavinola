@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, FlatList, Image, Pressable, Modal, StyleSheet, ActivityIndicator, useWindowDimensions } from "react-native";
-import { BlurView } from "expo-blur";
+import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Themed";
 import { supabase } from "../lib/supabase";
 import { NIVELES_INSIGNIAS, NivelInsignia, obtenerPuntosInsignias } from "../lib/badges";
@@ -126,7 +126,9 @@ export default function BadgesScreen() {
                   resizeMode="contain"
                 />
                 {!desbloqueada && (
-                  <BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFill} />
+                  <View style={styles.bloqueadaOverlay}>
+                    <Ionicons name="lock-closed" size={Math.max(anchoTarjeta * 0.14, 16)} color="rgba(255,255,255,0.85)" />
+                  </View>
                 )}
               </View>
             </Pressable>
@@ -168,7 +170,11 @@ export default function BadgesScreen() {
                     style={{ width: anchoModal, height: altoModal }}
                     resizeMode="contain"
                   />
-                  {puntos < seleccionado.puntos && <BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFill} />}
+                  {puntos < seleccionado.puntos && (
+                    <View style={styles.bloqueadaOverlay}>
+                      <Ionicons name="lock-closed" size={Math.max(anchoModal * 0.12, 22)} color="rgba(255,255,255,0.85)" />
+                    </View>
+                  )}
                 </View>
                 {puntos >= seleccionado.puntos ? (
                   <Text style={styles.cajaLogrado}>{t("¡Ya la tenés! 🎉")}</Text>
@@ -220,6 +226,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ayudaBotonTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 14 },
+  // expo-blur no hace blur real en Android (solo en iOS, según su propia
+  // documentación) — en Android muestra una vista semitransparente lisa.
+  // Para que se note claramente que está bloqueada sin agregar otra
+  // librería nativa nueva, se oscurece fuerte y se pone un candado encima.
+  bloqueadaOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 24 },
   caja: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, padding: 20, alignItems: "center", width: "100%", maxWidth: 360 },
   cajaLogrado: { fontSize: 14, color: theme.colors.primaryLight, fontWeight: "700", marginTop: 14 },

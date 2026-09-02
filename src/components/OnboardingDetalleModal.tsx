@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { View, Pressable, ScrollView, StyleSheet, BackHandler, useWindowDimensions } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Pressable, ScrollView, StyleSheet, BackHandler, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from "react-native";
 import { Text } from "./Themed";
 import { theme } from "../theme";
 import { useT } from "../i18n/i18n";
@@ -17,6 +17,7 @@ interface Seccion {
 export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
   const { t } = useT();
   const { height: alturaVentana } = useWindowDimensions();
+  const [scrollY, setScrollY] = useState(0);
 
   // Este componente se abre desde ADENTRO del <Modal> de OnboardingModal.
   // Usar acá otro <Modal> de React Native crea dos ventanas nativas de Android
@@ -96,7 +97,16 @@ export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
   return (
     <View style={styles.overlayAbs} pointerEvents="box-none">
       <Pressable style={styles.fondo} onPress={onCerrar}>
-        <Pressable style={[styles.caja, { height: alturaVentana * 0.75 }]} onPress={(e) => e.stopPropagation()}>
+        {/* "caja" es un View común, no un Pressable — se sacó el
+        stopPropagation() de acá porque un Pressable ENVOLVIENDO al
+        ScrollView es sospechoso de interceptar el gesto de scroll en
+        Android. Como toda la caja está ocupada por contenido interactivo
+        (ScrollView, botón), tocar el margen angosto sin contenido cierra
+        el modal igual que tocar afuera — no se pierde nada importante. */}
+        <View style={[styles.caja, { height: alturaVentana * 0.75 }]}>
+          <Text style={{ backgroundColor: "red", color: "white", padding: 8, fontSize: 12, fontWeight: "700" }}>
+            DEBUG onboarding: scrollY={Math.round(scrollY)} (deslizá el dedo arriba — si este número no cambia, avisame)
+          </Text>
           <Text style={styles.titulo}>{t("Cómo usar Lavinola")}</Text>
 
           <ScrollView
@@ -104,6 +114,8 @@ export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
             contentContainerStyle={styles.listaContenido}
             showsVerticalScrollIndicator={true}
             overScrollMode="always"
+            onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => setScrollY(e.nativeEvent.contentOffset.y)}
+            scrollEventThrottle={32}
           >
             {secciones.map((s, i) => (
               <View key={i} style={styles.seccion}>
@@ -121,7 +133,7 @@ export default function OnboardingDetalleModal({ visible, onCerrar }: Props) {
           <Pressable style={styles.boton} onPress={onCerrar}>
             <Text style={styles.botonTexto}>{t("Cerrar")}</Text>
           </Pressable>
-        </Pressable>
+        </View>
       </Pressable>
     </View>
   );
