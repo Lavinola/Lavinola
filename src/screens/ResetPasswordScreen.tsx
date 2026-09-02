@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { View, TextInput, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { Text } from "../components/Themed";
 import { Alert } from "../lib/alert";
 import { supabase } from "../lib/supabase";
 import { useT } from "../i18n/i18n";

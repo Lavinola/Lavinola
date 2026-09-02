@@ -60,13 +60,14 @@ export default function TopPills<T extends string>({ opciones, valor, onCambiar,
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   minimumFontScale={0.75}
+                  maxFontSizeMultiplier={1.2}
                 >
                   {o.label}
                 </Text>
               </Animated.View>
               {!!o.badge && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeTexto}>{o.badge > 99 ? "99+" : o.badge}</Text>
+                  <Text style={styles.badgeTexto} allowFontScaling={false}>{o.badge > 99 ? "99+" : o.badge}</Text>
                 </View>
               )}
             </Pressable>

@@ -134,6 +134,7 @@ const stackScreenOptions = {
   headerStyle: { backgroundColor: theme.colors.surface },
   headerTintColor: theme.colors.text,
   headerTitleStyle: { color: theme.colors.text },
+  headerTitleAllowFontScaling: false,
   contentStyle: { backgroundColor: theme.colors.background },
 };
 
@@ -331,6 +332,7 @@ function EtiquetaComunidad({ color, texto }: { color: string; texto: string }) {
   const esPantallaAncha = Platform.OS === "web" && width > 700;
   return (
     <Text
+      allowFontScaling={false}
       style={[
         tabScreenOptions.tabBarLabelStyle,
         { color },

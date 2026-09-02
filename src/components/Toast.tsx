@@ -32,7 +32,7 @@ export default function Toast({ visible, mensaje, onOcultar, duracionMs = 2200 }
   return (
     <Animated.View style={[styles.contenedor, { opacity: opacidad }]} pointerEvents="none">
       <Ionicons name="checkmark-circle" size={18} color={theme.colors.primaryLight} />
-      <Text style={styles.texto}>{mensaje}</Text>
+      <Text style={styles.texto} maxFontSizeMultiplier={1.3}>{mensaje}</Text>
     </Animated.View>
   );
 }
