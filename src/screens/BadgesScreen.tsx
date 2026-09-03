@@ -120,14 +120,15 @@ export default function BadgesScreen() {
           return (
             <Pressable onPress={() => setSeleccionado(item)}>
               <View style={{ width: anchoTarjeta, height: altoTarjeta, borderRadius: 10, overflow: "hidden" }}>
-                <Image
-                  source={IMAGENES_INSIGNIAS_GRANDES[idioma][item.nivel]}
-                  style={{ width: anchoTarjeta, height: altoTarjeta }}
-                  resizeMode="contain"
-                />
-                {!desbloqueada && (
-                  <View style={styles.bloqueadaOverlay}>
-                    <Ionicons name="lock-closed" size={Math.max(anchoTarjeta * 0.11, 14)} color="rgba(255,255,255,0.4)" />
+                {desbloqueada ? (
+                  <Image
+                    source={IMAGENES_INSIGNIAS_GRANDES[idioma][item.nivel]}
+                    style={{ width: anchoTarjeta, height: altoTarjeta }}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <View style={styles.bloqueadaPlaca}>
+                    <Ionicons name="lock-closed" size={Math.max(anchoTarjeta * 0.11, 14)} color="rgba(255,255,255,0.35)" />
                   </View>
                 )}
               </View>
@@ -165,14 +166,15 @@ export default function BadgesScreen() {
             {seleccionado && (
               <>
                 <View style={{ width: anchoModal, height: altoModal, borderRadius: 10, overflow: "hidden" }}>
-                  <Image
-                    source={IMAGENES_INSIGNIAS_GRANDES[idioma][seleccionado.nivel]}
-                    style={{ width: anchoModal, height: altoModal }}
-                    resizeMode="contain"
-                  />
-                  {puntos < seleccionado.puntos && (
-                    <View style={styles.bloqueadaOverlay}>
-                      <Ionicons name="lock-closed" size={Math.max(anchoModal * 0.1, 20)} color="rgba(255,255,255,0.4)" />
+                  {puntos >= seleccionado.puntos ? (
+                    <Image
+                      source={IMAGENES_INSIGNIAS_GRANDES[idioma][seleccionado.nivel]}
+                      style={{ width: anchoModal, height: altoModal }}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View style={styles.bloqueadaPlaca}>
+                      <Ionicons name="lock-closed" size={Math.max(anchoModal * 0.1, 20)} color="rgba(255,255,255,0.35)" />
                     </View>
                   )}
                 </View>
@@ -226,13 +228,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   ayudaBotonTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 14 },
-  // expo-blur no hace blur real en Android (solo en iOS, según su propia
-  // documentación) — en Android muestra una vista semitransparente lisa.
-  // Se tapa casi del todo (0.92 de opacidad) para que sea sorpresa real al
-  // desbloquearla, con un candado tenue en vez de uno bien marcado.
-  bloqueadaOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(8,8,10,0.94)",
+  // Bloqueada = no se renderiza la imagen para nada (así no hay forma de
+  // intuir ni el color ni la forma de la insignia todavía no conseguida):
+  // solo una placa sólida de un tono parejo con el candado encima. Antes
+  // se dibujaba la imagen real por debajo de un velo oscuro, y aunque casi
+  // no se notaba, técnicamente se llegaba a distinguir algo.
+  bloqueadaPlaca: {
+    flex: 1,
+    backgroundColor: "#141418",
     alignItems: "center",
     justifyContent: "center",
   },
