@@ -99,9 +99,12 @@ export async function cargarEncuestasDeGrupo(groupId: string, userId: string | n
 const SELECT_POLL =
   "id, group_id, user_id, question_text, question_item_type, question_tmdb_id, question_season_number, question_episode_number, allow_multiple, created_at, profiles!polls_user_id_fkey(username, avatar_url, display_name)";
 
-/** Tus propias encuestas publicadas directo al Lobby (no las de dentro de un grupo). */
-export async function listarMisEncuestasDeLobby(userId: string): Promise<Encuesta[]> {
-  const { data, error } = await supabase.from("polls").select(SELECT_POLL).is("group_id", null).eq("user_id", userId).order("created_at", { ascending: false });
+/** Tus propias encuestas publicadas directo al Lobby (no las de dentro de un grupo). `limite` opcional: sin especificar trae todas. */
+export async function listarMisEncuestasDeLobby(userId: string, before?: string | null, limite?: number): Promise<Encuesta[]> {
+  let query = supabase.from("polls").select(SELECT_POLL).is("group_id", null).eq("user_id", userId).order("created_at", { ascending: false });
+  if (limite) query = query.limit(limite);
+  if (before) query = query.lt("created_at", before);
+  const { data, error } = await query;
   if (error) throw error;
   return ensamblarEncuestas(data ?? [], userId);
 }

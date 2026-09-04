@@ -204,7 +204,7 @@ function FeedDePosts({
       setUserId(uid);
       setHayMas(true);
       if (modo === "mios") {
-        const [p, e] = await Promise.all([listarMisPosts(uid), listarMisEncuestasDeLobby(uid)]);
+        const [p, e] = await Promise.all([listarMisPosts(uid, undefined, 20), listarMisEncuestasDeLobby(uid, undefined, 20)]);
         setPosts(p);
         setPolls(e);
       } else if (modo === "siguiendo") {
@@ -222,13 +222,15 @@ function FeedDePosts({
   }
 
   async function cargarMas() {
-    if (cargandoMasRef.current || !hayMas || modo === "mios" || items.length === 0) return;
+    if (cargandoMasRef.current || !hayMas || items.length === 0) return;
     cargandoMasRef.current = true;
     setCargandoMas(true);
     try {
       const ultimaFecha = items[items.length - 1].createdAt;
       const [nuevosPosts, nuevosPolls] =
-        modo === "siguiendo"
+        modo === "mios"
+          ? await Promise.all([listarMisPosts(userId!, ultimaFecha, 20), listarMisEncuestasDeLobby(userId!, ultimaFecha, 20)])
+          : modo === "siguiendo"
           ? await Promise.all([listarPostsSiguiendo(userId!, ultimaFecha), listarEncuestasDeLobbySiguiendo(userId!, ultimaFecha)])
           : await Promise.all([listarPostsParaTi(userId, ultimaFecha), listarEncuestasDeLobbyParaTi(userId, ultimaFecha)]);
       if (nuevosPosts.length === 0 && nuevosPolls.length === 0) setHayMas(false);

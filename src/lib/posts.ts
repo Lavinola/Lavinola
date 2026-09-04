@@ -380,8 +380,16 @@ export async function obtenerPostsPorIds(ids: string[], viewerId?: string | null
   return resolverDatosDeTitulos(data ?? [], viewerId);
 }
 
-export async function listarMisPosts(userId: string): Promise<Post[]> {
-  const { data, error } = await supabase.from("posts").select(SELECT_POST).eq("user_id", userId).eq("mostrar_en_lobby", true).order("created_at", { ascending: false });
+/**
+ * `limite` es opcional: sin especificarlo, trae TODOS tus posts (lo que
+ * necesita MyCommentsScreen, que puede tener que saltar a un post viejo
+ * desde una notificación). CommunityScreen sí pide de a 20 con paginación.
+ */
+export async function listarMisPosts(userId: string, before?: string | null, limite?: number): Promise<Post[]> {
+  let query = supabase.from("posts").select(SELECT_POST).eq("user_id", userId).eq("mostrar_en_lobby", true).order("created_at", { ascending: false });
+  if (limite) query = query.limit(limite);
+  if (before) query = query.lt("created_at", before);
+  const { data, error } = await query;
   if (error) throw error;
   return resolverDatosDeTitulos(data ?? [], userId);
 }

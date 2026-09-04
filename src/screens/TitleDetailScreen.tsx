@@ -159,22 +159,30 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       setTitulo(cache);
 
       if (uid) {
-        setFavorito(await esFavorito(uid, tipo, tmdbId));
+        // Estos 3 pedidos no dependen entre sí (ninguno necesita el
+        // resultado de otro), así que se piden todos juntos en vez de
+        // esperar uno atrás del otro — la certificación por edad sí
+        // depende del país del perfil, por eso esa se pide después.
         const tablaUsuario = tipo === "series" ? "user_series" : "user_movies";
         const columnaId = tipo === "series" ? "series_tmdb_id" : "movie_tmdb_id";
-        const { data: fila } = await supabase
-          .from(tablaUsuario)
-          .select(`${columnaId}, custom_poster_path, custom_backdrop_path${tipo === "movie" ? ", watched" : ""}`)
-          .eq("user_id", uid)
-          .eq(columnaId, tmdbId)
-          .maybeSingle();
+        const [esFav, filaResultado, profileResultado] = await Promise.all([
+          esFavorito(uid, tipo, tmdbId),
+          supabase
+            .from(tablaUsuario)
+            .select(`${columnaId}, custom_poster_path, custom_backdrop_path${tipo === "movie" ? ", watched" : ""}`)
+            .eq("user_id", uid)
+            .eq(columnaId, tmdbId)
+            .maybeSingle(),
+          supabase.from("profiles").select("country").eq("id", uid).maybeSingle(),
+        ]);
+        setFavorito(esFav);
+        const fila = filaResultado.data;
         setAgregada(!!fila);
         setCustomPoster((fila as any)?.custom_poster_path ?? null);
         setCustomBackdrop((fila as any)?.custom_backdrop_path ?? null);
         if (tipo === "movie") setVista(!!(fila as any)?.watched);
 
-        const { data: profile } = await supabase.from("profiles").select("country").eq("id", uid).maybeSingle();
-        const paisCert = profile?.country ?? "US";
+        const paisCert = profileResultado.data?.country ?? "US";
         const cert = tipo === "series" ? await getSeriesCertification(tmdbId, paisCert) : await getMovieCertification(tmdbId, paisCert);
         setCertificacion(normalizarClasificacion(cert));
       }
