@@ -39,10 +39,6 @@ function ContenidoHoja({ onCerrar, titulo, opciones }: Omit<Props, "visible">) {
   return (
     <Pressable style={styles.fondo} onPress={onCerrar}>
       <Pressable style={[styles.hoja, { paddingBottom: 24 + insets.bottom }]} onPress={(e) => e.stopPropagation()}>
-        {/* TEXTO TEMPORAL DE DIAGNÓSTICO — sacar después de confirmar el problema */}
-        <Text style={{ backgroundColor: "red", color: "white", padding: 8, fontSize: 12, fontWeight: "700" }}>
-          DEBUG insets: top={insets.top} bottom={insets.bottom} left={insets.left} right={insets.right} | ventana alto={Dimensions.get("window").height}
-        </Text>
         <View style={styles.header}>
           {!!titulo && (
             <Text style={styles.titulo} numberOfLines={1}>

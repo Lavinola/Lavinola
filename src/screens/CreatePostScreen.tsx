@@ -59,9 +59,6 @@ export default function CreatePostScreen({ route, navigation }: Props) {
   return (
     <AvoidSoftInputView style={{ flex: 1 }} avoidOffset={16}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
-        <Text style={{ backgroundColor: "red", color: "white", padding: 8, fontSize: 12, fontWeight: "700" }}>
-        DEBUG teclado: visible={String(estadoTeclado.isSoftInputShown)} altura={estadoTeclado.softInputHeight}
-      </Text>
       <View style={styles.tituloRow}>
           {posterPath && <Image source={{ uri: posterUrl(posterPath, "w185")! }} style={styles.poster} />}
           <View style={{ flex: 1 }}>
