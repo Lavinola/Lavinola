@@ -67,11 +67,12 @@ export default function EditProfileScreen({ navigation }: any) {
   }
 
   async function elegirAvatar() {
-    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permiso.granted) {
-      Alert.alert(t("Sin permiso"), t("Necesitamos acceso a tus fotos para elegir un avatar."));
-      return;
-    }
+    // No se pide requestMediaLibraryPermissionsAsync() a propósito: en
+    // Android moderno, launchImageLibraryAsync ya usa el selector de fotos
+    // del sistema (Photo Picker), que deja elegir UNA foto sin darle a la
+    // app acceso a toda la galería — así se evita el permiso amplio y la
+    // declaración de "core functionality" que Google exige cuando sí se
+    // pide ese permiso explícitamente.
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
