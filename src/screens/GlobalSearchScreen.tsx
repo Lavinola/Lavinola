@@ -464,9 +464,9 @@ const styles = StyleSheet.create({
   nombre: { flex: 1, fontSize: 15 },
   sugerenciasTitulo: { fontSize: 13, fontWeight: "700", color: theme.colors.textMuted, marginBottom: 8 },
   anio: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
-  addBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
-  addBtnTexto: { color: "#000000", fontSize: 16, fontWeight: "700" },
-  addBtnAgregado: { backgroundColor: theme.colors.surfaceAlt, borderWidth: 1, borderColor: theme.colors.border },
-  addBtnTextoAgregado: { color: theme.colors.textMuted },
+  addBtn: { width: 30, height: 30, borderRadius: 8, borderWidth: 1.5, borderColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
+  addBtnTexto: { color: theme.colors.primaryLight, fontSize: 16, fontWeight: "800" },
+  addBtnAgregado: { backgroundColor: theme.colors.primary },
+  addBtnTextoAgregado: { color: "#000000" },
   joinBtn: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 6, paddingHorizontal: 12 },
 });
