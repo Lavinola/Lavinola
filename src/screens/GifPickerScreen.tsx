@@ -86,6 +86,7 @@ export default function GifPickerScreen({ route, navigation }: Props) {
         <Text style={styles.vacio}>{error}</Text>
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={resultados}
           keyExtractor={(g) => g.id}
           numColumns={3}

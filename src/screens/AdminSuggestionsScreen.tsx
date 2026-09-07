@@ -32,6 +32,7 @@ export default function AdminSuggestionsScreen() {
       data={sugerencias}
       keyExtractor={(s) => s.id}
       contentContainerStyle={{ padding: 12 }}
+      keyboardShouldPersistTaps="handled"
       ListEmptyComponent={<Text style={styles.vacio}>No hay sugerencias todavía.</Text>}
       renderItem={({ item }) => (
         <View style={styles.card}>

@@ -68,7 +68,7 @@ export default function MentionTextInput({ userId, groupId, value, onChangeText,
   }
 
   return (
-    <View>
+    <View style={{ flex: 1 }}>
       {mencionEnCurso && candidatos.length > 0 && (
         <View style={styles.listaBox}>
           <FlatList

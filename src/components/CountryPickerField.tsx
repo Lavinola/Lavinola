@@ -43,6 +43,7 @@ export default function CountryPickerField({ valor, onCambiar }: Props) {
             </Pressable>
           </View>
           <FlatList
+            keyboardShouldPersistTaps="handled"
             data={filtrados}
             keyExtractor={(p) => p.code}
             ListEmptyComponent={<Text style={styles.vacio}>{t("No encontramos ningún país con ese nombre.")}</Text>}

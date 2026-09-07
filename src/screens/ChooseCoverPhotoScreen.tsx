@@ -83,6 +83,7 @@ export default function ChooseCoverPhotoScreen({ navigation }: any) {
           <ActivityIndicator style={{ marginTop: 32 }} />
         ) : (
           <FlatList
+            keyboardShouldPersistTaps="handled"
             data={banners}
             keyExtractor={(item, i) => `${item.file_path}-${i}`}
             contentContainerStyle={{ padding: 8 }}
@@ -115,6 +116,7 @@ export default function ChooseCoverPhotoScreen({ navigation }: any) {
       />
       {loading && <ActivityIndicator style={{ marginTop: 12 }} />}
       <FlatList
+        keyboardShouldPersistTaps="handled"
         data={resultados}
         keyExtractor={(item) => `${item.tipo}-${item.id}`}
         renderItem={({ item }) => (

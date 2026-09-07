@@ -3,12 +3,15 @@ import { View, Pressable, StyleSheet, StyleProp, TextStyle, LayoutChangeEvent } 
 import { Text } from "./Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../theme";
+import { partirTextoConMenciones, irAPerfilPorUsername } from "../lib/mentions";
 
 interface Props {
   texto: string;
   style?: StyleProp<TextStyle>;
   maxLines?: number;
   indicador?: "flecha" | "puntos"; // "flecha" (por defecto) = chevron abajo a la derecha, como ya se usaba. "puntos" = "..." violeta después del texto (para la biografía de actores/directores).
+  resaltarMenciones?: boolean; // true en posts/comentarios: las @menciones salen en negrita y llevan al perfil de esa persona al tocarlas.
+  navigation?: any; // requerido si resaltarMenciones=true
 }
 
 /**
@@ -23,7 +26,7 @@ interface Props {
  * versión web de la app no siempre avisa, y por eso el texto se veía
  * cortado sin que apareciera nunca la flechita para desplegarlo).
  */
-export default function ExpandableText({ texto, style, maxLines = 5, indicador = "flecha" }: Props) {
+export default function ExpandableText({ texto, style, maxLines = 5, indicador = "flecha", resaltarMenciones, navigation }: Props) {
   const [expandido, setExpandido] = useState(false);
   const [truncado, setTruncado] = useState(false);
   const alturaCompleta = useRef<number | null>(null);
@@ -34,6 +37,22 @@ export default function ExpandableText({ texto, style, maxLines = 5, indicador =
     // Un par de píxeles de margen para no marcar como truncado por simples redondeos.
     setTruncado(alturaCompleta.current > alturaRecortada.current + 2);
   }
+
+  // Contenido a renderizar: si hay que resaltar @menciones, se arma como una
+  // lista de <Text> anidados (uno por segmento) en vez de un string plano —
+  // React Native permite <Text> con estilos/onPress distintos adentro de
+  // otro <Text> sin romper el recorte por numberOfLines del padre.
+  const contenido = resaltarMenciones
+    ? partirTextoConMenciones(texto).map((seg, i) =>
+        seg.esMencion ? (
+          <Text key={i} style={styles.mencion} onPress={() => navigation && irAPerfilPorUsername(seg.texto.slice(1), navigation)}>
+            {seg.texto}
+          </Text>
+        ) : (
+          <Text key={i}>{seg.texto}</Text>
+        )
+      )
+    : texto;
 
   return (
     <View>
@@ -51,7 +70,7 @@ export default function ExpandableText({ texto, style, maxLines = 5, indicador =
             chequearSiTruncado();
           }}
         >
-          {texto}
+          {contenido}
         </Text>
       </View>
       <Text
@@ -64,7 +83,7 @@ export default function ExpandableText({ texto, style, maxLines = 5, indicador =
           }
         }}
       >
-        {texto}
+        {contenido}
       </Text>
       {truncado &&
         (indicador === "puntos" ? (
@@ -84,4 +103,5 @@ const styles = StyleSheet.create({
   flechaBtn: { position: "absolute", right: 0, bottom: 0 },
   medidorWrap: { position: "absolute", top: 0, left: 0, right: 0, opacity: 0 },
   puntosTexto: { color: theme.colors.primary, fontSize: 18, fontWeight: "800", letterSpacing: 2, marginTop: 2 },
+  mencion: { fontWeight: "800", color: theme.colors.primaryLight },
 });

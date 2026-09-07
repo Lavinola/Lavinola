@@ -225,7 +225,7 @@ export default function CommentsScreen({ route, navigation }: any) {
   }
 
   return (
-    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 340 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 340 }} keyboardShouldPersistTaps="handled">
       {contexto && (
         <Pressable style={styles.contextoCard} onPress={abrirTitulo}>
           {contexto.poster_path ? (

@@ -404,6 +404,7 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
         inverted
         keyExtractor={(m) => m.id}
         contentContainerStyle={{ padding: 12 }}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => {
           const esMio = item.sender_id === userId;
           const esLista = !!item.shared_list_id;

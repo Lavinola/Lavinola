@@ -41,6 +41,7 @@ export default function FavoritedByScreen({ route, navigation }: any) {
         />
       </View>
       <FlatList
+        keyboardShouldPersistTaps="handled"
         data={filtrados}
         keyExtractor={(u) => u.user_id}
         contentContainerStyle={{ padding: 12 }}

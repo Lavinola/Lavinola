@@ -190,7 +190,7 @@ function TabCuenta({ navigation }: any) {
 
   return (
     <>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <SeccionTitulo texto={t("Identificación")} />
       <Text style={styles.label}>{t("Nombre de usuario")}</Text>
       <Pressable onPress={() => navigation.navigate("EditarPerfil")}>
@@ -358,7 +358,7 @@ function TabAplicacion({ navigation }: any) {
   const p = perfil as any;
 
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <SeccionTitulo texto={t("Idioma de la aplicación")} />
       <Text style={styles.switchHint}>
         {t("Este es el idioma que se usa para toda la app: menús, botones, y (si lo activás abajo) los títulos de películas y series.")}

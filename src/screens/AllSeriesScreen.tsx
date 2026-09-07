@@ -156,7 +156,7 @@ export default function AllSeriesScreen({ route, navigation }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <View style={styles.topRow}>
+      <View style={[styles.topRow, soloFavoritas && { justifyContent: "center" }]}>
         <Pressable style={styles.filtrosBtn} onPress={() => setMenuVisible(true)}>
           <Ionicons name="options" size={16} color={theme.colors.text} />
           <Text style={styles.filtrosBtnTexto}>{t("Filtros")}</Text>
@@ -186,8 +186,12 @@ export default function AllSeriesScreen({ route, navigation }: any) {
             </Pressable>
           </>
         )}
-        <View style={{ flex: 1 }} />
-        {!modoReordenar && !soloFavoritas && <AgregarButton navigation={navigation} />}
+        {!soloFavoritas && (
+          <>
+            <View style={{ flex: 1 }} />
+            {!modoReordenar && <AgregarButton navigation={navigation} />}
+          </>
+        )}
       </View>
 
       {loading ? (

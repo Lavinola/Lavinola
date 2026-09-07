@@ -64,6 +64,7 @@ export default function GuardadosScreen({ navigation }: any) {
           data={filtrados}
           keyExtractor={(it) => it.savedId}
           contentContainerStyle={{ padding: 12, paddingBottom: 340 }}
+          keyboardShouldPersistTaps="handled"
           ListEmptyComponent={<EstadoVacio icono="bookmark-outline" titulo={t("Todavía no guardaste nada.")} />}
           renderItem={({ item }) =>
             item.kind === "post" && item.post ? (

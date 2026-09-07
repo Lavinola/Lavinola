@@ -196,7 +196,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
 
   return (
     <>
-    <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 340 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 340 }} keyboardShouldPersistTaps="handled">
       <View>
         {grupo?.banner_url ? (
           <Image source={{ uri: grupo.banner_url }} style={styles.banner} />

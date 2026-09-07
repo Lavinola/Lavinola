@@ -67,7 +67,7 @@ export default function CreateGroupScreen({ navigation }: any) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
       <Text style={styles.label}>{t("Nombre del grupo")}</Text>
       <TextInput
         placeholderTextColor={theme.colors.textFaint}

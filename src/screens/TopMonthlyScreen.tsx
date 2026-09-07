@@ -189,6 +189,7 @@ export default function TopMonthlyScreen({ navigation }: any) {
         <ActivityIndicator style={{ marginTop: 32 }} color={theme.colors.primary} />
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={items}
           keyExtractor={(i) => String(i.tmdb_id)}
           contentContainerStyle={{ padding: 12 }}
@@ -304,6 +305,7 @@ export default function TopMonthlyScreen({ navigation }: any) {
             </Pressable>
           </View>
           <FlatList
+            keyboardShouldPersistTaps="handled"
             data={paisesFiltrados}
             keyExtractor={(p) => p.code}
             ListEmptyComponent={<Text style={styles.vacio}>{t("No encontramos ningún país con ese nombre.")}</Text>}

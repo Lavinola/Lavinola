@@ -44,6 +44,7 @@ export default function ActivityScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <FlatList
+        keyboardShouldPersistTaps="handled"
         data={chatsFiltrados}
         keyExtractor={(c) => c.chatId}
         contentContainerStyle={{ padding: 12 }}

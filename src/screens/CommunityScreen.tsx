@@ -255,6 +255,7 @@ function FeedDePosts({
       data={items}
       keyExtractor={(item) => (item.kind === "post" ? item.post.id : item.poll.id)}
       contentContainerStyle={{ padding: 12, paddingBottom: 340 }}
+      keyboardShouldPersistTaps="handled"
       onRefresh={cargar}
       refreshing={loading}
       onEndReached={cargarMas}

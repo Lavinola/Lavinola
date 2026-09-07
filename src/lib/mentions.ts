@@ -56,3 +56,29 @@ export function completarMencion(texto: string, inicio: number, posicionCursor: 
   const inserto = `@${username} `;
   return { texto: antes + inserto + despues, cursor: antes.length + inserto.length };
 }
+
+export interface SegmentoTexto {
+  texto: string;
+  esMencion: boolean;
+}
+
+/** Parte un texto ya publicado en segmentos comunes y de "@mención", para poder renderizar cada mención en negrita y tocable por separado. */
+export function partirTextoConMenciones(texto: string): SegmentoTexto[] {
+  const segmentos: SegmentoTexto[] = [];
+  let ultimoIndice = 0;
+  const regex = /@([a-zA-Z0-9_]{1,30})/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(texto))) {
+    if (match.index > ultimoIndice) segmentos.push({ texto: texto.slice(ultimoIndice, match.index), esMencion: false });
+    segmentos.push({ texto: match[0], esMencion: true });
+    ultimoIndice = match.index + match[0].length;
+  }
+  if (ultimoIndice < texto.length) segmentos.push({ texto: texto.slice(ultimoIndice), esMencion: false });
+  return segmentos;
+}
+
+/** Al tocar una @mención ya publicada: busca el userId por username y navega a su perfil. */
+export async function irAPerfilPorUsername(username: string, navigation: any) {
+  const { data } = await supabase.from("profiles").select("id").eq("username", username).maybeSingle();
+  if (data?.id) navigation.navigate("PerfilAjeno", { userId: data.id });
+}

@@ -119,6 +119,7 @@ export default function ListasConTituloScreen({ route, navigation }: any) {
         <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 32 }} />
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={filtradas}
           keyExtractor={(l) => l.id}
           contentContainerStyle={{ padding: 12 }}

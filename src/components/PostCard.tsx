@@ -362,7 +362,7 @@ export default function PostCard({
           <Text style={styles.spoilerVerTexto}>{t("Ver")}</Text>
         </Pressable>
       ) : (
-        <ExpandableText texto={traduccion ?? post.content} style={styles.contenido} />
+        <ExpandableText texto={traduccion ?? post.content} style={styles.contenido} resaltarMenciones navigation={navigation} />
       )}
 
       {pickerVisible && (

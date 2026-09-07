@@ -90,6 +90,7 @@ export default function ChooseTmdbImageScreen({ route, navigation }: Props) {
           <ActivityIndicator style={{ marginTop: 32 }} />
         ) : (
           <FlatList
+            keyboardShouldPersistTaps="handled"
             data={backdrops}
             key={modo}
             numColumns={modo === "posters" ? 3 : 1}
@@ -120,6 +121,7 @@ export default function ChooseTmdbImageScreen({ route, navigation }: Props) {
       />
       {loading && <ActivityIndicator style={{ marginTop: 12 }} />}
       <FlatList
+        keyboardShouldPersistTaps="handled"
         data={resultados}
         keyExtractor={(item) => `${item.tipo}-${item.id}`}
         renderItem={({ item }) => (

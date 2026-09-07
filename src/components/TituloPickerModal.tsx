@@ -156,6 +156,7 @@ export default function TituloPickerModal({ visible, onCerrar, onSeleccionar }: 
               ) : (
                 <>
                   <FlatList
+                    keyboardShouldPersistTaps="handled"
                     horizontal
                     data={temporadas}
                     keyExtractor={(s) => String(s.season_number)}
@@ -177,6 +178,7 @@ export default function TituloPickerModal({ visible, onCerrar, onSeleccionar }: 
                   ) : (
                     temporadaElegida != null && (
                       <FlatList
+                        keyboardShouldPersistTaps="handled"
                         data={episodios}
                         keyExtractor={(e) => String(e.episode_number)}
                         style={{ maxHeight: 220 }}
@@ -219,6 +221,7 @@ export default function TituloPickerModal({ visible, onCerrar, onSeleccionar }: 
                 <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 16 }} />
               ) : (
                 <FlatList
+                  keyboardShouldPersistTaps="handled"
                   data={resultados}
                   keyExtractor={(item) => String(item.id)}
                   renderItem={({ item }) => (

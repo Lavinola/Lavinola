@@ -580,7 +580,7 @@ export function NodoComentario({
               <Text style={styles.spoilerVerTexto}>{t("Ver")}</Text>
             </Pressable>
           ) : (
-            <ExpandableText texto={traduccion ?? comentario.content} style={styles.contenido} />
+            <ExpandableText texto={traduccion ?? comentario.content} style={styles.contenido} resaltarMenciones navigation={navigation} />
           )
         ) : null}
         {comentario.gif_url && <Image source={{ uri: comentario.gif_url }} style={styles.gifEnComentario} />}

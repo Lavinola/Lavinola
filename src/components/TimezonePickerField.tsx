@@ -43,6 +43,7 @@ export default function TimezonePickerField({ valor, onCambiar }: Props) {
             </Pressable>
           </View>
           <FlatList
+            keyboardShouldPersistTaps="handled"
             data={filtradas}
             keyExtractor={(z) => z.id}
             ListEmptyComponent={<Text style={styles.vacio}>{t("No encontramos ninguna zona horaria con ese nombre.")}</Text>}

@@ -135,6 +135,7 @@ function TendenciasListas({ navigation, userId }: { navigation: any; userId: str
 
   return (
     <FlatList
+      keyboardShouldPersistTaps="handled"
       data={listas}
       keyExtractor={(l) => l.id}
       contentContainerStyle={{ padding: 12 }}
@@ -226,6 +227,7 @@ function BuscarPorNombre({ navigation, userId }: { navigation: any; userId: stri
         <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 24 }} />
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={filtradas}
           keyExtractor={(l) => l.id}
           contentContainerStyle={{ padding: 12 }}
@@ -299,6 +301,7 @@ function BuscarPorTitulo({ navigation }: { navigation: any }) {
         <ActivityIndicator color={theme.colors.primary} style={{ marginTop: 24 }} />
       ) : (
         <FlatList
+          keyboardShouldPersistTaps="handled"
           data={resultados}
           keyExtractor={(r) => `${r.tipo}-${r.id}`}
           numColumns={3}
