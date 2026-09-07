@@ -279,7 +279,7 @@ export default function MoviesScreen({ navigation }: any) {
                   }}
                   hitSlop={10}
                 >
-                  <Text style={[styles.tildeTexto, item.watched && styles.tildeTextoMarcado]}>✓</Text>
+                  <Ionicons name="eye" size={16} color={item.watched ? theme.colors.text : theme.colors.primary} />
                 </Pressable>
               )}
             </Pressable>

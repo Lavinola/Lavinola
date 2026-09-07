@@ -35,6 +35,7 @@ export interface PerfilCompleto {
   haptics_enabled: boolean;
   notify_likes: boolean;
   notify_replies: boolean;
+  notify_mentions: boolean;
   notify_follow_requests: boolean;
   notify_messages: boolean;
   notify_group_messages_private?: boolean;

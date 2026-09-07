@@ -415,6 +415,7 @@ function TabAplicacion({ navigation }: any) {
       <Text style={styles.label}>{t("Actividad")}</Text>
       <SwitchLinea etiqueta={t("Me gusta en posts/comentarios")} valor={p.notify_likes} onCambiar={(v) => actualizar({ notify_likes: v })} />
       <SwitchLinea etiqueta={t("Respuestas en posts/comentarios")} valor={p.notify_replies} onCambiar={(v) => actualizar({ notify_replies: v })} />
+      <SwitchLinea etiqueta={t("Etiquetas en publicaciones/comentarios")} valor={p.notify_mentions} onCambiar={(v) => actualizar({ notify_mentions: v })} />
       <SwitchLinea etiqueta={t("Solicitudes de seguimiento")} valor={p.notify_follow_requests} onCambiar={(v) => actualizar({ notify_follow_requests: v })} />
       <SwitchLinea etiqueta={t("Mensajes privados")} valor={p.notify_messages} onCambiar={(v) => actualizar({ notify_messages: v })} />
       <SwitchLinea etiqueta={t("Mensajes en grupos privados")} valor={p.notify_group_messages_private !== false} onCambiar={(v) => actualizar({ notify_group_messages_private: v })} />
@@ -440,7 +441,7 @@ function TabAplicacion({ navigation }: any) {
 
       <SeccionTitulo texto={t("Importar Datos")} />
       <Pressable onPress={() => navigation.navigate("ImportarTVTime")}>
-        <Text style={styles.link}>{t("Importar mi historial de TV Time, Letterboxd o Sofa Time")}</Text>
+        <Text style={styles.link}>{t("Importar mi historial de TV Time, Letterboxd, JustWatch o Sofa Time")}</Text>
       </Pressable>
 
       <SeccionTitulo texto={t("Tus datos")} />

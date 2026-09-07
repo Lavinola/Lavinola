@@ -14,7 +14,7 @@ import Avatar from "../components/Avatar";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
-import { marcarGrupoLeido, miEstadoEnGrupo, salirDeGrupo, silenciarGrupo, quitarSilencioGrupoLista, idsGruposSilenciados, unirseAGrupo, actualizarBannerGrupo, actualizarTapaGrupo } from "../lib/groups";
+import { marcarGrupoLeido, miEstadoEnGrupo, salirDeGrupo, silenciarGrupo, quitarSilencioGrupoLista, idsGruposSilenciados, unirseAGrupo, actualizarBannerGrupo, actualizarTapaGrupo, solicitarUnirseAGrupo, tengoSolicitudGrupoPendiente } from "../lib/groups";
 import { marcarNotificacionesDeGrupoComoLeidas } from "../lib/notificationsFeed";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -52,6 +52,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
   const [confirmSalirVisible, setConfirmSalirVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [soyMiembro, setSoyMiembro] = useState<boolean | null>(null);
+  const [solicitudEnviada, setSolicitudEnviada] = useState(false);
   const [uniendome, setUniendome] = useState(false);
   const [menuTapaBannerVisible, setMenuTapaBannerVisible] = useState(false);
   const [publishModalVisible, setPublishModalVisible] = useState(false);
@@ -77,6 +78,9 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
           .eq("user_id", data.session?.user?.id)
           .maybeSingle();
         setSoyMiembro(!!filaMiembro);
+        if (!filaMiembro) {
+          tengoSolicitudGrupoPendiente(groupId, data.session.user.id).then(setSolicitudEnviada);
+        }
       }
     });
   }, []);
@@ -99,6 +103,19 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
       await cargarMiembros();
     } catch (e: any) {
       console.error("Error al unirse al grupo:", e);
+    } finally {
+      setUniendome(false);
+    }
+  }
+
+  async function enviarSolicitud() {
+    if (!userId) return;
+    setUniendome(true);
+    try {
+      await solicitarUnirseAGrupo(groupId, userId);
+      setSolicitudEnviada(true);
+    } catch (e: any) {
+      console.error("Error al enviar la solicitud para unirse al grupo:", e);
     } finally {
       setUniendome(false);
     }
@@ -179,7 +196,7 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
 
   return (
     <>
-    <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 16 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 340 }}>
       <View>
         {grupo?.banner_url ? (
           <Image source={{ uri: grupo.banner_url }} style={styles.banner} />
@@ -189,82 +206,102 @@ export default function GroupDetailScreen({ route, navigation }: Props) {
         <Pressable style={styles.menuBtnFlotante} onPress={() => setMenuVisible(true)} hitSlop={12}>
           <Text style={styles.menuBtnFlotanteTexto}>⋯</Text>
         </Pressable>
-        <Pressable
-          style={styles.recomendarBtnFlotante}
-          onPress={() => setPublishModalVisible(true)}
-          hitSlop={12}
-        >
-          <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
-        </Pressable>
+        {!(grupo?.visibility === "private" && soyMiembro === false) && (
+          <Pressable
+            style={styles.recomendarBtnFlotante}
+            onPress={() => setPublishModalVisible(true)}
+            hitSlop={12}
+          >
+            <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.container}>
         <Text style={styles.titulo}>{groupName}</Text>
         {grupo?.description && <Text style={styles.descripcion}>{grupo.description}</Text>}
 
-        {soyMiembro === false && (
-          <Pressable style={styles.unirmeBtn} onPress={unirme} disabled={uniendome}>
-            <Text style={styles.unirmeBtnTexto}>{uniendome ? t("Uniéndote...") : t("Unirme al grupo")}</Text>
-          </Pressable>
-        )}
+        {soyMiembro === false &&
+          (grupo?.visibility === "private" ? (
+            <Pressable style={styles.unirmeBtn} onPress={enviarSolicitud} disabled={uniendome || solicitudEnviada}>
+              <Text style={styles.unirmeBtnTexto}>
+                {solicitudEnviada ? t("Solicitud enviada") : uniendome ? t("Enviando...") : t("Enviar solicitud")}
+              </Text>
+            </Pressable>
+          ) : (
+            <Pressable style={styles.unirmeBtn} onPress={unirme} disabled={uniendome}>
+              <Text style={styles.unirmeBtnTexto}>{uniendome ? t("Uniéndote...") : t("Unirme al grupo")}</Text>
+            </Pressable>
+          ))}
 
-        {miembros.length > 0 && (
-          <View style={{ marginBottom: 16, marginTop: 8 }}>
-            <Text style={styles.miembrosTitulo}>{t("{n} miembros").replace("{n}", String(miembros.length))}</Text>
-            <FlatList
-              horizontal
-              data={miembros.slice(0, 8)}
-              keyExtractor={(m) => m.id}
-              showsHorizontalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <Pressable style={styles.miembroCard} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
-                  <Avatar uri={item.avatar_url} size={48} style={{ marginBottom: 4 }} />
-                  <Text style={styles.miembroNombre} numberOfLines={1}>
-                    {item.username ?? t("Usuario")}
-                  </Text>
-                </Pressable>
-              )}
-              ListFooterComponent={
-                miembros.length > 8 ? (
-                  <Pressable style={styles.masBtn} onPress={() => navigation.navigate("MiembrosGrupo", { groupId })}>
-                    <Text style={styles.masBtnTexto}>+</Text>
-                  </Pressable>
-                ) : null
-              }
-            />
-          </View>
-        )}
-
-        {suspendido && <Text style={styles.suspendidoAviso}>{t("Los comentarios de este grupo están suspendidos temporalmente.")}</Text>}
-        {miEstado.baneado && <Text style={styles.suspendidoAviso}>Fuiste eliminado de este grupo. Podés verlo, pero no comentar ni volver a unirte.</Text>}
-        {!miEstado.baneado && miEstado.silenciado && <Text style={styles.suspendidoAviso}>Un admin te silenció en este grupo.</Text>}
-        <View
-          onLayout={(e) => {
-            if (!highlightCommentId || yaScrolleoRef.current) return;
-            yaScrolleoRef.current = true;
-            const y = e.nativeEvent.layout.y;
-            setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(y - 12, 0), animated: true }), 300);
-          }}
-        >
-          <CommentThread
-            targetType="group"
-            targetId={groupId}
-            groupId={groupId}
-            navigation={navigation}
-            soloLectura={suspendido || miEstado.baneado || miEstado.silenciado || soyMiembro === false}
-            highlightCommentId={highlightCommentId}
-            onAbrirEncuesta={soyMiembro ? () => setCrearEncuestaVisible(true) : undefined}
-            onAbrirRecomendar={soyMiembro ? () => navigation.navigate("RecomendarTitulo", { destinoTipo: "grupo", groupId }) : undefined}
-            elementosExtra={encuestas.map(
-              (enc): ElementoExtra => ({
-                id: enc.id,
-                createdAt: enc.createdAt,
-                pesoRespuestas: enc.cantidadComentarios,
-                render: () => <EncuestaCard encuesta={enc} userId={userId} navigation={navigation} onCambio={cargarEncuestas} />,
-              })
+        {/* Grupo privado y todavía no sos miembro: solo se ve la portada,
+        el título, la descripción y el botón de solicitud — nada del
+        contenido de adentro (miembros, comentarios, encuestas). Antes se
+        podía ver todo igual, sin poder unirse; ahora queda realmente
+        cerrado hasta que te acepten. */}
+        {grupo?.visibility === "private" && soyMiembro === false ? (
+          <Text style={styles.suspendidoAviso}>{t("Este grupo es privado. Enviá una solicitud para ver el contenido de adentro.")}</Text>
+        ) : (
+          <>
+            {miembros.length > 0 && (
+              <View style={{ marginBottom: 16, marginTop: 8 }}>
+                <Text style={styles.miembrosTitulo}>{t("{n} miembros").replace("{n}", String(miembros.length))}</Text>
+                <FlatList
+                  horizontal
+                  data={miembros.slice(0, 8)}
+                  keyExtractor={(m) => m.id}
+                  showsHorizontalScrollIndicator={false}
+                  renderItem={({ item }) => (
+                    <Pressable style={styles.miembroCard} onPress={() => navigation.navigate("PerfilAjeno", { userId: item.id })}>
+                      <Avatar uri={item.avatar_url} size={48} style={{ marginBottom: 4 }} />
+                      <Text style={styles.miembroNombre} numberOfLines={1}>
+                        {item.username ?? t("Usuario")}
+                      </Text>
+                    </Pressable>
+                  )}
+                  ListFooterComponent={
+                    miembros.length > 8 ? (
+                      <Pressable style={styles.masBtn} onPress={() => navigation.navigate("MiembrosGrupo", { groupId })}>
+                        <Text style={styles.masBtnTexto}>+</Text>
+                      </Pressable>
+                    ) : null
+                  }
+                />
+              </View>
             )}
-          />
-        </View>
+
+            {suspendido && <Text style={styles.suspendidoAviso}>{t("Los comentarios de este grupo están suspendidos temporalmente.")}</Text>}
+            {miEstado.baneado && <Text style={styles.suspendidoAviso}>Fuiste eliminado de este grupo. Podés verlo, pero no comentar ni volver a unirte.</Text>}
+            {!miEstado.baneado && miEstado.silenciado && <Text style={styles.suspendidoAviso}>Un admin te silenció en este grupo.</Text>}
+            <View
+              onLayout={(e) => {
+                if (!highlightCommentId || yaScrolleoRef.current) return;
+                yaScrolleoRef.current = true;
+                const y = e.nativeEvent.layout.y;
+                setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(y - 12, 0), animated: true }), 300);
+              }}
+            >
+              <CommentThread
+                targetType="group"
+                targetId={groupId}
+                groupId={groupId}
+                navigation={navigation}
+                soloLectura={suspendido || miEstado.baneado || miEstado.silenciado || soyMiembro === false}
+                highlightCommentId={highlightCommentId}
+                onAbrirEncuesta={soyMiembro ? () => setCrearEncuestaVisible(true) : undefined}
+                onAbrirRecomendar={soyMiembro ? () => navigation.navigate("RecomendarTitulo", { destinoTipo: "grupo", groupId }) : undefined}
+                elementosExtra={encuestas.map(
+                  (enc): ElementoExtra => ({
+                    id: enc.id,
+                    createdAt: enc.createdAt,
+                    pesoRespuestas: enc.cantidadComentarios,
+                    render: () => <EncuestaCard encuesta={enc} userId={userId} navigation={navigation} onCambio={cargarEncuestas} />,
+                  })
+                )}
+              />
+            </View>
+          </>
+        )}
       </View>
     </ScrollView>
 

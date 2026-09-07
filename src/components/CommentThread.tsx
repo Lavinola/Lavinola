@@ -35,6 +35,7 @@ import NivelUpModal from "./NivelUpModal";
 import QueVemosModal from "./QueVemosModal";
 import { listarMiembrosIds } from "../lib/groups";
 import { guardarItem, quitarGuardado } from "../lib/savedItems";
+import MentionTextInput from "./MentionTextInput";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
@@ -203,7 +204,9 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
 
       {!soloLectura && (
         <View style={styles.inputRow}>
-          <TextInput
+          <MentionTextInput
+            userId={userId}
+            groupId={targetType === "group" ? groupId : null}
             placeholderTextColor={theme.colors.textFaint}
             style={styles.input}
             placeholder={t("Comentar (texto y/o GIF)...")}
@@ -634,7 +637,9 @@ export function NodoComentario({
               </View>
             )}
             <View style={styles.inputRow}>
-              <TextInput
+              <MentionTextInput
+                userId={userId}
+                groupId={targetType === "group" ? groupId : null}
                 placeholderTextColor={theme.colors.textFaint}
                 style={styles.input}
                 value={texto}

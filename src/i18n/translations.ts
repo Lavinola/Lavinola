@@ -2058,6 +2058,67 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: 'Se hai uno di questi salvato sul telefono (o puoi trasferirlo dal computer), tocca "Ho già il file, continua" qui sotto.',
   },
   "Letterboxd (solo películas)": { en: "Letterboxd (movies only)", pt: "Letterboxd (só filmes)", it: "Letterboxd (solo film)" },
+  "JustWatch (solo películas)": { en: "JustWatch (movies only)", pt: "JustWatch (só filmes)", it: "JustWatch (solo film)" },
+  "1. Desde una compu, instalá esa extensión desde la Chrome Web Store.": {
+    en: "1. From a computer, install that extension from the Chrome Web Store.",
+    pt: "1. De um computador, instale essa extensão na Chrome Web Store.",
+    it: "1. Da un computer, installa quell'estensione dal Chrome Web Store.",
+  },
+  "3. Pasate ese archivo a tu celu.": {
+    en: "3. Send that file to your phone.",
+    pt: "3. Passe esse arquivo para o seu celular.",
+    it: "3. Passa quel file al tuo telefono.",
+  },
+  "Importar desde TV Time, Letterboxd o JustWatch": {
+    en: "Import from TV Time, Letterboxd or JustWatch",
+    pt: "Importar do TV Time, Letterboxd ou JustWatch",
+    it: "Importa da TV Time, Letterboxd o JustWatch",
+  },
+  "Importar mi historial de TV Time, Letterboxd, JustWatch o Sofa Time": {
+    en: "Import my history from TV Time, Letterboxd, JustWatch or Sofa Time",
+    pt: "Importar meu histórico do TV Time, Letterboxd, JustWatch ou Sofa Time",
+    it: "Importa la mia cronologia da TV Time, Letterboxd, JustWatch o Sofa Time",
+  },
+  "Importar tu historial de TV Time, Letterboxd, JustWatch o Sofa Time": {
+    en: "Import your history from TV Time, Letterboxd, JustWatch or Sofa Time",
+    pt: "Importar seu histórico do TV Time, Letterboxd, JustWatch ou Sofa Time",
+    it: "Importa la tua cronologia da TV Time, Letterboxd, JustWatch o Sofa Time",
+  },
+  "Subís el archivo (ZIP completo de TV Time, o los CSV sueltos de TV Time/Letterboxd/JustWatch).": {
+    en: "Upload the file (full TV Time ZIP, or the loose TV Time/Letterboxd/JustWatch CSVs).",
+    pt: "Envie o arquivo (ZIP completo do TV Time, ou os CSVs soltos do TV Time/Letterboxd/JustWatch).",
+    it: "Carica il file (lo ZIP completo di TV Time, o i CSV separati di TV Time/Letterboxd/JustWatch).",
+  },
+  "Buscá el archivo que exportaste: el ZIP entero de TV Time (lo procesamos completo), o si preferís, los CSV sueltos (tracking-prod-records.csv, tracking-prod-records-v2.csv, o el de la extensión Refract), de Letterboxd (diary.csv o watched.csv), o de JustWatch (el CSV que arma la extensión de terceros).": {
+    en: "Find the file you exported: the whole TV Time ZIP (we process it completely), or if you prefer, the loose CSVs (tracking-prod-records.csv, tracking-prod-records-v2.csv, or the one from the Refract extension), from Letterboxd (diary.csv or watched.csv), or from JustWatch (the CSV that the third-party extension builds).",
+    pt: "Procure o arquivo que você exportou: o ZIP inteiro do TV Time (processamos completo), ou se preferir, os CSVs soltos (tracking-prod-records.csv, tracking-prod-records-v2.csv, ou o da extensão Refract), do Letterboxd (diary.csv ou watched.csv), ou do JustWatch (o CSV que a extensão de terceiros monta).",
+    it: "Cerca il file che hai esportato: l'intero ZIP di TV Time (lo elaboriamo completo), oppure se preferisci, i CSV separati (tracking-prod-records.csv, tracking-prod-records-v2.csv, o quello dell'estensione Refract), di Letterboxd (diary.csv o watched.csv), o di JustWatch (il CSV creato dall'estensione di terze parti).",
+  },
+  "Este grupo es privado. Enviá una solicitud para ver el contenido de adentro.": {
+    en: "This group is private. Send a request to see what's inside.",
+    pt: "Este grupo é privado. Envie uma solicitação para ver o conteúdo de dentro.",
+    it: "Questo gruppo è privato. Invia una richiesta per vedere il contenuto interno.",
+  },
+  "Etiquetas en publicaciones/comentarios": {
+    en: "Mentions in posts/comments",
+    pt: "Marcações em publicações/comentários",
+    it: "Menzioni in post/commenti",
+  },
+  "No se pudo marcar como vista": {
+    en: "Couldn't mark as watched",
+    pt: "Não foi possível marcar como visto",
+    it: "Non è stato possibile segnare come visto",
+  },
+  "{nombre} te mencionó en un comentario": {
+    en: "{nombre} mentioned you in a comment",
+    pt: "{nombre} te marcou em um comentário",
+    it: "{nombre} ti ha menzionato in un commento",
+  },
+  "{nombre} te mencionó en una publicación": {
+    en: "{nombre} mentioned you in a post",
+    pt: "{nombre} te marcou em uma publicação",
+    it: "{nombre} ti ha menzionato in un post",
+  },
   "1. Desde una compu, entrá a Letterboxd → Settings → Import & Export.": {
     en: "1. From a computer, go to Letterboxd → Settings → Import & Export.",
     pt: "1. De um computador, entre em Letterboxd → Settings → Import & Export.",

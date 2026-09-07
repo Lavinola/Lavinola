@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Image, TextInput, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Image, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import MentionTextInput from "./MentionTextInput";
 import { Text } from "./Themed";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -424,7 +425,9 @@ export default function EncuestaCard({ encuesta, userId, navigation, onCambio }:
 
       {mostrarInput && (
         <View style={styles.inputRow}>
-          <TextInput
+          <MentionTextInput
+            userId={userId}
+            groupId={encuesta.groupId}
             placeholderTextColor={theme.colors.textFaint}
             style={styles.input}
             placeholder={t("Comentar...")}

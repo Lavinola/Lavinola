@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, ScrollView, Image, Pressable, ActivityIndicator, Animated, LayoutChangeEvent, StyleSheet, TextInput } from "react-native";
+import { View, ScrollView, Image, Pressable, ActivityIndicator, Animated, LayoutChangeEvent, StyleSheet } from "react-native";
+import MentionTextInput from "../components/MentionTextInput";
 import { Text } from "../components/Themed";
 import { Alert } from "../lib/alert";
 import CommentThread from "../components/CommentThread";
@@ -224,7 +225,7 @@ export default function CommentsScreen({ route, navigation }: any) {
   }
 
   return (
-    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingHorizontal: 10 }}>
+    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 340 }}>
       {contexto && (
         <Pressable style={styles.contextoCard} onPress={abrirTitulo}>
           {contexto.poster_path ? (
@@ -355,7 +356,8 @@ export default function CommentsScreen({ route, navigation }: any) {
           </View>
 
           <View style={styles.inputRow}>
-            <TextInput
+            <MentionTextInput
+              userId={miUserId}
               placeholderTextColor={theme.colors.textFaint}
               style={styles.input}
               placeholder={t("Comentar...")}

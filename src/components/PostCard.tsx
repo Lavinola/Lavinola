@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Image, Pressable, StyleSheet, TextInput, ActivityIndicator } from "react-native";
+import { View, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import MentionTextInput from "./MentionTextInput";
 import { Alert } from "../lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
@@ -403,7 +404,8 @@ export default function PostCard({
 
       {mostrarInput && (
         <View style={styles.inputRow}>
-          <TextInput
+          <MentionTextInput
+            userId={userId}
             placeholderTextColor={theme.colors.textFaint}
             style={styles.input}
             placeholder={t("Responder (texto y/o GIF)...")}

@@ -364,7 +364,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
                     hitSlop={10}
                     disabled={noSalioTodavia}
                   >
-                    <Text style={[styles.vistaTilde, vista && styles.vistaTildeActivo]}>✓</Text>
+                    <Ionicons name="eye" size={22} color={vista ? theme.colors.text : theme.colors.textFaint} />
                   </Pressable>
                 </View>
               );
@@ -1230,7 +1230,7 @@ function EpisodiosTab({
                   disabled={!temporadaTerminoDeEmitir}
                   hitSlop={10}
                 >
-                  <Text style={[styles.tildeTexto, temporadaCompleta && styles.tildeTextoMarcado]}>✓</Text>
+                  <Ionicons name="eye" size={16} color={temporadaCompleta ? theme.colors.text : theme.colors.primary} />
                 </Pressable>
               </View>
             </Pressable>
@@ -1271,7 +1271,7 @@ function EpisodiosTab({
                       disabled={!yaSalio && !ep.visto}
                       hitSlop={10}
                     >
-                      <Text style={[styles.tildeTexto, ep.visto && styles.tildeTextoMarcado]}>✓</Text>
+                      <Ionicons name="eye" size={16} color={ep.visto ? theme.colors.text : theme.colors.primary} />
                     </Pressable>
                   </Pressable>
                 );

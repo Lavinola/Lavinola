@@ -10,6 +10,10 @@ import UnderlineTabs from "../components/UnderlineTabs";
 import { searchPerson, posterUrl } from "../lib/tmdb";
 import { buscarTitulosTolerante, ResultadoTitulo } from "../lib/tituloSearch";
 import { seguirSerie, agregarPelicula, syncSeries, syncMovie } from "../lib/sync";
+import { marcarTodaLaSerieVista } from "../lib/episodes";
+import { toggleVistaPelicula } from "../lib/watchStatus";
+import CalificarModal from "../components/CalificarModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { buscarUsuarios, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
 import { obtenerUsuariosRecomendados } from "../lib/recommendedUsersCache";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
@@ -40,6 +44,17 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   const [userId, setUserId] = useState<string | null>(null);
   const [agregando, setAgregando] = useState<number | null>(null);
   const [agregados, setAgregados] = useState<Set<string>>(new Set());
+  const [vistos, setVistos] = useState<Set<string>>(new Set());
+  const [marcandoVisto, setMarcandoVisto] = useState<number | null>(null);
+  const [confirmSerieVisible, setConfirmSerieVisible] = useState<ResultadoTitulo | null>(null);
+  const [calificarModal, setCalificarModal] = useState<{
+    tipo: "movie" | "episode" | "series";
+    tmdbId: number;
+    titulo: string;
+    posterPath: string | null;
+    temporada?: number;
+    episodio?: number;
+  } | null>(null);
 
   useState(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -67,6 +82,22 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     (series ?? []).forEach((s: any) => set.add(`series-${s.series_tmdb_id}`));
     (movies ?? []).forEach((m: any) => set.add(`movie-${m.movie_tmdb_id}`));
     setAgregados(set);
+
+    // Vistas: para películas, watched=true. Para series no hay un booleano
+    // único (se arma por episodio) — se usa last_watched_at, que es
+    // justo lo que deja marcado el botón del ojito al marcar el 1x1.
+    const [seriesVistas, moviesVistas] = await Promise.all([
+      fetchAllRows<any>((desde, hasta) =>
+        supabase.from("user_series").select("series_tmdb_id").eq("user_id", uid).not("last_watched_at", "is", null).range(desde, hasta)
+      ),
+      fetchAllRows<any>((desde, hasta) =>
+        supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", uid).eq("watched", true).range(desde, hasta)
+      ),
+    ]);
+    const setVistas = new Set<string>();
+    (seriesVistas ?? []).forEach((s: any) => setVistas.add(`series-${s.series_tmdb_id}`));
+    (moviesVistas ?? []).forEach((m: any) => setVistas.add(`movie-${m.movie_tmdb_id}`));
+    setVistos(setVistas);
   }
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -161,6 +192,55 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     }
   }
 
+  /**
+   * El botón del ojito: agrega el título (si hace falta) y lo marca como
+   * visto directo, sin tener que entrar al detalle — para cuando estás
+   * buscando y agregando muchos de una. En películas es directo; en
+   * series, como implica marcar TODOS los capítulos, primero se confirma
+   * (mismo cartel que ya existe en el detalle: "Ví toda la serie" /
+   * "¿Viste todos los capítulos?").
+   */
+  async function marcarVistaRapida(item: ResultadoTitulo) {
+    if (!userId) return;
+    const clave = `${item.tipo}-${item.id}`;
+    if (vistos.has(clave)) return;
+    if (item.tipo === "series") {
+      setConfirmSerieVisible(item);
+      return;
+    }
+    setMarcandoVisto(item.id);
+    try {
+      await agregarPelicula(userId, item.id);
+      await toggleVistaPelicula(userId, item.id, true);
+      setAgregados((prev) => new Set(prev).add(clave));
+      setVistos((prev) => new Set(prev).add(clave));
+      setCalificarModal({ tipo: "movie", tmdbId: item.id, titulo: item.titulo, posterPath: item.poster_path });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo marcar como vista"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    } finally {
+      setMarcandoVisto(null);
+    }
+  }
+
+  async function confirmarMarcarSerieVista() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    const clave = `${item.tipo}-${item.id}`;
+    setMarcandoVisto(item.id);
+    try {
+      await seguirSerie(userId, item.id);
+      await marcarTodaLaSerieVista(userId, item.id);
+      setAgregados((prev) => new Set(prev).add(clave));
+      setVistos((prev) => new Set(prev).add(clave));
+      setCalificarModal({ tipo: "series", tmdbId: item.id, titulo: item.titulo, posterPath: item.poster_path });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo marcar como vista"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    } finally {
+      setMarcandoVisto(null);
+    }
+  }
+
   const [abriendo, setAbriendo] = useState<number | null>(null);
 
   async function abrirTitulo(item: ResultadoTitulo) {
@@ -237,6 +317,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           }
           renderItem={({ item }) => {
             const yaAgregado = agregados.has(`${item.tipo}-${item.id}`);
+            const yaVista = vistos.has(`${item.tipo}-${item.id}`);
             return (
               <Pressable style={styles.card} onPress={() => abrirTitulo(item)} disabled={abriendo === item.id}>
                 {item.poster_path ? (
@@ -258,6 +339,18 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
                   <Text style={[styles.addBtnTexto, yaAgregado && styles.addBtnTextoAgregado]}>
                     {agregando === item.id ? "..." : yaAgregado ? "✓" : "+"}
                   </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.addBtn, yaVista && styles.addBtnAgregado, { marginLeft: 6 }]}
+                  onPress={() => marcarVistaRapida(item)}
+                  disabled={yaVista || marcandoVisto === item.id}
+                  hitSlop={8}
+                >
+                  {marcandoVisto === item.id ? (
+                    <ActivityIndicator size="small" color={theme.colors.primaryLight} />
+                  ) : (
+                    <Ionicons name="eye" size={16} color={yaVista ? "#000000" : theme.colors.primaryLight} />
+                  )}
                 </Pressable>
               </Pressable>
             );
@@ -320,6 +413,29 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           )}
         />
       )}
+      {calificarModal && (
+        <CalificarModal
+          visible={!!calificarModal}
+          onCerrar={() => setCalificarModal(null)}
+          tipo={calificarModal.tipo}
+          tmdbId={calificarModal.tmdbId}
+          temporada={calificarModal.temporada}
+          episodio={calificarModal.episodio}
+          titulo={calificarModal.titulo}
+          posterPath={calificarModal.posterPath}
+          navigation={navigation}
+        />
+      )}
+      <ConfirmModal
+        visible={!!confirmSerieVisible}
+        onCerrar={() => setConfirmSerieVisible(null)}
+        titulo={t("Ví toda la serie")}
+        mensaje={t("¿Viste todos los capítulos?")}
+        botones={[
+          { label: t("No"), onPress: () => {} },
+          { label: t("Sí"), destacado: true, onPress: confirmarMarcarSerieVista },
+        ]}
+      />
     </View>
   );
 }

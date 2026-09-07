@@ -72,10 +72,10 @@ export default function ComoUsarLavinolaScreen() {
       ],
     },
     {
-      titulo: t("Importar desde TV Time o Letterboxd"),
+      titulo: t("Importar desde TV Time, Letterboxd o JustWatch"),
       pasos: [
         t("Perfil → Ajustes → Importar datos."),
-        t("Subís el archivo (ZIP completo de TV Time, o los CSV sueltos de TV Time/Letterboxd)."),
+        t("Subís el archivo (ZIP completo de TV Time, o los CSV sueltos de TV Time/Letterboxd/JustWatch)."),
         t("Lavinola identifica tus títulos solo contra TMDB — si hay dudas en algún caso puntual, te va a preguntar cuál es el correcto."),
       ],
     },

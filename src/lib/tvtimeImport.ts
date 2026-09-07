@@ -7,6 +7,12 @@
  *  - Letterboxd (solo películas), el export oficial de la cuenta
  *    (Settings → Import & Export → Export data): diary.csv o watched.csv,
  *    reconocible por su columna "Letterboxd URI".
+ *  - JustWatch (solo películas) — JustWatch no tiene exportación propia;
+ *    se consigue con una extensión de Chrome de terceros ("JustWatch CSV
+ *    Exporter") que arma un CSV en el formato de IMPORTACIÓN de Letterboxd
+ *    (columnas "Title"/"Year"/"WatchedDate" — distinto al de EXPORTACIÓN de
+ *    Letterboxd, que usa "Name"/"Date"/"Letterboxd URI"). Se reconoce por
+ *    tener "Title" y "Year" pero NO "Letterboxd URI".
  *
  * La salida de todos los parsers se normaliza a `RegistroImportado`, que es
  * lo único que el resto del importador (matcher.ts) necesita conocer — así
@@ -28,17 +34,24 @@ export interface RegistroImportado {
   soloPendiente?: boolean; // "quiero verla" / watchlist, no vista todavía — si no está, se asume vista (comportamiento de siempre)
 }
 
-/** Detecta el formato del archivo por su contenido y lo parsea (TV Time o Letterboxd). */
+/** Detecta el formato del archivo por su contenido y lo parsea (TV Time, Letterboxd o JustWatch). */
 export function parseArchivoTVTime(contenido: string, nombreArchivo: string): RegistroImportado[] {
   const esJSON = nombreArchivo.toLowerCase().endsWith(".json") || contenido.trim().startsWith("[") || contenido.trim().startsWith("{");
 
   if (esJSON) return parseJSON(contenido);
 
+  const primeraLinea = contenido.split("\n")[0] ?? "";
+
   // Letterboxd siempre trae esta columna en su export — es la forma más
   // confiable de reconocerlo (el nombre del archivo puede variar: diary.csv,
   // watched.csv, etc., pero la columna "Letterboxd URI" siempre está).
-  const primeraLinea = contenido.split("\n")[0] ?? "";
   if (/letterboxd\s*uri/i.test(primeraLinea)) return parseLetterboxd(contenido);
+
+  // Formato de importación de Letterboxd (usado por la extensión de
+  // JustWatch, y por cualquier otra herramienta pensada para subirse
+  // directo al importador de Letterboxd): trae "Title" y "Year" pero no
+  // "Letterboxd URI" (esa columna es exclusiva del export propio).
+  if (/\btitle\b/i.test(primeraLinea) && /\byear\b/i.test(primeraLinea)) return parseFormatoImportacionLetterboxd(contenido);
 
   return parseCSV(contenido, nombreArchivo);
 }
@@ -60,6 +73,37 @@ function parseLetterboxd(contenido: string): RegistroImportado[] {
         tipo: "movie",
         nombreOriginal: nombre,
         fechaVisto: fecha,
+      };
+    })
+    .filter((r): r is RegistroImportado => r !== null);
+}
+
+/**
+ * Formato de IMPORTACIÓN de Letterboxd (Title/Year/WatchedDate/...) — lo
+ * usa la extensión de JustWatch, y en general cualquier herramienta de
+ * terceros armada para subirse al importador de Letterboxd, no exclusivo
+ * de JustWatch. Columnas del estándar público de Letterboxd: Title, Year,
+ * Directors, WatchedDate, Rating10, Rewatch, Tags, Review — acá solo se
+ * usan Title/Year/WatchedDate, el resto no hace falta para trackear.
+ */
+function parseFormatoImportacionLetterboxd(contenido: string): RegistroImportado[] {
+  const { data } = Papa.parse<Record<string, string>>(contenido, {
+    header: true,
+    skipEmptyLines: true,
+  });
+
+  return data
+    .map((row: Record<string, string>): RegistroImportado | null => {
+      const nombre = row["Title"] || row["title"] || "";
+      if (!nombre) return null;
+      const fecha = row["WatchedDate"] || row["Watched Date"] || row["watchedDate"] || row["Date"] || row["date"] || undefined;
+      const añoTexto = row["Year"] || row["year"] || "";
+      const año = añoTexto ? Number(añoTexto) : undefined;
+      return {
+        tipo: "movie",
+        nombreOriginal: nombre,
+        fechaVisto: fecha,
+        añoLanzamiento: año && !Number.isNaN(año) ? año : undefined,
       };
     })
     .filter((r): r is RegistroImportado => r !== null);

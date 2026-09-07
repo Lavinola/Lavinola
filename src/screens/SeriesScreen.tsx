@@ -480,7 +480,7 @@ function FilaSerie({
         hitSlop={10}
         disabled={marcando || realmenteSinEstrenar}
       >
-        <Text style={[styles.tildeTexto, marcando && styles.tildeTextoMarcado]}>✓</Text>
+        <Ionicons name="eye" size={18} color={marcando ? theme.colors.primary : theme.colors.primary} />
       </Pressable>
     </Pressable>
   );

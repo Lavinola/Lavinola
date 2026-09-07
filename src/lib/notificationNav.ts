@@ -57,6 +57,15 @@ export async function navegarSegunNotificacion(n: Notificacion, navigation: any)
     return;
   }
 
+  if (n.type === "mention") {
+    if (n.target_type === "post" && n.target_id) {
+      navigation.navigate("MisComentarios", { highlightPostId: n.target_id });
+      return;
+    }
+    await navegarAComentario(n.target_type, n.target_id, navigation, n.comment_id);
+    return;
+  }
+
   if (n.type === "like" && n.target_type === "comment" && n.target_id) {
     const { data } = await supabase.from("comentarios").select("target_type, target_id").eq("id", n.target_id).maybeSingle();
     if (data) await navegarAComentario(data.target_type, data.target_id, navigation, n.comment_id ?? n.target_id);

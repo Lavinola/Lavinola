@@ -463,7 +463,7 @@ export default function ImportTVTimeScreen() {
   if (etapa === "instrucciones") {
     return (
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.instruccionesContainer}>
-        <Text style={styles.titulo}>{t("Importar tu historial de TV Time, Letterboxd o Sofa Time")}</Text>
+        <Text style={styles.titulo}>{t("Importar tu historial de TV Time, Letterboxd, JustWatch o Sofa Time")}</Text>
 
         <View style={styles.opcionBox}>
           <Text style={styles.opcionTitulo}>{t("TV Time")}</Text>
@@ -481,6 +481,18 @@ export default function ImportTVTimeScreen() {
           <Text style={styles.paso}>{t('2. Tocá "Export your data" — te descarga un ZIP.')}</Text>
           <Text style={styles.paso}>{t("3. Descomprimí el ZIP y buscá el archivo diary.csv (o watched.csv).")}</Text>
           <Text style={styles.paso}>{t("4. Pasate ese archivo a tu celu.")}</Text>
+        </View>
+
+        <View style={styles.opcionBox}>
+          <Text style={styles.opcionTitulo}>{t("JustWatch (solo películas)")}</Text>
+          <Text style={styles.paso}>
+            {t(
+              "JustWatch no tiene un botón propio para exportar tu lista — se consigue con una extensión de Chrome de terceros llamada \"JustWatch CSV Exporter\", que arma un archivo compatible."
+            )}
+          </Text>
+          <Text style={styles.paso}>{t("1. Desde una compu, instalá esa extensión desde la Chrome Web Store.")}</Text>
+          <Text style={styles.paso}>{t('2. Abrí tu lista de "Vistas" en JustWatch y usá la extensión para generar el CSV (formato Letterboxd).')}</Text>
+          <Text style={styles.paso}>{t("3. Pasate ese archivo a tu celu.")}</Text>
         </View>
 
         <View style={styles.opcionBox}>
@@ -504,7 +516,7 @@ export default function ImportTVTimeScreen() {
       <View style={styles.centro}>
         <Text style={styles.titulo}>{t("Elegí el archivo")}</Text>
         <Text style={styles.parrafo}>
-          {t("Buscá el archivo que exportaste: el ZIP entero de TV Time (lo procesamos completo), o si preferís, los CSV sueltos (tracking-prod-records.csv, tracking-prod-records-v2.csv, o el de la extensión Refract) o de Letterboxd (diary.csv o watched.csv).")}
+          {t("Buscá el archivo que exportaste: el ZIP entero de TV Time (lo procesamos completo), o si preferís, los CSV sueltos (tracking-prod-records.csv, tracking-prod-records-v2.csv, o el de la extensión Refract), de Letterboxd (diary.csv o watched.csv), o de JustWatch (el CSV que arma la extensión de terceros).")}
         </Text>
         <AppButton title={t("Elegir archivo")} onPress={elegirArchivo} />
         <ConfirmModal

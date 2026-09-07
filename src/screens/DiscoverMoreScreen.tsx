@@ -11,7 +11,11 @@ import DiscoverFilterModal from "../components/DiscoverFilterModal";
 import { supabase } from "../lib/supabase";
 import { posterUrl, getWatchProvidersDisponibles, GrupoPlataforma } from "../lib/tmdb";
 import { syncSeries, syncMovie, seguirSerie, agregarPelicula } from "../lib/sync";
-import { descubrirPagina, idsYaAgregados, OrdenDescubrir, EstadoSerie, ItemDescubrir, ETIQUETAS_ORDEN } from "../lib/discover";
+import { marcarTodaLaSerieVista } from "../lib/episodes";
+import { toggleVistaPelicula } from "../lib/watchStatus";
+import CalificarModal from "../components/CalificarModal";
+import ConfirmModal from "../components/ConfirmModal";
+import { descubrirPagina, idsYaAgregados, idsYaVistos, OrdenDescubrir, EstadoSerie, ItemDescubrir, ETIQUETAS_ORDEN } from "../lib/discover";
 import { GENEROS_SERIES, GENEROS_PELICULAS } from "../lib/tmdbGenres";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -51,6 +55,17 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
   const [abriendo, setAbriendo] = useState<number | null>(null);
   const [agregados, setAgregados] = useState<Set<string>>(new Set());
   const [agregando, setAgregando] = useState<number | null>(null);
+  const [vistos, setVistos] = useState<Set<string>>(new Set());
+  const [marcandoVisto, setMarcandoVisto] = useState<number | null>(null);
+  const [confirmSerieVisible, setConfirmSerieVisible] = useState<ItemDescubrir | null>(null);
+  const [calificarModal, setCalificarModal] = useState<{
+    tipo: "movie" | "episode" | "series";
+    tmdbId: number;
+    titulo: string;
+    posterPath: string | null;
+    temporada?: number;
+    episodio?: number;
+  } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -70,6 +85,9 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
     useCallback(() => {
       idsYaAgregados(userId, tipo).then((ids) => {
         setAgregados(new Set([...ids].map((id) => `${tipo}-${id}`)));
+      });
+      idsYaVistos(userId, tipo).then((ids) => {
+        setVistos(new Set([...ids].map((id) => `${tipo}-${id}`)));
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tipo, userId])
@@ -152,6 +170,55 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
     }
   }
 
+  /**
+   * Botón del ojito: agrega (si hace falta) y marca como vista directo,
+   * sin tener que entrar al detalle — abre la misma ventanita de calificar
+   * que aparece al marcar como vista desde el detalle. En películas es
+   * directo; en series, como implica marcar TODOS los capítulos, primero
+   * se confirma (mismo cartel que ya existe en el detalle: "Ví toda la
+   * serie" / "¿Viste todos los capítulos?").
+   */
+  async function marcarVistaRapida(item: ItemDescubrir) {
+    if (!userId) return;
+    const clave = `${item.tipo}-${item.id}`;
+    if (vistos.has(clave)) return;
+    if (item.tipo === "series") {
+      setConfirmSerieVisible(item);
+      return;
+    }
+    setMarcandoVisto(item.id);
+    try {
+      await agregarPelicula(userId, item.id);
+      await toggleVistaPelicula(userId, item.id, true);
+      setAgregados((prev) => new Set(prev).add(clave));
+      setVistos((prev) => new Set(prev).add(clave));
+      setCalificarModal({ tipo: "movie", tmdbId: item.id, titulo: item.titulo, posterPath: item.poster_path });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo marcar como vista"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    } finally {
+      setMarcandoVisto(null);
+    }
+  }
+
+  async function confirmarMarcarSerieVista() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    const clave = `${item.tipo}-${item.id}`;
+    setMarcandoVisto(item.id);
+    try {
+      await seguirSerie(userId, item.id);
+      await marcarTodaLaSerieVista(userId, item.id);
+      setAgregados((prev) => new Set(prev).add(clave));
+      setVistos((prev) => new Set(prev).add(clave));
+      setCalificarModal({ tipo: "series", tmdbId: item.id, titulo: item.titulo, posterPath: item.poster_path });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo marcar como vista"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    } finally {
+      setMarcandoVisto(null);
+    }
+  }
+
   const generos = tipo === "series" ? GENEROS_SERIES : GENEROS_PELICULAS;
 
   return (
@@ -191,6 +258,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
           renderItem={({ item }) => {
             const clave = `${item.tipo}-${item.id}`;
             const yaAgregado = agregados.has(clave);
+            const yaVista = vistos.has(clave);
             return (
               <Pressable style={styles.card} onPress={() => abrir(item)} disabled={abriendo === item.id}>
                 {item.poster_path ? (
@@ -213,14 +281,28 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
                 {abriendo === item.id ? (
                   <ActivityIndicator size="small" />
                 ) : (
-                  <Pressable
-                    style={[styles.masBtn, yaAgregado && styles.masBtnAgregado]}
-                    onPress={() => agregarRapido(item)}
-                    disabled={yaAgregado || agregando === item.id}
-                    hitSlop={8}
-                  >
-                    <Text style={[styles.masBtnTexto, yaAgregado && styles.masBtnTextoAgregado]}>{yaAgregado ? "✓" : "+"}</Text>
-                  </Pressable>
+                  <>
+                    <Pressable
+                      style={[styles.masBtn, yaAgregado && styles.masBtnAgregado]}
+                      onPress={() => agregarRapido(item)}
+                      disabled={yaAgregado || agregando === item.id}
+                      hitSlop={8}
+                    >
+                      <Text style={[styles.masBtnTexto, yaAgregado && styles.masBtnTextoAgregado]}>{yaAgregado ? "✓" : "+"}</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.masBtn, yaVista && styles.masBtnAgregado, { marginLeft: 6 }]}
+                      onPress={() => marcarVistaRapida(item)}
+                      disabled={yaVista || marcandoVisto === item.id}
+                      hitSlop={8}
+                    >
+                      {marcandoVisto === item.id ? (
+                        <ActivityIndicator size="small" color={theme.colors.primaryLight} />
+                      ) : (
+                        <Ionicons name="eye" size={16} color={yaVista ? "#000000" : theme.colors.primaryLight} />
+                      )}
+                    </Pressable>
+                  </>
                 )}
               </Pressable>
             );
@@ -244,6 +326,29 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
           setPlataformas(params.plataformas);
           setFiltroVisible(false);
         }}
+      />
+      {calificarModal && (
+        <CalificarModal
+          visible={!!calificarModal}
+          onCerrar={() => setCalificarModal(null)}
+          tipo={calificarModal.tipo}
+          tmdbId={calificarModal.tmdbId}
+          temporada={calificarModal.temporada}
+          episodio={calificarModal.episodio}
+          titulo={calificarModal.titulo}
+          posterPath={calificarModal.posterPath}
+          navigation={navigation}
+        />
+      )}
+      <ConfirmModal
+        visible={!!confirmSerieVisible}
+        onCerrar={() => setConfirmSerieVisible(null)}
+        titulo={t("Ví toda la serie")}
+        mensaje={t("¿Viste todos los capítulos?")}
+        botones={[
+          { label: t("No"), onPress: () => {} },
+          { label: t("Sí"), destacado: true, onPress: confirmarMarcarSerieVista },
+        ]}
       />
     </View>
   );

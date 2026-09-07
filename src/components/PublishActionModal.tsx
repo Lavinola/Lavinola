@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { View, Modal, TextInput, Pressable, Keyboard, StyleSheet, KeyboardEvent } from "react-native";
+import { View, Modal, Pressable, Keyboard, StyleSheet, KeyboardEvent } from "react-native";
 import { useSafeAreaInsets, SafeAreaProvider } from "react-native-safe-area-context";
 import { Alert } from "../lib/alert";
 import { Text, AppButton } from "./Themed";
+import MentionTextInput from "./MentionTextInput";
 import { crearPost, crearPostDeLista, crearPostDeGrupo } from "../lib/posts";
 import { chequearSubidaDeNivel, NivelInsignia } from "../lib/badges";
 import NivelUpModal from "./NivelUpModal";
@@ -43,6 +44,12 @@ export default function PublishActionModal({
   const [publicando, setPublicando] = useState(false);
   const [publicado, setPublicado] = useState(false);
   const [nivelSubido, setNivelSubido] = useState<NivelInsignia | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
+  }, [visible]);
 
   function reset() {
     setModo(modoInicial);
@@ -119,6 +126,7 @@ export default function PublishActionModal({
           cerrar={cerrar}
           irARecomendar={irARecomendar}
           publicar={publicar}
+          userId={userId}
         />
       </SafeAreaProvider>
     </Modal>
@@ -142,6 +150,7 @@ function ContenidoModal({
   cerrar,
   irARecomendar,
   publicar,
+  userId,
 }: any) {
   const { t } = useT();
   const insets = useSafeAreaInsets();
@@ -184,7 +193,9 @@ function ContenidoModal({
           </>
         ) : (
           <>
-            <TextInput
+            <MentionTextInput
+              userId={userId}
+              groupId={publicarGrupoParams?.groupId ?? null}
               style={styles.input}
               placeholder={t("¿Qué querés contar sobre esto?")}
               placeholderTextColor={theme.colors.textFaint}
@@ -192,8 +203,8 @@ function ContenidoModal({
               onChangeText={setTexto}
               multiline
               maxLength={2000}
-              editable={!publicado}
               autoFocus
+              editable={!publicado}
             />
             {!publicarListaParams && !publicarGrupoParams && (
               <Pressable style={styles.spoilerRow} onPress={() => !publicado && setEsSpoiler(!esSpoiler)}>

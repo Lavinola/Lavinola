@@ -364,7 +364,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
               disabled={!visto && noSalioTodavia}
               hitSlop={10}
             >
-              <Text style={[styles.vistaTilde, visto && styles.vistaTildeActivo]}>✓</Text>
+              <Ionicons name="eye" size={22} color={visto ? theme.colors.text : theme.colors.textFaint} />
             </Pressable>
           </View>
         )}

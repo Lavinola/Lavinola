@@ -49,6 +49,27 @@ export async function idsYaAgregados(userId: string | null, tipo: "series" | "mo
   return new Set(data.map((r: any) => r[columna]));
 }
 
+/**
+ * Para el botón del ojito (marcar como vista directo desde una lista de
+ * descubrir/buscar): para películas, `watched=true`. Para series no hay un
+ * booleano "vista" único (se arma por episodio) — se usa `last_watched_at`
+ * como proxy de "ya arrancó a verla", que es justo lo que deja marcado el
+ * botón del ojito al marcar el 1x1.
+ */
+export async function idsYaVistos(userId: string | null, tipo: "series" | "movie"): Promise<Set<number>> {
+  if (!userId) return new Set();
+  if (tipo === "movie") {
+    const data = await fetchAllRows<any>((desde, hasta) =>
+      supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", userId).eq("watched", true).range(desde, hasta)
+    );
+    return new Set(data.map((r: any) => r.movie_tmdb_id));
+  }
+  const data = await fetchAllRows<any>((desde, hasta) =>
+    supabase.from("user_series").select("series_tmdb_id").eq("user_id", userId).not("last_watched_at", "is", null).range(desde, hasta)
+  );
+  return new Set(data.map((r: any) => r.series_tmdb_id));
+}
+
 /** Trae metadata (nombre/poster/año/temporadas/status) desde la caché para una lista de tmdb_ids, en el mismo orden. */
 async function enriquecerDesdeCache(tipo: "series" | "movie", ids: number[]): Promise<ItemDescubrir[]> {
   if (ids.length === 0) return [];

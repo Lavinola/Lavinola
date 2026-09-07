@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 
 export interface Notificacion {
   id: string;
-  type: "like" | "reply" | "follow" | "follow_request" | "follow_accepted" | "shared_title" | "group_muted" | "group_removed" | "group_message" | "group_join_request" | "list_item_added" | "list_followed";
+  type: "like" | "reply" | "follow" | "follow_request" | "follow_accepted" | "shared_title" | "group_muted" | "group_removed" | "group_message" | "group_join_request" | "list_item_added" | "list_followed" | "mention";
   actor_id: string | null;
   actor_username: string | null;
   actor_display_name: string | null;
@@ -193,6 +193,10 @@ export function textoNotificacion(n: Notificacion, t: (s: string) => string = (s
         : t("{nombre} reaccionó a tu comentario").replace("{nombre}", nombre);
     case "reply":
       return t("{nombre} respondió tu comentario").replace("{nombre}", nombre);
+    case "mention":
+      return n.target_type === "post"
+        ? t("{nombre} te mencionó en una publicación").replace("{nombre}", nombre)
+        : t("{nombre} te mencionó en un comentario").replace("{nombre}", nombre);
     case "follow":
       if (cantidadExtra > 0) {
         return t("{nombre} y {n} personas más empezaron a seguirte").replace("{nombre}", nombre).replace("{n}", String(cantidadExtra));
