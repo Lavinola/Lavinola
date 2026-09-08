@@ -100,8 +100,8 @@ function etiquetaEstadoSerie(status: string | null | undefined, firstAirDate: st
 
 export default function TitleDetailScreen({ route, navigation }: Props) {
   const { t } = useT();
-  const { tmdbId, tipo } = route.params;
-  const [tab, setTab] = useState<Tab>("info");
+  const { tmdbId, tipo, tabInicial } = route.params;
+  const [tab, setTab] = useState<Tab>(tabInicial === "episodios" ? "episodios" : "info");
   const [titulo, setTitulo] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [favorito, setFavorito] = useState(false);

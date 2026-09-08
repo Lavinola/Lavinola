@@ -241,6 +241,25 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
     }
   }
 
+  /**
+   * "No, no la vi toda": en vez de no hacer nada, se agrega la serie
+   * igual (para que quede en tu lista de pendientes) y se abre directo en
+   * la solapa de episodios, para que la persona marque a mano hasta dónde
+   * vio.
+   */
+  async function noVistaCompleta() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    try {
+      await seguirSerie(userId, item.id);
+      setAgregados((prev) => new Set(prev).add(`${item.tipo}-${item.id}`));
+      navigation.navigate("DetalleTitulo", { tmdbId: item.id, tipo: "series", tabInicial: "episodios" });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo agregar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    }
+  }
+
   const [abriendo, setAbriendo] = useState<number | null>(null);
 
   async function abrirTitulo(item: ResultadoTitulo) {
@@ -377,6 +396,9 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
                 <Avatar uri={item.avatar_url} size={40} style={{ marginRight: 12 }} />
                 <Text style={styles.nombre}>{item.username ?? t("Usuario")}</Text>
               </Pressable>
+              {typeof item.compatibilidad === "number" && item.compatibilidad > 0 && (
+                <Text style={styles.compatTexto}>{item.compatibilidad}%</Text>
+              )}
               <Pressable
                 style={[styles.followBtn, (item.siguiendo || item.solicitudPendiente) && styles.followBtnActivo]}
                 onPress={() => toggleFollow(item)}
@@ -432,10 +454,10 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
       <ConfirmModal
         visible={!!confirmSerieVisible}
         onCerrar={() => setConfirmSerieVisible(null)}
-        titulo={t("Ví toda la serie")}
-        mensaje={t("¿Viste todos los capítulos?")}
+        titulo={t("¿Viste toda la serie?")}
+        mensaje={t("Marcar todos los episodios como vistos")}
         botones={[
-          { label: t("No"), onPress: () => {} },
+          { label: t("No"), onPress: noVistaCompleta },
           { label: t("Sí"), destacado: true, onPress: confirmarMarcarSerieVista },
         ]}
       />
@@ -459,6 +481,7 @@ const styles = StyleSheet.create({
   card: { flexDirection: "row", alignItems: "center", backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 8, marginBottom: 10 },
   cardInfo: { flexDirection: "row", alignItems: "center", flex: 1 },
   followBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 10 },
+  compatTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 13, marginRight: 8 },
   followBtnTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   followBtnActivo: { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border },
   followBtnTextoActivo: { color: theme.colors.textMuted },

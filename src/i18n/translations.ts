@@ -1903,6 +1903,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   Banners: { en: "Banners", pt: "Banners", it: "Banner" },
   "de Gustos en común": { en: "in common tastes", pt: "de Gostos em comum", it: "di Gusti in comune" },
   "Gustos en común": { en: "in common tastes", pt: "de Gostos em comum", it: "di Gusti in comune" },
+  "% Gustos en común": { en: "% Common tastes", pt: "% Gostos em comum", it: "% Gusti in comune" },
   "Importar tu historial de TV Time": { en: "Import your TV Time history", pt: "Importar seu histórico do TV Time", it: "Importa la tua cronologia da TV Time" },
   'Antes de nada, necesitás el archivo con tus datos. TV Time no tiene un botón de "exportar" adentro de la app, así que hay dos caminos:': {
     en: 'First, you need the file with your data. TV Time doesn\'t have an "export" button inside the app, so there are two ways:',
@@ -2059,6 +2060,12 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   },
   "Letterboxd (solo películas)": { en: "Letterboxd (movies only)", pt: "Letterboxd (só filmes)", it: "Letterboxd (solo film)" },
   "(Serie)": { en: "(TV Show)", pt: "(Série)", it: "(Serie TV)" },
+  "¿Viste toda la serie?": { en: "Did you watch the whole series?", pt: "Você viu a série toda?", it: "Hai visto tutta la serie?" },
+  "Marcar todos los episodios como vistos": {
+    en: "Mark all episodes as watched",
+    pt: "Marcar todos os episódios como vistos",
+    it: "Segna tutti gli episodi come visti",
+  },
   "(Película)": { en: "(Movie)", pt: "(Filme)", it: "(Film)" },
   "JustWatch (solo películas)": { en: "JustWatch (movies only)", pt: "JustWatch (só filmes)", it: "JustWatch (solo film)" },
   "1. Desde una compu, instalá esa extensión desde la Chrome Web Store.": {

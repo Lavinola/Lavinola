@@ -7,6 +7,10 @@ import { supabase } from "../lib/supabase";
 import { getSeriesWatchProviders, getMovieWatchProviders, getWatchProvidersDisponibles, posterUrl, GrupoPlataforma } from "../lib/tmdb";
 import { topTitulosMensual, ItemTopMensual } from "../lib/topMensual";
 import { seguirSerie, agregarPelicula } from "../lib/sync";
+import { marcarTodaLaSerieVista } from "../lib/episodes";
+import { toggleVistaPelicula } from "../lib/watchStatus";
+import CalificarModal from "../components/CalificarModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { PAISES } from "../lib/countries";
 import { GENEROS_SERIES, GENEROS_PELICULAS } from "../lib/tmdbGenres";
 import UnderlineTabs from "../components/UnderlineTabs";
@@ -23,6 +27,15 @@ export default function TopMonthlyScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [agregados, setAgregados] = useState<Set<number>>(new Set());
+  const [vistos, setVistos] = useState<Set<number>>(new Set());
+  const [marcandoVisto, setMarcandoVisto] = useState<number | null>(null);
+  const [confirmSerieVisible, setConfirmSerieVisible] = useState<ItemTopMensual | null>(null);
+  const [calificarModal, setCalificarModal] = useState<{
+    tipo: "movie" | "series";
+    tmdbId: number;
+    titulo: string;
+    posterPath: string | null;
+  } | null>(null);
   const [generoId, setGeneroId] = useState<number | null>(null);
   const [filtrosVisible, setFiltrosVisible] = useState(false);
   const [plataformas, setPlataformas] = useState<string[]>([]);
@@ -100,6 +113,15 @@ export default function TopMonthlyScreen({ navigation }: any) {
         const columna = tipo === "series" ? "series_tmdb_id" : "movie_tmdb_id";
         const { data: yaTengo } = await supabase.from(tabla).select(columna).eq("user_id", userId).in(columna, ids);
         setAgregados(new Set((yaTengo ?? []).map((r: any) => r[columna])));
+
+        // Vistas: para películas, watched=true. Para series no hay un
+        // booleano único (se arma por episodio) — se usa last_watched_at,
+        // que es justo lo que deja marcado marcarTodaLaSerieVista.
+        const { data: yaVistas } =
+          tipo === "series"
+            ? await supabase.from("user_series").select("series_tmdb_id").eq("user_id", userId).in("series_tmdb_id", ids).not("last_watched_at", "is", null)
+            : await supabase.from("user_movies").select("movie_tmdb_id").eq("user_id", userId).in("movie_tmdb_id", ids).eq("watched", true);
+        setVistos(new Set((yaVistas ?? []).map((r: any) => r[columna])));
       }
     } finally {
       setLoading(false);
@@ -114,6 +136,67 @@ export default function TopMonthlyScreen({ navigation }: any) {
       setAgregados((prev) => new Set(prev).add(item.tmdb_id));
     } catch (e: any) {
       console.error("Error al agregar rápido desde Top mensual:", e);
+    }
+  }
+
+  /**
+   * Botón del ojito: agrega (si hace falta) y marca como vista directo,
+   * sin tener que entrar al detalle. En películas es directo; en series,
+   * como implica marcar TODOS los capítulos, primero se confirma.
+   */
+  async function marcarVistaRapida(item: ItemTopMensual) {
+    if (!userId || vistos.has(item.tmdb_id)) return;
+    if (tipo === "series") {
+      setConfirmSerieVisible(item);
+      return;
+    }
+    setMarcandoVisto(item.tmdb_id);
+    try {
+      await agregarPelicula(userId, item.tmdb_id);
+      await toggleVistaPelicula(userId, item.tmdb_id, true);
+      setAgregados((prev) => new Set(prev).add(item.tmdb_id));
+      setVistos((prev) => new Set(prev).add(item.tmdb_id));
+      setCalificarModal({ tipo: "movie", tmdbId: item.tmdb_id, titulo: item.nombre, posterPath: item.poster_path });
+    } catch (e: any) {
+      console.error("Error al marcar como vista desde Top mensual:", e);
+    } finally {
+      setMarcandoVisto(null);
+    }
+  }
+
+  async function confirmarMarcarSerieVista() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    setMarcandoVisto(item.tmdb_id);
+    try {
+      await seguirSerie(userId, item.tmdb_id);
+      await marcarTodaLaSerieVista(userId, item.tmdb_id);
+      setAgregados((prev) => new Set(prev).add(item.tmdb_id));
+      setVistos((prev) => new Set(prev).add(item.tmdb_id));
+      setCalificarModal({ tipo: "series", tmdbId: item.tmdb_id, titulo: item.nombre, posterPath: item.poster_path });
+    } catch (e: any) {
+      console.error("Error al marcar toda la serie vista desde Top mensual:", e);
+    } finally {
+      setMarcandoVisto(null);
+    }
+  }
+
+  /**
+   * "No, no la vi toda": se agrega la serie igual (para que quede en tu
+   * lista de pendientes) y se abre directo en la solapa de episodios,
+   * para que la persona marque a mano hasta dónde vio.
+   */
+  async function noVistaCompleta() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    try {
+      await seguirSerie(userId, item.tmdb_id);
+      setAgregados((prev) => new Set(prev).add(item.tmdb_id));
+      navigation.navigate("DetalleTitulo", { tmdbId: item.tmdb_id, tipo: "series", tabInicial: "episodios" });
+    } catch (e: any) {
+      console.error("Error al agregar la serie desde Top mensual:", e);
     }
   }
 
@@ -223,6 +306,18 @@ export default function TopMonthlyScreen({ navigation }: any) {
                   {agregados.has(item.tmdb_id) ? "✓" : "+"}
                 </Text>
               </Pressable>
+              <Pressable
+                style={[styles.agregarBtn, vistos.has(item.tmdb_id) && styles.agregarBtnActivo, { marginLeft: 6 }]}
+                onPress={() => marcarVistaRapida(item)}
+                disabled={vistos.has(item.tmdb_id) || marcandoVisto === item.tmdb_id}
+                hitSlop={8}
+              >
+                {marcandoVisto === item.tmdb_id ? (
+                  <ActivityIndicator size="small" color={theme.colors.primaryLight} />
+                ) : (
+                  <Ionicons name="eye" size={16} color={vistos.has(item.tmdb_id) ? "#000000" : theme.colors.primaryLight} />
+                )}
+              </Pressable>
             </Pressable>
           )}
         />
@@ -317,6 +412,27 @@ export default function TopMonthlyScreen({ navigation }: any) {
           />
         </View>
       </Modal>
+      {calificarModal && (
+        <CalificarModal
+          visible={!!calificarModal}
+          onCerrar={() => setCalificarModal(null)}
+          tipo={calificarModal.tipo}
+          tmdbId={calificarModal.tmdbId}
+          titulo={calificarModal.titulo}
+          posterPath={calificarModal.posterPath}
+          navigation={navigation}
+        />
+      )}
+      <ConfirmModal
+        visible={!!confirmSerieVisible}
+        onCerrar={() => setConfirmSerieVisible(null)}
+        titulo={t("¿Viste toda la serie?")}
+        mensaje={t("Marcar todos los episodios como vistos")}
+        botones={[
+          { label: t("No"), onPress: noVistaCompleta },
+          { label: t("Sí"), destacado: true, onPress: confirmarMarcarSerieVista },
+        ]}
+      />
     </View>
   );
 }

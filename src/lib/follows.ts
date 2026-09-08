@@ -16,6 +16,22 @@ export async function usuariosMutuos(userId: string): Promise<UsuarioBasico[]> {
   return (perfiles ?? []).map((p: any) => ({ id: p.id, username: p.username, avatar_url: p.avatar_url, siguiendo: true }));
 }
 
+/**
+ * % de compatibilidad para una lista puntual de usuarios (no elige
+ * candidatos ella misma, se le pasan) — se usa en las pantallas de
+ * Siguiendo/Seguidores de tu propio perfil. Un solo viaje a la base sin
+ * importar cuánta gente tengas en la lista.
+ */
+export async function obtenerCompatibilidadLote(userId: string, candidatoIds: string[]): Promise<Map<string, number>> {
+  if (candidatoIds.length === 0) return new Map();
+  const { data, error } = await supabase.rpc("calcular_compatibilidad_lote", { p_user_id: userId, p_candidatos: candidatoIds });
+  if (error || !data) {
+    console.error("Error calculando compatibilidad en lote:", error?.message);
+    return new Map();
+  }
+  return new Map((data as any[]).map((r) => [r.id, r.compatibilidad]));
+}
+
 export interface UsuarioBasico {
   id: string;
   username: string | null;
@@ -24,6 +40,7 @@ export interface UsuarioBasico {
   siguiendo: boolean; // ¿el usuario actual lo sigue?
   solicitudPendiente?: boolean; // ¿le mandó una solicitud que todavía no le contestaron?
   followCreatedAt?: string; // cuándo se creó ESTE vínculo de follow (para ordenar "último agregado primero")
+  compatibilidad?: number; // % de gustos en común (0-100) — solo viene poblado en la lista de "usuarios recomendados"
 }
 
 /** Sigue a otro usuario (unidireccional, no requiere reciprocidad). */
@@ -140,24 +157,37 @@ export async function seguidoresDe(userId: string, viewerId: string | null): Pro
  *     todos los usuarios de la base, solo sobre una muestra chica.
  * Nunca incluye a quien ya sigue, ni a sí mismo.
  */
+const CACHE_HORAS_RECOMENDADOS = 24;
+
 /**
- * Recomienda siempre (hasta) 10 usuarios, combinando tres señales:
- * - Siguiendo en común: gente que sigue a las mismas cuentas que yo sigo.
- * - Seguidores en común: gente que mis propios seguidores también siguen.
- * - % de gustos en común (calcularCompatibilidad).
- * No se expone en ningún lado el motivo de cada recomendación — a
- * propósito, para que la lista se vea simple, sin justificaciones.
+ * Calcula (en vivo, sin caché) hasta 10 candidatos con su % de
+ * compatibilidad de gustos — es la parte pesada, por eso se guarda en
+ * caché por separado en `listarUsuariosRecomendados` y NO se llama a
+ * esto directo desde ningún lado más.
+ *
+ * Primero intenta la función de PostgreSQL (calcular_usuarios_recomendados,
+ * hace todo en una sola consulta en vez de ~200 idas y vueltas por red).
+ * Si por lo que sea falla (por ejemplo, si todavía no se corrió el
+ * schema.sql actualizado en Supabase), cae en el cálculo de siempre en
+ * JavaScript — más lento, pero no deja a nadie sin recomendaciones.
  */
-export async function listarUsuariosRecomendados(userId: string): Promise<UsuarioBasico[]> {
-  const [{ data: sigo }, { data: meSiguen }, { data: solicitudes }] = await Promise.all([
+async function calcularRecomendadosEnVivo(userId: string): Promise<{ id: string; compatibilidad: number }[]> {
+  const { data, error } = await supabase.rpc("calcular_usuarios_recomendados", { p_user_id: userId });
+  if (!error && data) {
+    return (data as any[]).map((r) => ({ id: r.id, compatibilidad: r.compatibilidad }));
+  }
+  console.error("calcular_usuarios_recomendados (SQL) falló, usando el cálculo en JavaScript como respaldo:", error?.message);
+  return calcularRecomendadosEnVivoJS(userId);
+}
+
+/** Versión en JavaScript (la original) — queda como respaldo si la función de PostgreSQL falla. */
+async function calcularRecomendadosEnVivoJS(userId: string): Promise<{ id: string; compatibilidad: number }[]> {
+  const [{ data: sigo }, { data: meSiguen }] = await Promise.all([
     supabase.from("follows").select("followee_id").eq("follower_id", userId),
     supabase.from("follows").select("follower_id").eq("followee_id", userId),
-    supabase.from("follow_requests").select("target_id").eq("requester_id", userId).eq("status", "pending"),
   ]);
   const sigoIds = (sigo ?? []).map((f: any) => f.followee_id);
   const seguidoresIds = (meSiguen ?? []).map((f: any) => f.follower_id);
-  const sigoSet = new Set(sigoIds);
-  const solicitudesSet = new Set((solicitudes ?? []).map((s: any) => s.target_id));
   const excluir = new Set([userId, ...sigoIds]);
 
   const puntajeSocial = new Map<string, number>();
@@ -205,22 +235,25 @@ export async function listarUsuariosRecomendados(userId: string): Promise<Usuari
   const compatibilidades = await Promise.all(poolCompat.map(async (id) => ({ id, compat: (await calcularCompatibilidad(userId, id)) ?? 0 })));
   const compatPorId = new Map(compatibilidades.map((c) => [c.id, c.compat]));
 
-  // Puntaje final: combina la señal social (normalizada a 0-100) con el %
-  // de gustos en común, mitad y mitad.
+  // Puntaje de orden: combina la señal social (normalizada a 0-100) con el
+  // % de gustos en común, mitad y mitad — pero lo que se GUARDA/MUESTRA
+  // como "compatibilidad" es el % de gustos solo, no este combinado.
   const maxSocial = Math.max(1, ...puntajeSocial.values());
-  const puntajeFinal = new Map<string, number>();
+  const puntajeOrden = new Map<string, number>();
   for (const id of poolCompat) {
     const social = ((puntajeSocial.get(id) ?? 0) / maxSocial) * 100;
     const compat = compatPorId.get(id) ?? 0;
-    puntajeFinal.set(id, social * 0.5 + compat * 0.5);
+    puntajeOrden.set(id, social * 0.5 + compat * 0.5);
   }
 
-  let idsFinal = [...puntajeFinal.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  let idsFinal = [...puntajeOrden.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
 
   // Si con todo esto no se llega a 10, se completa con los perfiles que
   // tienen más seguidores (en vez de los más recientes) — la idea es que
   // siempre haya 10 para mostrar, con la mejor opción disponible si no
-  // hubo suficientes coincidencias reales.
+  // hubo suficientes coincidencias reales. Estos no tienen % de
+  // compatibilidad calculado (sería otras 8 consultas por cada uno sin
+  // necesidad real) — quedan en 0.
   if (idsFinal.length < 10) {
     const { data: relleno } = await supabase.rpc("usuarios_mas_seguidos", {
       p_excluir: [...excluir, ...idsFinal],
@@ -228,26 +261,67 @@ export async function listarUsuariosRecomendados(userId: string): Promise<Usuari
     });
     for (const r of relleno ?? []) {
       if (idsFinal.length >= 10) break;
-      idsFinal.push((r as any).id as string);
+      const id = (r as any).id as string;
+      idsFinal.push(id);
+      if (!compatPorId.has(id)) compatPorId.set(id, 0);
     }
   }
 
   idsFinal = idsFinal.slice(0, 10);
-  if (idsFinal.length === 0) return [];
+  return idsFinal.map((id) => ({ id, compatibilidad: Math.round(compatPorId.get(id) ?? 0) }));
+}
 
-  const { data: perfiles } = await supabase.from("profiles").select("id, username, avatar_url").in("id", idsFinal);
+/**
+ * Usuarios recomendados con su % de compatibilidad. El cálculo pesado
+ * (calcularRecomendadosEnVivo) se cachea 24hs en la tabla
+ * recommended_users_cache — el estado de "Siguiendo"/"Solicitud
+ * pendiente" y los datos de perfil (foto, nombre) se piden siempre en
+ * vivo, nunca desde la caché, así el botón de Seguir nunca queda
+ * desactualizado aunque la lista de candidatos sea de ayer.
+ */
+export async function listarUsuariosRecomendados(userId: string): Promise<UsuarioBasico[]> {
+  const { data: cacheFila } = await supabase
+    .from("recommended_users_cache")
+    .select("candidatos, computed_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const cacheFresco = !!cacheFila && new Date(cacheFila.computed_at).getTime() > Date.now() - CACHE_HORAS_RECOMENDADOS * 60 * 60 * 1000;
+
+  let candidatos: { id: string; compatibilidad: number }[];
+  if (cacheFresco) {
+    candidatos = cacheFila!.candidatos;
+  } else {
+    candidatos = await calcularRecomendadosEnVivo(userId);
+    await supabase.from("recommended_users_cache").upsert({ user_id: userId, candidatos, computed_at: new Date().toISOString() });
+  }
+
+  if (candidatos.length === 0) return [];
+  const ids = candidatos.map((c) => c.id);
+  const excluirActual = new Set([userId]);
+
+  const [{ data: perfiles }, { data: sigoAhora }, { data: solicitudesAhora }] = await Promise.all([
+    supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids),
+    supabase.from("follows").select("followee_id").eq("follower_id", userId).in("followee_id", ids),
+    supabase.from("follow_requests").select("target_id").eq("requester_id", userId).eq("status", "pending").in("target_id", ids),
+  ]);
+  const sigoAhoraSet = new Set((sigoAhora ?? []).map((f: any) => f.followee_id));
+  const solicitudesAhoraSet = new Set((solicitudesAhora ?? []).map((s: any) => s.target_id));
+  const compatPorId = new Map(candidatos.map((c) => [c.id, c.compatibilidad]));
   const perfilPorId = new Map((perfiles ?? []).map((p: any) => [p.id, p]));
 
-  return idsFinal
-    .filter((id) => perfilPorId.has(id))
+  return ids
+    .filter((id) => perfilPorId.has(id) && !sigoAhoraSet.has(id) && !excluirActual.has(id))
     .map((id) => {
       const p = perfilPorId.get(id);
       return {
         id,
         username: p.username,
+        display_name: p.display_name,
         avatar_url: p.avatar_url,
-        siguiendo: sigoSet.has(id),
-        solicitudPendiente: solicitudesSet.has(id),
+        siguiendo: false,
+        solicitudPendiente: solicitudesAhoraSet.has(id),
+        compatibilidad: compatPorId.get(id),
       };
     });
 }

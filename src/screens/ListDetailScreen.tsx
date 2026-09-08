@@ -182,9 +182,9 @@ export default function ListDetailScreen({ route, navigation }: any) {
       <View style={styles.filaBotonesChicos}>
         <Pressable style={styles.botonChico} onPress={cambiarOrden} hitSlop={6}>
           {orden === "reciente" ? (
-            <Text style={styles.ordenBotonTexto}>Az</Text>
-          ) : (
             <Ionicons name="time-outline" size={15} color="#FFFFFF" />
+          ) : (
+            <Text style={styles.ordenBotonTexto}>Az</Text>
           )}
         </Pressable>
         {!esMiaLaLista && (

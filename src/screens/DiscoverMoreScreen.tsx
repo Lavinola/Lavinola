@@ -219,6 +219,25 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
     }
   }
 
+  /**
+   * "No, no la vi toda": en vez de no hacer nada, se agrega la serie
+   * igual (para que quede en tu lista de pendientes) y se abre directo en
+   * la solapa de episodios, para que la persona marque a mano hasta dónde
+   * vio.
+   */
+  async function noVistaCompleta() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    try {
+      await seguirSerie(userId, item.id);
+      setAgregados((prev) => new Set(prev).add(`${item.tipo}-${item.id}`));
+      navigation.navigate("DetalleTitulo", { tmdbId: item.id, tipo: "series", tabInicial: "episodios" });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo agregar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    }
+  }
+
   const generos = tipo === "series" ? GENEROS_SERIES : GENEROS_PELICULAS;
 
   return (
@@ -343,10 +362,10 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
       <ConfirmModal
         visible={!!confirmSerieVisible}
         onCerrar={() => setConfirmSerieVisible(null)}
-        titulo={t("Ví toda la serie")}
-        mensaje={t("¿Viste todos los capítulos?")}
+        titulo={t("¿Viste toda la serie?")}
+        mensaje={t("Marcar todos los episodios como vistos")}
         botones={[
-          { label: t("No"), onPress: () => {} },
+          { label: t("No"), onPress: noVistaCompleta },
           { label: t("Sí"), destacado: true, onPress: confirmarMarcarSerieVista },
         ]}
       />

@@ -1755,10 +1755,11 @@ create policy "comentarios_insert_auth" on comentarios for insert with check (
 
 -- Notificaciones de moderación de grupo (silenciado / expulsado), con motivo opcional.
 alter table notifications add column if not exists message text;
-alter table notifications drop constraint if exists notifications_type_check;
-alter table notifications add constraint notifications_type_check check (
-  type in ('like', 'reply', 'follow', 'follow_request', 'shared_title', 'group_muted', 'group_removed', 'group_message', 'group_join_request', 'list_item_added', 'list_followed')
-);
+-- (el "drop/add constraint" que iba acá se sacó porque quedó obsoleto —
+-- lo reemplaza la versión más ancha más abajo en el archivo, que ya
+-- incluye 'mention'. Dejarlo generaba un error al volver a correr
+-- schema.sql una vez que ya había notificaciones reales de tipo
+-- 'mention' guardadas: esta versión vieja, más angosta, no las permitía.)
 
 -- Comentario de "recomendación de grupo" — reutiliza la tabla comentarios,
 -- solo que además de texto puede llevar de qué título se trata.
@@ -5168,3 +5169,381 @@ $$ language plpgsql security definer set search_path = public;
 drop trigger if exists trg_notify_mentions_post on posts;
 create trigger trg_notify_mentions_post after insert on posts
   for each row execute function notify_mentions_post();
+
+-- ============================================================
+-- Caché de "usuarios recomendados": calcular esto en vivo hace hasta ~200
+-- consultas (mira 20-25 candidatos, 8 consultas de gustos en común por
+-- cada uno) — insostenible si se recalcula cada vez que alguien abre la
+-- pantalla. Se guarda el resultado (ids + % de compatibilidad) por 24
+-- horas; el estado de "Siguiendo"/"Solicitud pendiente" y los datos de
+-- perfil (foto, nombre) NUNCA se cachean acá — esos se piden siempre en
+-- vivo por separado, así el botón de Seguir nunca queda desactualizado
+-- aunque la lista de candidatos sí sea de ayer.
+-- ============================================================
+create table if not exists recommended_users_cache (
+  user_id uuid primary key references profiles(id) on delete cascade,
+  candidatos jsonb not null,
+  computed_at timestamptz not null default now()
+);
+alter table recommended_users_cache enable row level security;
+drop policy if exists "recommended_users_cache_select_own" on recommended_users_cache;
+create policy "recommended_users_cache_select_own" on recommended_users_cache for select using (auth.uid() = user_id);
+drop policy if exists "recommended_users_cache_insert_own" on recommended_users_cache;
+create policy "recommended_users_cache_insert_own" on recommended_users_cache for insert with check (auth.uid() = user_id);
+drop policy if exists "recommended_users_cache_update_own" on recommended_users_cache;
+create policy "recommended_users_cache_update_own" on recommended_users_cache for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ============================================================
+-- Versión en PostgreSQL de calcularRecomendadosEnVivo (antes en
+-- JavaScript, en follows.ts) — hace exactamente el mismo cálculo
+-- (señales sociales + % de compatibilidad de gustos con jaccard sobre
+-- favoritas/vistas/calificaciones), pero corriendo TODO adentro de la
+-- base en una sola consulta, en vez de ~200 idas y vueltas por red desde
+-- la app. Esto es lo que usa listarUsuariosRecomendados cuando el caché
+-- de 24hs está vencido — el resto (caché, estado de "Siguiendo" en
+-- vivo) sigue igual, sin tocar.
+--
+-- A propósito NO usa "create temp table": crear tablas temporales
+-- adentro de una función y despues consultarlas con SQL estático es un
+-- problema conocido de PostgreSQL (el plan de la consulta queda
+-- cacheado apuntando a la tabla temporal de la llamada anterior, que ya
+-- se borró — puede fallar recién en la SEGUNDA vez que se llama la
+-- función en la misma conexión). En cambio, todo se arma como una sola
+-- consulta grande encadenada con "with", y el resultado se guarda en un
+-- array de PL/pgSQL — sin crear ningún objeto persistente por el medio.
+create or replace function calcular_usuarios_recomendados(p_user_id uuid)
+returns table(id uuid, compatibilidad int)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_sigo_ids uuid[];
+  v_seguidores_ids uuid[];
+  v_top10_ids uuid[];
+  v_top10_compat int[];
+  v_faltan int;
+  v_ya_usados uuid[];
+begin
+  select coalesce(array_agg(followee_id), '{}') into v_sigo_ids from follows where follower_id = p_user_id;
+  select coalesce(array_agg(follower_id), '{}') into v_seguidores_ids from follows where followee_id = p_user_id;
+
+  with
+  excluir as (
+    select p_user_id as uid
+    union
+    select unnest(v_sigo_ids)
+  ),
+  social_a as (
+    select f.follower_id as candidato, count(*)::int as puntos
+    from follows f
+    where f.followee_id = any(v_sigo_ids)
+      and f.follower_id not in (select uid from excluir)
+    group by f.follower_id
+  ),
+  social_b as (
+    select f.followee_id as candidato, count(*)::int as puntos
+    from follows f
+    where f.follower_id = any(v_seguidores_ids)
+      and f.followee_id not in (select uid from excluir)
+    group by f.followee_id
+  ),
+  social as (
+    select candidato as uid, sum(puntos)::int as puntaje_social
+    from (select * from social_a union all select * from social_b) t
+    group by candidato
+  ),
+  candidatos_sociales as (
+    select uid, puntaje_social
+    from social
+    order by puntaje_social desc
+    limit 20
+  ),
+  relleno as (
+    select p.id as uid, 0 as puntaje_social
+    from profiles p
+    where (select count(*) from candidatos_sociales) < 15
+      and p.id not in (select uid from excluir)
+      and p.id not in (select uid from candidatos_sociales)
+    order by p.created_at desc
+    limit 30
+  ),
+  -- Ordenado por puntaje_social ANTES del limit 25, para priorizar igual
+  -- que en JS: los sociales primero (tienen puntaje > 0), el relleno
+  -- (puntaje 0) solo entra si sobra lugar.
+  pool as (
+    select uid, puntaje_social
+    from (select * from candidatos_sociales union all select * from relleno) t
+    order by puntaje_social desc
+    limit 25
+  ),
+  mis_favoritos as (
+    select item_type, tmdb_id from user_favorites where user_id = p_user_id
+  ),
+  mis_pelis as (
+    select movie_tmdb_id from user_movies where user_id = p_user_id and watched
+  ),
+  mis_series as (
+    select distinct series_tmdb_id from user_episodes_watched where user_id = p_user_id
+  ),
+  mis_calif as (
+    select 'movie:' || movie_tmdb_id::text as clave, rating from user_movies where user_id = p_user_id and rating is not null
+    union all
+    select 'series:' || series_tmdb_id::text, rating from user_series where user_id = p_user_id and rating is not null
+    union all
+    select 'ep:' || series_tmdb_id::text || ':' || season_number::text || ':' || episode_number::text, rating
+    from user_episodes_watched where user_id = p_user_id and rating is not null
+  ),
+  mi_fav_n as (select count(*) as n from mis_favoritos),
+  mi_mov_n as (select count(*) as n from mis_pelis),
+  mi_ser_n as (select count(*) as n from mis_series),
+  compat_fav as (
+    select pl.uid,
+      coalesce(count(cf.tmdb_id) filter (where mf.tmdb_id is not null), 0) as comun,
+      coalesce(count(cf.tmdb_id), 0) as b_n
+    from pool pl
+    left join user_favorites cf on cf.user_id = pl.uid
+    left join mis_favoritos mf on mf.item_type = cf.item_type and mf.tmdb_id = cf.tmdb_id
+    group by pl.uid
+  ),
+  compat_mov as (
+    select pl.uid,
+      coalesce(count(cm.movie_tmdb_id) filter (where mp.movie_tmdb_id is not null), 0) as comun,
+      coalesce(count(cm.movie_tmdb_id), 0) as b_n
+    from pool pl
+    left join user_movies cm on cm.user_id = pl.uid and cm.watched
+    left join mis_pelis mp on mp.movie_tmdb_id = cm.movie_tmdb_id
+    group by pl.uid
+  ),
+  compat_ser as (
+    select pl.uid,
+      coalesce(count(cs.series_tmdb_id) filter (where ms.series_tmdb_id is not null), 0) as comun,
+      coalesce(count(cs.series_tmdb_id), 0) as b_n
+    from pool pl
+    left join lateral (select distinct series_tmdb_id from user_episodes_watched where user_id = pl.uid) cs on true
+    left join mis_series ms on ms.series_tmdb_id = cs.series_tmdb_id
+    group by pl.uid
+  ),
+  compat_rat as (
+    select pl.uid,
+      count(*) as comun,
+      count(*) filter (where abs(mc.rating - cc.rating) <= 1) as coincide
+    from pool pl
+    left join lateral (
+      select 'movie:' || movie_tmdb_id::text as clave, rating from user_movies where user_id = pl.uid and rating is not null
+      union all
+      select 'series:' || series_tmdb_id::text, rating from user_series where user_id = pl.uid and rating is not null
+      union all
+      select 'ep:' || series_tmdb_id::text || ':' || season_number::text || ':' || episode_number::text, rating
+      from user_episodes_watched where user_id = pl.uid and rating is not null
+    ) cc on true
+    join mis_calif mc on mc.clave = cc.clave
+    group by pl.uid
+  ),
+  combinado as (
+    select
+      pl.uid,
+      pl.puntaje_social,
+      case when (mi_fav_n.n + cf.b_n - cf.comun) = 0 then null
+           else cf.comun::numeric / (mi_fav_n.n + cf.b_n - cf.comun) end as fav_score,
+      case when (mi_mov_n.n + cm.b_n - cm.comun) = 0 then null
+           else cm.comun::numeric / (mi_mov_n.n + cm.b_n - cm.comun) end as mov_score,
+      case when (mi_ser_n.n + cs.b_n - cs.comun) = 0 then null
+           else cs.comun::numeric / (mi_ser_n.n + cs.b_n - cs.comun) end as ser_score,
+      case when coalesce(cr.comun, 0) = 0 then null
+           else cr.coincide::numeric / cr.comun end as rat_score
+    from pool pl
+    cross join mi_fav_n
+    cross join mi_mov_n
+    cross join mi_ser_n
+    left join compat_fav cf on cf.uid = pl.uid
+    left join compat_mov cm on cm.uid = pl.uid
+    left join compat_ser cs on cs.uid = pl.uid
+    left join compat_rat cr on cr.uid = pl.uid
+  ),
+  scored as (
+    select
+      uid,
+      puntaje_social,
+      case
+        when fav_score is null and mov_score is null and ser_score is null and rat_score is null then 0
+        else (
+          coalesce(fav_score,0)*0.5 + coalesce(mov_score,0)*0.2 + coalesce(ser_score,0)*0.15 + coalesce(rat_score,0)*0.15
+        ) / (
+          (case when fav_score is not null then 0.5 else 0 end) +
+          (case when mov_score is not null then 0.2 else 0 end) +
+          (case when ser_score is not null then 0.15 else 0 end) +
+          (case when rat_score is not null then 0.15 else 0 end)
+        )
+      end * 100 as compatibilidad
+    from combinado
+  ),
+  max_social as (select greatest(1, coalesce(max(puntaje_social), 1)) as m from scored)
+  select
+    array_agg(uid order by orden desc),
+    array_agg(compat_calc order by orden desc)
+  into v_top10_ids, v_top10_compat
+  from (
+    select
+      s.uid,
+      round(s.compatibilidad)::int as compat_calc,
+      (s.puntaje_social::numeric / ms.m) * 100 * 0.5 + s.compatibilidad * 0.5 as orden
+    from scored s, max_social ms
+    order by orden desc
+    limit 10
+  ) top10;
+
+  v_top10_ids := coalesce(v_top10_ids, '{}');
+  v_top10_compat := coalesce(v_top10_compat, '{}');
+  v_faltan := 10 - array_length(v_top10_ids, 1);
+
+  if v_faltan is null then
+    v_faltan := 10;
+  end if;
+
+  if v_faltan > 0 then
+    select array_agg(uid) into v_ya_usados
+    from (
+      select p_user_id as uid
+      union select unnest(v_sigo_ids)
+      union select unnest(v_top10_ids)
+    ) e;
+
+    for id, compatibilidad in
+      select r.id, 0
+      from usuarios_mas_seguidos(coalesce(v_ya_usados, array[p_user_id]), v_faltan) r
+    loop
+      v_top10_ids := array_append(v_top10_ids, id);
+      v_top10_compat := array_append(v_top10_compat, compatibilidad);
+    end loop;
+  end if;
+
+  for i in 1..coalesce(array_length(v_top10_ids, 1), 0) loop
+    id := v_top10_ids[i];
+    compatibilidad := v_top10_compat[i];
+    return next;
+  end loop;
+end;
+$$;
+
+-- ============================================================
+-- Versión "en lote" del cálculo de compatibilidad: en vez de elegir los
+-- candidatos ella misma (como calcular_usuarios_recomendados), acá se le
+-- pasa la lista exacta de gente a comparar — se usa en las pantallas de
+-- "Siguiendo"/"Seguidores" de tu propio perfil, para mostrar el % al
+-- lado de cada persona y poder ordenar por gustos en común. Mismo
+-- cálculo de jaccard que las otras dos funciones, sin repetir código
+-- (misma lógica, reescrita corta porque acá no hace falta elegir
+-- candidatos ni rellenar con nadie).
+-- ============================================================
+create or replace function calcular_compatibilidad_lote(p_user_id uuid, p_candidatos uuid[])
+returns table(id uuid, compatibilidad int)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with
+  mis_favoritos as (
+    select item_type, tmdb_id from user_favorites where user_id = p_user_id
+  ),
+  mis_pelis as (
+    select movie_tmdb_id from user_movies where user_id = p_user_id and watched
+  ),
+  mis_series as (
+    select distinct series_tmdb_id from user_episodes_watched where user_id = p_user_id
+  ),
+  mis_calif as (
+    select 'movie:' || movie_tmdb_id::text as clave, rating from user_movies where user_id = p_user_id and rating is not null
+    union all
+    select 'series:' || series_tmdb_id::text, rating from user_series where user_id = p_user_id and rating is not null
+    union all
+    select 'ep:' || series_tmdb_id::text || ':' || season_number::text || ':' || episode_number::text, rating
+    from user_episodes_watched where user_id = p_user_id and rating is not null
+  ),
+  mi_fav_n as (select count(*) as n from mis_favoritos),
+  mi_mov_n as (select count(*) as n from mis_pelis),
+  mi_ser_n as (select count(*) as n from mis_series),
+  pool as (
+    select unnest(p_candidatos) as uid
+  ),
+  compat_fav as (
+    select pl.uid,
+      coalesce(count(cf.tmdb_id) filter (where mf.tmdb_id is not null), 0) as comun,
+      coalesce(count(cf.tmdb_id), 0) as b_n
+    from pool pl
+    left join user_favorites cf on cf.user_id = pl.uid
+    left join mis_favoritos mf on mf.item_type = cf.item_type and mf.tmdb_id = cf.tmdb_id
+    group by pl.uid
+  ),
+  compat_mov as (
+    select pl.uid,
+      coalesce(count(cm.movie_tmdb_id) filter (where mp.movie_tmdb_id is not null), 0) as comun,
+      coalesce(count(cm.movie_tmdb_id), 0) as b_n
+    from pool pl
+    left join user_movies cm on cm.user_id = pl.uid and cm.watched
+    left join mis_pelis mp on mp.movie_tmdb_id = cm.movie_tmdb_id
+    group by pl.uid
+  ),
+  compat_ser as (
+    select pl.uid,
+      coalesce(count(cs.series_tmdb_id) filter (where ms.series_tmdb_id is not null), 0) as comun,
+      coalesce(count(cs.series_tmdb_id), 0) as b_n
+    from pool pl
+    left join lateral (select distinct series_tmdb_id from user_episodes_watched where user_id = pl.uid) cs on true
+    left join mis_series ms on ms.series_tmdb_id = cs.series_tmdb_id
+    group by pl.uid
+  ),
+  compat_rat as (
+    select pl.uid,
+      count(*) as comun,
+      count(*) filter (where abs(mc.rating - cc.rating) <= 1) as coincide
+    from pool pl
+    left join lateral (
+      select 'movie:' || movie_tmdb_id::text as clave, rating from user_movies where user_id = pl.uid and rating is not null
+      union all
+      select 'series:' || series_tmdb_id::text, rating from user_series where user_id = pl.uid and rating is not null
+      union all
+      select 'ep:' || series_tmdb_id::text || ':' || season_number::text || ':' || episode_number::text, rating
+      from user_episodes_watched where user_id = pl.uid and rating is not null
+    ) cc on true
+    join mis_calif mc on mc.clave = cc.clave
+    group by pl.uid
+  ),
+  combinado as (
+    select
+      pl.uid,
+      case when (mi_fav_n.n + cf.b_n - cf.comun) = 0 then null
+           else cf.comun::numeric / (mi_fav_n.n + cf.b_n - cf.comun) end as fav_score,
+      case when (mi_mov_n.n + cm.b_n - cm.comun) = 0 then null
+           else cm.comun::numeric / (mi_mov_n.n + cm.b_n - cm.comun) end as mov_score,
+      case when (mi_ser_n.n + cs.b_n - cs.comun) = 0 then null
+           else cs.comun::numeric / (mi_ser_n.n + cs.b_n - cs.comun) end as ser_score,
+      case when coalesce(cr.comun, 0) = 0 then null
+           else cr.coincide::numeric / cr.comun end as rat_score
+    from pool pl
+    cross join mi_fav_n
+    cross join mi_mov_n
+    cross join mi_ser_n
+    left join compat_fav cf on cf.uid = pl.uid
+    left join compat_mov cm on cm.uid = pl.uid
+    left join compat_ser cs on cs.uid = pl.uid
+    left join compat_rat cr on cr.uid = pl.uid
+  )
+  select
+    uid as id,
+    round(
+      case
+        when fav_score is null and mov_score is null and ser_score is null and rat_score is null then 0
+        else (
+          coalesce(fav_score,0)*0.5 + coalesce(mov_score,0)*0.2 + coalesce(ser_score,0)*0.15 + coalesce(rat_score,0)*0.15
+        ) / (
+          (case when fav_score is not null then 0.5 else 0 end) +
+          (case when mov_score is not null then 0.2 else 0 end) +
+          (case when ser_score is not null then 0.15 else 0 end) +
+          (case when rat_score is not null then 0.15 else 0 end)
+        )
+      end * 100
+    )::int as compatibilidad
+  from combinado;
+$$;

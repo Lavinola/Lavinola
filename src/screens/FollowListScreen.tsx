@@ -10,7 +10,7 @@ import Avatar from "../components/Avatar";
 import { seleccion } from "../lib/haptics";
 import { SkeletonListRows } from "../components/SkeletonShapes";
 import { supabase } from "../lib/supabase";
-import { usuariosQueSigo, seguidoresDe, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
+import { usuariosQueSigo, seguidoresDe, dejarDeSeguir, obtenerCompatibilidadLote, UsuarioBasico } from "../lib/follows";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
 import ConfirmModal from "../components/ConfirmModal";
 import { useT } from "../i18n/i18n";
@@ -29,7 +29,10 @@ export default function FollowListScreen({ route, navigation }: Props) {
   const [cargando, setCargando] = useState(true);
   const [aDejarDeSeguir, setADejarDeSeguir] = useState<UsuarioBasico | null>(null);
   const [busqueda, setBusqueda] = useState("");
-  const [ordenReciente, setOrdenReciente] = useState(false); // solo aplica a tu propia lista; default alfabético
+  // Ciclo de 3: alfabético -> recientes -> gustos en común -> alfabético...
+  // (antes era solo un toggle de 2; solo aplica a tu propia lista).
+  const [orden, setOrden] = useState<"alfabetico" | "reciente" | "compatibilidad">("alfabetico");
+  const [compatMap, setCompatMap] = useState<Map<string, number>>(new Map());
 
   const esMiPropiaLista = !!viewerId && viewerId === userId;
 
@@ -51,6 +54,16 @@ export default function FollowListScreen({ route, navigation }: Props) {
     const data = modo === "siguiendo" ? await usuariosQueSigo(userId, uid) : await seguidoresDe(userId, uid);
     setLista(data);
     setCargando(false);
+
+    // % de gustos en común: solo en tu propia lista, y de una sola vez
+    // para toda la lista (un viaje a la base, sin importar cuánta gente
+    // tengas siguiendo/te siga).
+    if (uid && uid === userId && data.length > 0) {
+      const compat = await obtenerCompatibilidadLote(uid, data.map((u) => u.id));
+      setCompatMap(compat);
+    } else {
+      setCompatMap(new Map());
+    }
   }
 
   const listaFinal = useMemo(() => {
@@ -63,9 +76,11 @@ export default function FollowListScreen({ route, navigation }: Props) {
     }
 
     if (esMiPropiaLista) {
-      // Tu propia lista: alfabético por default, o más reciente primero si se activa el toggle.
-      if (ordenReciente) {
+      // Tu propia lista: alfabético, más reciente primero, o por % de gustos en común de mayor a menor.
+      if (orden === "reciente") {
         resultado.sort((a, b) => (b.followCreatedAt ?? "").localeCompare(a.followCreatedAt ?? ""));
+      } else if (orden === "compatibilidad") {
+        resultado.sort((a, b) => (compatMap.get(b.id) ?? -1) - (compatMap.get(a.id) ?? -1));
       } else {
         resultado.sort((a, b) => (a.username ?? "").localeCompare(b.username ?? ""));
       }
@@ -78,7 +93,7 @@ export default function FollowListScreen({ route, navigation }: Props) {
     }
 
     return resultado;
-  }, [lista, busqueda, esMiPropiaLista, ordenReciente]);
+  }, [lista, busqueda, esMiPropiaLista, orden, compatMap]);
 
   async function toggleFollow(u: UsuarioBasico) {
     if (!viewerId || u.solicitudPendiente) return;
@@ -118,9 +133,15 @@ export default function FollowListScreen({ route, navigation }: Props) {
           />
         </View>
         {esMiPropiaLista && (
-          <Pressable style={styles.ordenBtn} onPress={() => setOrdenReciente((v) => !v)} hitSlop={8}>
-            {ordenReciente && <Ionicons name="time" size={14} color={theme.colors.primaryLight} />}
-            <Text style={styles.ordenBtnTexto}>{ordenReciente ? t("Recientes") : t("A-Z")}</Text>
+          <Pressable
+            style={styles.ordenBtn}
+            onPress={() => setOrden((v) => (v === "alfabetico" ? "reciente" : v === "reciente" ? "compatibilidad" : "alfabetico"))}
+            hitSlop={8}
+          >
+            {orden === "reciente" && <Ionicons name="time" size={14} color={theme.colors.primaryLight} />}
+            <Text style={styles.ordenBtnTexto}>
+              {orden === "reciente" ? t("Recientes") : orden === "compatibilidad" ? t("% Gustos en común") : t("A-Z")}
+            </Text>
           </Pressable>
         )}
       </View>
@@ -149,6 +170,7 @@ export default function FollowListScreen({ route, navigation }: Props) {
           <Pressable style={styles.card} onPress={() => navigation.push("PerfilAjeno", { userId: item.id })}>
             <Avatar uri={item.avatar_url} size={40} style={{ marginRight: 10 }} />
             <NombreUsuario style={styles.username} displayName={item.display_name} username={item.username} numberOfLines={1} />
+            {esMiPropiaLista && (compatMap.get(item.id) ?? 0) > 0 && <Text style={styles.compatTexto}>{compatMap.get(item.id)}%</Text>}
             {viewerId && viewerId !== item.id && (
               <Pressable
                 style={[styles.followBtn, (item.siguiendo || item.solicitudPendiente) && styles.followBtnActivo]}
@@ -209,6 +231,7 @@ const styles = StyleSheet.create({
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10, backgroundColor: theme.colors.surfaceAlt },
   avatarPlaceholder: {},
   username: { flex: 1, fontSize: 15 },
+  compatTexto: { color: theme.colors.primaryLight, fontWeight: "800", fontSize: 13, marginRight: 8 },
   followBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 10 },
   followBtnText: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   followBtnActivo: { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border },
