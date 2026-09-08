@@ -385,6 +385,6 @@ const styles = StyleSheet.create({
   sub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 3 },
   masBtn: { width: 30, height: 30, borderRadius: 8, borderWidth: 1.5, borderColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
   masBtnAgregado: { backgroundColor: theme.colors.primary },
-  masBtnTexto: { color: theme.colors.primaryLight, fontSize: 16, fontWeight: "800" },
+  masBtnTexto: { color: theme.colors.primaryLight, fontSize: 16, fontWeight: "800", lineHeight: 16 },
   masBtnTextoAgregado: { color: "#000000" },
 });

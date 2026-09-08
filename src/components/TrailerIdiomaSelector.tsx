@@ -68,7 +68,7 @@ export default function TrailerIdiomaSelector({ opciones, valor, onCambiar }: Pr
 }
 
 const styles = StyleSheet.create({
-  barra: { backgroundColor: "#000000" },
+  barra: { backgroundColor: "#000000", borderRadius: theme.radius.md, overflow: "hidden" },
   filaBotones: { flexDirection: "row" },
   boton: { paddingVertical: 10, paddingHorizontal: 14 },
   texto: { fontSize: 14, fontWeight: "700", color: theme.colors.primaryLight, opacity: 0.55 },

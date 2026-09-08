@@ -4,7 +4,8 @@ import { Text } from "./Themed";
 import ActionSheetModal from "./ActionSheetModal";
 import ConfirmModal from "./ConfirmModal";
 import FechaPickerNativo from "./FechaPickerNativo";
-import { formatearFecha } from "../lib/dates";
+import AñoPickerNativo from "./AñoPickerNativo";
+import { formatearFecha, formatearFechaVista } from "../lib/dates";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 import { EventoVisto } from "../lib/watchStatus";
@@ -12,38 +13,43 @@ import { EventoVisto } from "../lib/watchStatus";
 interface Props {
   eventos: EventoVisto[]; // ordenados de la vista más vieja a la más nueva
   onEditarFecha: (eventoId: string, fechaISO: string) => void;
+  onEditarFechaSoloAño: (eventoId: string, año: number) => void;
   onEliminar: (eventoId: string) => void;
   genero?: "f" | "m"; // "f" = "Vista"/"La viste" (película, serie) — "m" = "Visto"/"Lo viste" (capítulo)
-  fechaEstreno?: string | null; // para poder ofrecer "Fue el día de estreno" en la primera vista, como en los 3 puntitos
+  fechaEstreno?: string | null; // para poder ofrecer "Fue el día de estreno" en la primera vista, como en los 3 puntitos, y como fecha/año mínimo permitido
 }
 
 /**
  * Lista completa de todas las veces que se vio un título (película o
  * capítulo) — la primera como "Vista/Visto el", el resto como "Vuelta a
  * ver el". El lápiz de la PRIMERA abre el mismo menú "¿Cuándo la
- * viste?" de siempre (día de estreno / elegir otra fecha) — no tiene
- * sentido "eliminar" la primera vista sin más (eso es "no vista, me
- * equivoqué", que es otra acción). El lápiz de las demás (las "Vuelta a
- * ver") sí ofrece Editar fecha / Eliminar esa vista puntual.
+ * viste?" de siempre (día de estreno / elegir fecha exacta / elegir
+ * solo el año) — no tiene sentido "eliminar" la primera vista sin más
+ * (eso es "no vista, me equivoqué", que es otra acción). El lápiz de
+ * las demás (las "Vuelta a ver") sí ofrece Editar fecha / Eliminar esa
+ * vista puntual.
  */
-export default function HistorialVistas({ eventos, onEditarFecha, onEliminar, genero = "f", fechaEstreno }: Props) {
+export default function HistorialVistas({ eventos, onEditarFecha, onEditarFechaSoloAño, onEliminar, genero = "f", fechaEstreno }: Props) {
   const { t } = useT();
   const [menuPrimeraVisible, setMenuPrimeraVisible] = useState(false);
   const [menuEventoId, setMenuEventoId] = useState<string | null>(null);
   const [pickerEventoId, setPickerEventoId] = useState<string | null>(null);
+  const [pickerAñoEventoId, setPickerAñoEventoId] = useState<string | null>(null);
   const [confirmEliminarId, setConfirmEliminarId] = useState<string | null>(null);
 
   if (eventos.length === 0) return null;
   const [primero, ...resto] = eventos;
   const eventoDelPicker = eventos.find((e) => e.id === pickerEventoId);
+  const eventoDelPickerAño = eventos.find((e) => e.id === pickerAñoEventoId);
   const textoVista = genero === "m" ? t("Visto el") : t("Vista el");
   const textoLaViste = genero === "m" ? t("Lo viste") : t("La viste");
+  const añoMinimo = fechaEstreno ? new Date(fechaEstreno).getFullYear() : undefined;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.fila}>
         <Text style={styles.texto}>
-          {textoVista} {formatearFecha(primero.watchedAt)}
+          {textoVista} {formatearFechaVista(primero.watchedAt, primero.yearOnly)}
         </Text>
         <Pressable onPress={() => setMenuPrimeraVisible(true)} hitSlop={8}>
           <Text style={styles.lapiz}>✎</Text>
@@ -52,7 +58,7 @@ export default function HistorialVistas({ eventos, onEditarFecha, onEliminar, ge
       {resto.map((e) => (
         <View key={e.id} style={styles.fila}>
           <Text style={styles.texto}>
-            {t("Vuelta a ver el")} {formatearFecha(e.watchedAt)}
+            {t("Vuelta a ver el")} {formatearFechaVista(e.watchedAt, e.yearOnly)}
           </Text>
           <Pressable onPress={() => setMenuEventoId(e.id)} hitSlop={8}>
             <Text style={styles.lapiz}>✎</Text>
@@ -79,7 +85,12 @@ export default function HistorialVistas({ eventos, onEditarFecha, onEliminar, ge
                 },
               ]
             : []),
-          { label: t("Elegir otra fecha"), icono: "create-outline", onPress: () => setPickerEventoId(primero.id) },
+          { label: t("Elegir fecha exacta"), icono: "create-outline", onPress: () => setPickerEventoId(primero.id) },
+          {
+            label: t("No sé la fecha exacta, elegir el año"),
+            icono: "calendar-number-outline",
+            onPress: () => setPickerAñoEventoId(primero.id),
+          },
         ]}
       />
 
@@ -94,6 +105,15 @@ export default function HistorialVistas({ eventos, onEditarFecha, onEliminar, ge
               const id = menuEventoId;
               setMenuEventoId(null);
               setPickerEventoId(id);
+            },
+          },
+          {
+            label: t("No sé la fecha exacta, elegir el año"),
+            icono: "calendar-number-outline",
+            onPress: () => {
+              const id = menuEventoId;
+              setMenuEventoId(null);
+              setPickerAñoEventoId(id);
             },
           },
           {
@@ -130,9 +150,19 @@ export default function HistorialVistas({ eventos, onEditarFecha, onEliminar, ge
       {eventoDelPicker && (
         <FechaPickerNativo
           value={new Date(eventoDelPicker.watchedAt)}
+          minimumDate={fechaEstreno ? new Date(fechaEstreno) : undefined}
           maximumDate={new Date()}
           onCerrar={() => setPickerEventoId(null)}
           onElegida={(fecha) => onEditarFecha(eventoDelPicker.id, fecha.toISOString())}
+        />
+      )}
+      {eventoDelPickerAño && (
+        <AñoPickerNativo
+          value={new Date(eventoDelPickerAño.watchedAt).getFullYear()}
+          minimumYear={añoMinimo}
+          maximumYear={new Date().getFullYear()}
+          onCerrar={() => setPickerAñoEventoId(null)}
+          onElegido={(año) => onEditarFechaSoloAño(eventoDelPickerAño.id, año)}
         />
       )}
     </View>

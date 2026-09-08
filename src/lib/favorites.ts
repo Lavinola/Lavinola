@@ -22,8 +22,18 @@ export async function contarFavoritosDeTitulo(itemType: "series" | "movie", tmdb
   return data ?? 0;
 }
 
+// Si cualquiera de los dos tiene MUY poca info en esta categoría (por
+// ejemplo, alguien que vio una sola película en total), una sola
+// coincidencia de casualidad infla artificialmente el % — hace falta
+// que LOS DOS aporten un mínimo para que la señal cuente. (Ojo:
+// medirlo contra el TOTAL combinado no alcanza, porque si uno de los
+// dos ya tiene bastante actividad, el combinado da alto igual aunque
+// el otro haya aportado casi nada — por eso se exige el mínimo a cada
+// lado por separado.)
+const UMBRAL_MINIMO_SEÑAL = 2;
+
 function jaccard(a: Set<string>, b: Set<string>): number | null {
-  if (a.size === 0 && b.size === 0) return null;
+  if (a.size < UMBRAL_MINIMO_SEÑAL || b.size < UMBRAL_MINIMO_SEÑAL) return null;
   const interseccion = [...a].filter((x) => b.has(x)).length;
   const union = new Set([...a, ...b]).size;
   return union === 0 ? null : interseccion / union;
@@ -83,7 +93,9 @@ export async function calcularCompatibilidad(userIdA: string, userIdB: string): 
 
   const clavesEnComun = Object.keys(calA).filter((k) => k in calB);
   const ratingsScore =
-    clavesEnComun.length === 0 ? null : clavesEnComun.filter((k) => Math.abs(calA[k] - calB[k]) <= 1).length / clavesEnComun.length;
+    clavesEnComun.length === 0 || Object.keys(calA).length < UMBRAL_MINIMO_SEÑAL || Object.keys(calB).length < UMBRAL_MINIMO_SEÑAL
+      ? null
+      : clavesEnComun.filter((k) => Math.abs(calA[k] - calB[k]) <= 1).length / clavesEnComun.length;
 
   const señales: { score: number | null; peso: number }[] = [
     { score: favScore, peso: 0.5 },

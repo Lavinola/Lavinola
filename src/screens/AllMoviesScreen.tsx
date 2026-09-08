@@ -129,7 +129,16 @@ export default function AllMoviesScreen({ route, navigation }: any) {
       return [...lista].sort((a, b) => (posicion.get(a.tmdb_id) ?? 0) - (posicion.get(b.tmdb_id) ?? 0));
     }
     if (orden === "alfabetico") return [...lista].sort((a, b) => a.title.localeCompare(b.title));
-    if (orden === "vista") return [...lista].sort((a, b) => (b.watched_at ?? "").localeCompare(a.watched_at ?? ""));
+    if (orden === "vista")
+      return [...lista].sort((a, b) => {
+        const cmp = (b.watched_at ?? "").localeCompare(a.watched_at ?? "");
+        // Empate (mismo día, o los dos sin fecha "exacta" — típico cuando
+        // se eligió "solo el año" para más de un título del mismo año):
+        // se desempata mostrando primero el título más nuevo (estreno más
+        // reciente).
+        if (cmp !== 0) return cmp;
+        return (b.release_date ?? "").localeCompare(a.release_date ?? "");
+      });
     if (orden === "lanzamiento") {
       return [...lista].sort((a, b) => {
         const cmp = (a.release_date ?? "").localeCompare(b.release_date ?? "");

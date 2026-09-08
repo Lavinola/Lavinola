@@ -5297,6 +5297,7 @@ begin
   mi_fav_n as (select count(*) as n from mis_favoritos),
   mi_mov_n as (select count(*) as n from mis_pelis),
   mi_ser_n as (select count(*) as n from mis_series),
+  mi_rat_n as (select count(*) as n from mis_calif),
   compat_fav as (
     select pl.uid,
       coalesce(count(cf.tmdb_id) filter (where mf.tmdb_id is not null), 0) as comun,
@@ -5326,6 +5327,11 @@ begin
   ),
   compat_rat as (
     select pl.uid,
+      (select count(*) from (
+        select 1 from user_movies where user_id = pl.uid and rating is not null
+        union all select 1 from user_series where user_id = pl.uid and rating is not null
+        union all select 1 from user_episodes_watched where user_id = pl.uid and rating is not null
+      ) todas_calif) as b_n,
       count(*) as comun,
       count(*) filter (where abs(mc.rating - cc.rating) <= 1) as coincide
     from pool pl
@@ -5344,18 +5350,19 @@ begin
     select
       pl.uid,
       pl.puntaje_social,
-      case when (mi_fav_n.n + cf.b_n - cf.comun) = 0 then null
+      case when mi_fav_n.n < 2 or cf.b_n < 2 then null
            else cf.comun::numeric / (mi_fav_n.n + cf.b_n - cf.comun) end as fav_score,
-      case when (mi_mov_n.n + cm.b_n - cm.comun) = 0 then null
+      case when mi_mov_n.n < 2 or cm.b_n < 2 then null
            else cm.comun::numeric / (mi_mov_n.n + cm.b_n - cm.comun) end as mov_score,
-      case when (mi_ser_n.n + cs.b_n - cs.comun) = 0 then null
+      case when mi_ser_n.n < 2 or cs.b_n < 2 then null
            else cs.comun::numeric / (mi_ser_n.n + cs.b_n - cs.comun) end as ser_score,
-      case when coalesce(cr.comun, 0) = 0 then null
+      case when mi_rat_n.n < 2 or coalesce(cr.b_n, 0) < 2 or coalesce(cr.comun, 0) = 0 then null
            else cr.coincide::numeric / cr.comun end as rat_score
     from pool pl
     cross join mi_fav_n
     cross join mi_mov_n
     cross join mi_ser_n
+    cross join mi_rat_n
     left join compat_fav cf on cf.uid = pl.uid
     left join compat_mov cm on cm.uid = pl.uid
     left join compat_ser cs on cs.uid = pl.uid
@@ -5464,6 +5471,7 @@ as $$
   mi_fav_n as (select count(*) as n from mis_favoritos),
   mi_mov_n as (select count(*) as n from mis_pelis),
   mi_ser_n as (select count(*) as n from mis_series),
+  mi_rat_n as (select count(*) as n from mis_calif),
   pool as (
     select unnest(p_candidatos) as uid
   ),
@@ -5496,6 +5504,11 @@ as $$
   ),
   compat_rat as (
     select pl.uid,
+      (select count(*) from (
+        select 1 from user_movies where user_id = pl.uid and rating is not null
+        union all select 1 from user_series where user_id = pl.uid and rating is not null
+        union all select 1 from user_episodes_watched where user_id = pl.uid and rating is not null
+      ) todas_calif) as b_n,
       count(*) as comun,
       count(*) filter (where abs(mc.rating - cc.rating) <= 1) as coincide
     from pool pl
@@ -5513,18 +5526,19 @@ as $$
   combinado as (
     select
       pl.uid,
-      case when (mi_fav_n.n + cf.b_n - cf.comun) = 0 then null
+      case when mi_fav_n.n < 2 or cf.b_n < 2 then null
            else cf.comun::numeric / (mi_fav_n.n + cf.b_n - cf.comun) end as fav_score,
-      case when (mi_mov_n.n + cm.b_n - cm.comun) = 0 then null
+      case when mi_mov_n.n < 2 or cm.b_n < 2 then null
            else cm.comun::numeric / (mi_mov_n.n + cm.b_n - cm.comun) end as mov_score,
-      case when (mi_ser_n.n + cs.b_n - cs.comun) = 0 then null
+      case when mi_ser_n.n < 2 or cs.b_n < 2 then null
            else cs.comun::numeric / (mi_ser_n.n + cs.b_n - cs.comun) end as ser_score,
-      case when coalesce(cr.comun, 0) = 0 then null
+      case when mi_rat_n.n < 2 or coalesce(cr.b_n, 0) < 2 or coalesce(cr.comun, 0) = 0 then null
            else cr.coincide::numeric / cr.comun end as rat_score
     from pool pl
     cross join mi_fav_n
     cross join mi_mov_n
     cross join mi_ser_n
+    cross join mi_rat_n
     left join compat_fav cf on cf.uid = pl.uid
     left join compat_mov cm on cm.uid = pl.uid
     left join compat_ser cs on cs.uid = pl.uid
@@ -5547,3 +5561,23 @@ as $$
     )::int as compatibilidad
   from combinado;
 $$;
+
+-- ============================================================
+-- "No sé la fecha exacta, elegir el año": permite marcar una película o
+-- capítulo como visto sabiendo solo el año, no el día exacto. Se guarda
+-- igual una fecha completa en watched_at (así el resto de la app, que ya
+-- sabe ordenar/comparar fechas, no tiene que cambiar) — pero marcada con
+-- year_only=true para saber que hay que MOSTRAR solo el año. La fecha
+-- real que se guarda: si el título se estrenó ESE mismo año, se usa la
+-- fecha de estreno real (tiene más sentido que 1° de enero); si no, se
+-- usa el 1° de enero del año elegido — esto se decide del lado de la
+-- app al momento de guardar, acá solo se agrega dónde guardar la marca.
+-- ============================================================
+alter table movie_watch_events add column if not exists year_only boolean not null default false;
+alter table episode_watch_events add column if not exists year_only boolean not null default false;
+
+alter table user_movies add column if not exists watched_at_year_only boolean not null default false;
+alter table user_movies add column if not exists first_watched_at_year_only boolean not null default false;
+alter table user_episodes_watched add column if not exists watched_at_year_only boolean not null default false;
+alter table user_episodes_watched add column if not exists first_watched_at_year_only boolean not null default false;
+alter table user_series add column if not exists last_watched_at_year_only boolean not null default false;

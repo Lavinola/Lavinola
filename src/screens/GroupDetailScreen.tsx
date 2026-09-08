@@ -398,6 +398,6 @@ const styles = StyleSheet.create({
   avatar: { width: 48, height: 48, borderRadius: 24, marginBottom: 4 },
   miembroNombre: { fontSize: 11 },
   masBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.surfaceAlt, borderWidth: 1, borderColor: theme.colors.primary, justifyContent: "center", alignItems: "center", alignSelf: "center", marginLeft: 4 },
-  masBtnTexto: { color: theme.colors.primaryLight, fontSize: 20, fontWeight: "700" },
+  masBtnTexto: { color: theme.colors.primaryLight, fontSize: 20, fontWeight: "700", lineHeight: 20 },
   suspendidoAviso: { fontSize: 12, color: theme.colors.danger, fontWeight: "700", marginBottom: 8 },
 });

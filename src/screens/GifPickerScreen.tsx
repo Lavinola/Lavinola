@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   cell: { flex: 1 / 3, padding: 4 },
   gif: { width: "100%", aspectRatio: 1, borderRadius: 6, backgroundColor: theme.colors.surfaceAlt },
   masBtn: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 20, marginTop: 8, marginBottom: 4 },
-  masBtnTexto: { color: theme.colors.primaryLight, fontSize: 14, fontWeight: "700" },
+  masBtnTexto: { color: theme.colors.primaryLight, fontSize: 14, fontWeight: "700", lineHeight: 14 },
   // Antes esto quedaba centrado abajo de todo, y en algunas pantallas el
   // botón/tab de "Comunidad" de la barra de navegación lo tapaba. Ahora va
   // pegado a la derecha, lejos de esa zona.

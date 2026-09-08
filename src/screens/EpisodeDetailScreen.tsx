@@ -25,17 +25,20 @@ import { pedirReseñaSiCorresponde } from "../lib/storeReview";
 import {
   volverAVerEpisodio,
   establecerFechaPrimeraVistaEpisodio,
+  establecerFechaPrimeraVistaEpisodioSoloAño,
   listarEventosVistaEpisodio,
   editarEventoVistaEpisodio,
+  editarEventoVistaEpisodioSoloAño,
   eliminarEventoVistaEpisodio,
   EventoVisto,
 } from "../lib/watchStatus";
 import HistorialVistas from "../components/HistorialVistas";
 import FechaPickerNativo from "../components/FechaPickerNativo";
+import AñoPickerNativo from "../components/AñoPickerNativo";
 import { getMoodStats, elegirMood, MoodStats } from "../lib/moods";
 import { getCastVoteStats, votarActor, CastVoteStats } from "../lib/castVotes";
 import { theme } from "../theme";
-import { formatearFecha } from "../lib/dates";
+import { formatearFecha, formatearFechaVista } from "../lib/dates";
 
 interface Props {
   route: {
@@ -85,6 +88,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuFechaVisible, setMenuFechaVisible] = useState(false);
   const [mostrarPicker, setMostrarPicker] = useState(false);
+  const [mostrarPickerAño, setMostrarPickerAño] = useState(false);
   const [reparto, setReparto] = useState<any[]>([]);
   const [castStats, setCastStats] = useState<CastVoteStats>({ miVoto: null, porcentajes: {}, total: 0 });
 
@@ -296,10 +300,30 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
     }
   }
 
+  async function elegirAñoManual(año: number) {
+    if (!userId) return;
+    try {
+      await establecerFechaPrimeraVistaEpisodioSoloAño(userId, seriesTmdbId, seasonNumber, episodeNumber, año, episodio?.air_date ?? null);
+      setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
+    } catch (e: any) {
+      Alert.alert(t("No se pudo guardar"), e.message);
+    }
+  }
+
   async function editarEventoVista(eventoId: string, fechaISO: string) {
     if (!userId) return;
     try {
       await editarEventoVistaEpisodio(userId, eventoId, seriesTmdbId, seasonNumber, episodeNumber, fechaISO);
+      setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
+    } catch (e: any) {
+      Alert.alert(t("No se pudo guardar"), e.message);
+    }
+  }
+
+  async function editarEventoVistaSoloAño(eventoId: string, año: number) {
+    if (!userId) return;
+    try {
+      await editarEventoVistaEpisodioSoloAño(userId, eventoId, seriesTmdbId, seasonNumber, episodeNumber, año, episodio?.air_date ?? null);
       setEventosVista(await listarEventosVistaEpisodio(userId, seriesTmdbId, seasonNumber, episodeNumber));
     } catch (e: any) {
       Alert.alert(t("No se pudo guardar"), e.message);
@@ -500,7 +524,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
           </Pressable>
 
           {visto && eventosVista.length > 0 && (
-            <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEliminar={eliminarEventoVista} genero="m" fechaEstreno={episodio?.air_date ?? null} />
+            <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEditarFechaSoloAño={editarEventoVistaSoloAño} onEliminar={eliminarEventoVista} genero="m" fechaEstreno={episodio?.air_date ?? null} />
           )}
         </View>
       </ScrollView>
@@ -516,7 +540,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
         onCerrar={() => setMenuVisible(false)}
         opciones={[
           {
-            label: `${t("¿Cuándo lo viste?")}${visto && eventosVista[0] ? "  " + formatearFecha(eventosVista[0].watchedAt) : ""}`,
+            label: `${t("¿Cuándo lo viste?")}${visto && eventosVista[0] ? "  " + formatearFechaVista(eventosVista[0].watchedAt, eventosVista[0].yearOnly) : ""}`,
             icono: "calendar-outline",
             deshabilitado: !visto,
             onPress: () => setMenuFechaVisible(true),
@@ -553,15 +577,30 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
           ...(episodio?.air_date
             ? [{ label: t("Fue el día de estreno ({fecha})").replace("{fecha}", formatearFecha(episodio.air_date)), icono: "calendar-outline" as const, onPress: ponerFechaDeEstreno }]
             : []),
-          { label: t("Elegir otra fecha"), icono: "create-outline", onPress: () => setMostrarPicker(true) },
+          { label: t("Elegir fecha exacta"), icono: "create-outline", onPress: () => setMostrarPicker(true) },
+          {
+            label: t("No sé la fecha exacta, elegir el año"),
+            icono: "calendar-number-outline",
+            onPress: () => setMostrarPickerAño(true),
+          },
         ]}
       />
       {mostrarPicker && (
         <FechaPickerNativo
           value={eventosVista[0] ? new Date(eventosVista[0].watchedAt) : new Date()}
+          minimumDate={episodio?.air_date ? new Date(episodio.air_date) : undefined}
           maximumDate={new Date()}
           onCerrar={() => setMostrarPicker(false)}
           onElegida={elegirFechaManual}
+        />
+      )}
+      {mostrarPickerAño && (
+        <AñoPickerNativo
+          value={eventosVista[0] ? new Date(eventosVista[0].watchedAt).getFullYear() : new Date().getFullYear()}
+          minimumYear={episodio?.air_date ? new Date(episodio.air_date).getFullYear() : undefined}
+          maximumYear={new Date().getFullYear()}
+          onCerrar={() => setMostrarPickerAño(false)}
+          onElegido={elegirAñoManual}
         />
       )}
       {mostrarConfetti && <ConfettiOverlay onFin={() => setMostrarConfetti(false)} />}

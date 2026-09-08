@@ -413,6 +413,8 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Chat con": { en: "Chat with", pt: "Chat com", it: "Chat con" },
   "Editar fecha": { en: "Edit date", pt: "Editar data", it: "Modifica data" },
   "Eliminar vista": { en: "Remove watch", pt: "Remover visualização", it: "Rimuovi visione" },
+  "Eliminar de mis series": { en: "Remove from my series", pt: "Remover das minhas séries", it: "Rimuovi dalle mie serie" },
+  "Eliminar de mis películas": { en: "Remove from my movies", pt: "Remover dos meus filmes", it: "Rimuovi dai miei film" },
   "¿Seguro que querés eliminar esta vista? No se puede deshacer.": {
     en: "Are you sure you want to remove this watch? This can't be undone.",
     pt: "Tem certeza que quer remover essa visualização? Não é possível desfazer.",
@@ -681,6 +683,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   Vista: { en: "Watched", pt: "Assistido", it: "Visto" },
   "No vista": { en: "Not watched", pt: "Não assistido", it: "Non visto" },
   "¿Cómo te sentiste?": { en: "How did you feel?", pt: "Como você se sentiu?", it: "Come ti sei sentito?" },
+  "Cómo te sentiste": { en: "How you felt", pt: "Como você se sentiu", it: "Come ti sei sentito" },
   "¿Cómo te sentiste? (elegí hasta 2)": {
     en: "How did you feel? (pick up to 2)",
     pt: "Como você se sentiu? (escolha até 2)",
@@ -876,6 +879,14 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "No vista (me equivoqué)": { en: "Not watched (my mistake)", pt: "Não assistido (foi engano)", it: "Non visto (era un errore)" },
   "Volví a verla": { en: "Watched it again", pt: "Assisti de novo", it: "L'ho rivisto" },
   "Elegir otra fecha": { en: "Choose another date", pt: "Escolher outra data", it: "Scegli un'altra data" },
+  "Elegir fecha exacta": { en: "Choose exact date", pt: "Escolher data exata", it: "Scegli data esatta" },
+  "No sé la fecha exacta, elegir el año": {
+    en: "I don't know the exact date, choose the year",
+    pt: "Não sei a data exata, escolher o ano",
+    it: "Non conosco la data esatta, scegli l'anno",
+  },
+  "Elegir año": { en: "Choose year", pt: "Escolher ano", it: "Scegli anno" },
+  "Año inválido": { en: "Invalid year", pt: "Ano inválido", it: "Anno non valido" },
   "¿Marcar los anteriores también?": { en: "Mark the previous ones too?", pt: "Marcar os anteriores também?", it: "Segnare anche i precedenti?" },
   "Solo este": { en: "Just this one", pt: "Só este", it: "Solo questo" },
   "Marcar todos": { en: "Mark all", pt: "Marcar todos", it: "Segna tutti" },

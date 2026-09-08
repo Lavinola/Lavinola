@@ -8,6 +8,9 @@ import { getTrendingSeries, getTrendingMovies, posterUrl } from "../lib/tmdb";
 import { fetchAllRows } from "../lib/pagination";
 import { recomendarSeries, recomendarPeliculas, marcarNoMeInteresa } from "../lib/recommendations";
 import { syncSeries, syncMovie, seguirSerie, agregarPelicula } from "../lib/sync";
+import { marcarTodaLaSerieVista } from "../lib/episodes";
+import { toggleVistaPelicula } from "../lib/watchStatus";
+import CalificarModal from "../components/CalificarModal";
 import { supabase } from "../lib/supabase";
 import ConfirmModal from "../components/ConfirmModal";
 import TopPills from "../components/TopPills";
@@ -96,6 +99,15 @@ function Descubrir({ navigation }: any) {
   // filtrar acá. El título recién desaparece de esta pantalla la próxima
   // vez que se entra a Descubrir (ver refrescarAgregados), no al toque.
   const [agregadosEnSesion, setAgregadosEnSesion] = useState<Set<string>>(new Set());
+  const [vistosEnSesion, setVistosEnSesion] = useState<Set<string>>(new Set());
+  const [marcandoVisto, setMarcandoVisto] = useState<string | null>(null);
+  const [confirmSerieVisible, setConfirmSerieVisible] = useState<ItemFila | null>(null);
+  const [calificarModal, setCalificarModal] = useState<{
+    tipo: "movie" | "series";
+    tmdbId: number;
+    titulo: string;
+    posterPath: string | null;
+  } | null>(null);
   const [idsSeriesDescartadas, setIdsSeriesDescartadas] = useState<Set<number>>(new Set());
   const [idsPeliculasDescartadas, setIdsPeliculasDescartadas] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -249,6 +261,72 @@ function Descubrir({ navigation }: any) {
     }
   }
 
+  /**
+   * Botón del ojito: agrega (si hace falta) y marca como vista directo,
+   * sin tener que entrar al detalle — abre la misma ventanita de calificar
+   * que aparece en tendencia/recomendadas/búsqueda/Top Mensual. En
+   * películas es directo; en series, como implica marcar TODOS los
+   * capítulos, primero se confirma.
+   */
+  async function marcarVistaRapida(item: ItemFila) {
+    if (!userId) return;
+    const clave = `${item.tipo}-${item.id}`;
+    if (vistosEnSesion.has(clave)) return;
+    if (item.tipo === "series") {
+      setConfirmSerieVisible(item);
+      return;
+    }
+    setMarcandoVisto(clave);
+    try {
+      await agregarPelicula(userId, item.id);
+      await toggleVistaPelicula(userId, item.id, true);
+      setAgregadosEnSesion((prev) => new Set(prev).add(clave));
+      setVistosEnSesion((prev) => new Set(prev).add(clave));
+      setCalificarModal({ tipo: "movie", tmdbId: item.id, titulo: item.titulo, posterPath: item.poster_path });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo marcar como vista"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    } finally {
+      setMarcandoVisto(null);
+    }
+  }
+
+  async function confirmarMarcarSerieVista() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    const clave = `${item.tipo}-${item.id}`;
+    setMarcandoVisto(clave);
+    try {
+      await seguirSerie(userId, item.id);
+      await marcarTodaLaSerieVista(userId, item.id);
+      setAgregadosEnSesion((prev) => new Set(prev).add(clave));
+      setVistosEnSesion((prev) => new Set(prev).add(clave));
+      setCalificarModal({ tipo: "series", tmdbId: item.id, titulo: item.titulo, posterPath: item.poster_path });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo marcar como vista"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    } finally {
+      setMarcandoVisto(null);
+    }
+  }
+
+  /**
+   * "No, no la vi toda": se agrega la serie igual (para que quede en tu
+   * lista de pendientes) y se abre directo en la solapa de episodios,
+   * para que la persona marque a mano hasta dónde vio.
+   */
+  async function noVistaCompleta() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    try {
+      await seguirSerie(userId, item.id);
+      setAgregadosEnSesion((prev) => new Set(prev).add(`${item.tipo}-${item.id}`));
+      navigation.navigate("DetalleTitulo", { tmdbId: item.id, tipo: "series", tabInicial: "episodios" });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo agregar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    }
+  }
+
   async function descartar(item: ItemFila) {
     if (!userId) return;
     setDescartarItem(item);
@@ -279,6 +357,9 @@ function Descubrir({ navigation }: any) {
         agregadosEnSesion={agregadosEnSesion}
         idsAgregados={idsPeliculasAgregadas}
         titulosAgregados={titulosPeliculasAgregadas}
+        onMarcarVista={marcarVistaRapida}
+        vistosEnSesion={vistosEnSesion}
+        marcandoVisto={marcandoVisto}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "movie", ordenInicial: "tendencias" })}
       />
       <FilaHorizontal
@@ -290,6 +371,9 @@ function Descubrir({ navigation }: any) {
         agregadosEnSesion={agregadosEnSesion}
         idsAgregados={idsPeliculasAgregadas}
         titulosAgregados={titulosPeliculasAgregadas}
+        onMarcarVista={marcarVistaRapida}
+        vistosEnSesion={vistosEnSesion}
+        marcandoVisto={marcandoVisto}
         vacioTexto={t("Agregá algunas películas para que empecemos a recomendarte.")}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "movie", ordenInicial: "recomendado" })}
       />
@@ -302,6 +386,9 @@ function Descubrir({ navigation }: any) {
         agregadosEnSesion={agregadosEnSesion}
         idsAgregados={idsSeriesAgregadas}
         titulosAgregados={titulosSeriesAgregadas}
+        onMarcarVista={marcarVistaRapida}
+        vistosEnSesion={vistosEnSesion}
+        marcandoVisto={marcandoVisto}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "series", ordenInicial: "tendencias" })}
       />
       <FilaHorizontal
@@ -313,6 +400,9 @@ function Descubrir({ navigation }: any) {
         agregadosEnSesion={agregadosEnSesion}
         idsAgregados={idsSeriesAgregadas}
         titulosAgregados={titulosSeriesAgregadas}
+        onMarcarVista={marcarVistaRapida}
+        vistosEnSesion={vistosEnSesion}
+        marcandoVisto={marcandoVisto}
         vacioTexto={t("Agregá algunas series para que empecemos a recomendarte.")}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "series", ordenInicial: "recomendado" })}
       />
@@ -325,6 +415,27 @@ function Descubrir({ navigation }: any) {
       botones={[
         { label: t("Cancelar"), onPress: () => {} },
         { label: t("Sacar"), onPress: confirmarDescarte, destacado: true },
+      ]}
+    />
+    {calificarModal && (
+      <CalificarModal
+        visible={!!calificarModal}
+        onCerrar={() => setCalificarModal(null)}
+        tipo={calificarModal.tipo}
+        tmdbId={calificarModal.tmdbId}
+        titulo={calificarModal.titulo}
+        posterPath={calificarModal.posterPath}
+        navigation={navigation}
+      />
+    )}
+    <ConfirmModal
+      visible={!!confirmSerieVisible}
+      onCerrar={() => setConfirmSerieVisible(null)}
+      titulo={t("¿Viste toda la serie?")}
+      mensaje={t("Marcar todos los episodios como vistos")}
+      botones={[
+        { label: t("No"), onPress: noVistaCompleta },
+        { label: t("Sí"), destacado: true, onPress: confirmarMarcarSerieVista },
       ]}
     />
     </>
@@ -340,6 +451,9 @@ function FilaHorizontal({
   agregadosEnSesion,
   idsAgregados,
   titulosAgregados,
+  onMarcarVista,
+  vistosEnSesion,
+  marcandoVisto,
   vacioTexto,
   onVerMas,
 }: {
@@ -351,6 +465,9 @@ function FilaHorizontal({
   agregadosEnSesion: Set<string>;
   idsAgregados: Set<number>;
   titulosAgregados: Set<string>;
+  onMarcarVista: (item: ItemFila) => void;
+  vistosEnSesion: Set<string>;
+  marcandoVisto: string | null;
   vacioTexto?: string;
   onVerMas: () => void;
 }) {
@@ -379,6 +496,8 @@ function FilaHorizontal({
             agregadosEnSesion.has(`${item.tipo}-${item.id}`) ||
             idsAgregados.has(item.id) ||
             titulosAgregados.has(normalizarTitulo(item.titulo));
+          const clave = `${item.tipo}-${item.id}`;
+          const yaVisto = vistosEnSesion.has(clave);
           return (
             <View style={styles.card}>
               <Pressable onPress={() => onPress(item)} onLongPress={onLongPress ? () => onLongPress(item) : undefined}>
@@ -386,6 +505,18 @@ function FilaHorizontal({
                   <Image source={{ uri: posterUrl(item.poster_path, "w342")! }} style={styles.poster} />
                 ) : (
                   <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
+                )}
+              </Pressable>
+              <Pressable
+                style={[styles.ojoBtn, yaVisto && styles.masBtnAgregado]}
+                onPress={() => onMarcarVista(item)}
+                disabled={yaVisto || marcandoVisto === clave}
+                hitSlop={6}
+              >
+                {marcandoVisto === clave ? (
+                  <ActivityIndicator size="small" color={theme.colors.primaryLight} />
+                ) : (
+                  <Ionicons name="eye" size={14} color={yaVisto ? "#000000" : theme.colors.primaryLight} />
                 )}
               </Pressable>
               <Pressable
@@ -431,6 +562,19 @@ const styles = StyleSheet.create({
   poster: { width: 120, height: 180, borderRadius: 8 },
   masBtn: {
     position: "absolute",
+    top: 40,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+    backgroundColor: "rgba(10,10,10,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ojoBtn: {
+    position: "absolute",
     top: 8,
     right: 8,
     width: 26,
@@ -443,7 +587,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   masBtnAgregado: { backgroundColor: theme.colors.primary },
-  masBtnTexto: { color: theme.colors.primaryLight, fontSize: 15, fontWeight: "800" },
+  masBtnTexto: { color: theme.colors.primaryLight, fontSize: 15, fontWeight: "800", lineHeight: 15 },
   masBtnTextoAgregado: { color: "#000000" },
   cardTitulo: { fontSize: 12, marginTop: 4 },
 });

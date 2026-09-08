@@ -55,11 +55,11 @@ export default function MoodPicker({ misMoods, porcentajes, onElegir }: Props) {
 
 const styles = StyleSheet.create({
   fila: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
-  celda: { alignItems: "center", paddingHorizontal: 2 },
+  celda: { alignItems: "center", paddingHorizontal: 1 },
   circulo: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: theme.colors.surface,
     borderWidth: 1.5,
     borderColor: theme.colors.border,
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   circuloElegido: { borderColor: theme.colors.primaryLight, backgroundColor: theme.colors.primaryDark },
-  carita: { width: 45, height: 45 },
+  carita: { width: 40, height: 40 },
   label: { fontSize: 9, color: theme.colors.textMuted, marginTop: 5, textAlign: "center", textTransform: "uppercase", fontWeight: "700" },
   labelElegido: { color: theme.colors.primaryLight },
   porcentaje: { fontSize: 10, color: theme.colors.textFaint, marginTop: 2 },

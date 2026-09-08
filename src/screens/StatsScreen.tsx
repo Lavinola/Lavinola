@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, ScrollView, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text, AppButton } from "../components/Themed";
 import UnderlineTabs from "../components/UnderlineTabs";
+import MoodsStatsGrid from "../components/MoodsStatsGrid";
 import { supabase } from "../lib/supabase";
 import {
   getEstadisticasSeries,
@@ -116,6 +117,10 @@ function StatsSeriesTab({ navigation }: any) {
         <Text style={styles.subdato}>{t("en {n} series").replace("{n}", String(stats.calificacionesVotadas))}</Text>
       </Card>
 
+      <Card titulo={t("Cómo te sentiste")}>
+        <MoodsStatsGrid moodsVotados={stats.moodsVotados} />
+      </Card>
+
       <Card titulo={t("Episodios pendientes")}>
         <Text style={styles.numeroGrande}>{stats.episodiosPendientes.toLocaleString(locale)}</Text>
         <Text style={styles.subdato}>
@@ -220,6 +225,10 @@ function StatsPeliculasTab({ navigation }: any) {
       <Card titulo={t("Calificaciones votadas")}>
         <Text style={styles.numeroGrande}>{stats.calificacionesVotadas}</Text>
         <Text style={styles.subdato}>{t("en {n} películas").replace("{n}", String(stats.calificacionesVotadas))}</Text>
+      </Card>
+
+      <Card titulo={t("Cómo te sentiste")}>
+        <MoodsStatsGrid moodsVotados={stats.moodsVotados} />
       </Card>
 
       <Card titulo={t("Películas pendientes")}>

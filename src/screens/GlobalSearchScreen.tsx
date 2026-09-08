@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   sugerenciasTitulo: { fontSize: 13, fontWeight: "700", color: theme.colors.textMuted, marginBottom: 8 },
   anio: { fontSize: 12, color: theme.colors.textMuted, marginTop: 3 },
   addBtn: { width: 30, height: 30, borderRadius: 8, borderWidth: 1.5, borderColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
-  addBtnTexto: { color: theme.colors.primaryLight, fontSize: 16, fontWeight: "800" },
+  addBtnTexto: { color: theme.colors.primaryLight, fontSize: 16, fontWeight: "800", lineHeight: 16 },
   addBtnAgregado: { backgroundColor: theme.colors.primary },
   addBtnTextoAgregado: { color: "#000000" },
   joinBtn: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 6, paddingHorizontal: 12 },

@@ -6,6 +6,7 @@ import { theme } from "../theme";
 
 interface Props {
   value: Date;
+  minimumDate?: Date;
   maximumDate?: Date;
   onElegida: (fecha: Date) => void;
   onCerrar: () => void;
@@ -19,7 +20,7 @@ interface Props {
  * el modal que lo abre según el navegador) — ninguno de los dos daba
  * una experiencia confiable en todas las plataformas a la vez.
  */
-export default function FechaPickerNativo({ value, maximumDate, onElegida, onCerrar }: Props) {
+export default function FechaPickerNativo({ value, minimumDate, maximumDate, onElegida, onCerrar }: Props) {
   const { t } = useT();
   const [dia, setDia] = useState(String(value.getDate()));
   const [mes, setMes] = useState(String(value.getMonth() + 1));
@@ -45,6 +46,14 @@ export default function FechaPickerNativo({ value, maximumDate, onElegida, onCer
       const maxSinHora = new Date(maximumDate);
       maxSinHora.setHours(23, 59, 59, 999);
       if (fecha > maxSinHora) {
+        setError(true);
+        return;
+      }
+    }
+    if (minimumDate) {
+      const minSinHora = new Date(minimumDate);
+      minSinHora.setHours(0, 0, 0, 0);
+      if (fecha < minSinHora) {
         setError(true);
         return;
       }

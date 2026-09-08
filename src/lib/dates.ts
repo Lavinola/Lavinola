@@ -9,6 +9,20 @@ export function formatearFecha(fecha: string | null | undefined): string {
   return `${dia}/${mes}/${anio}`;
 }
 
+/**
+ * Igual que formatearFecha, pero para una vista marcada con "no sé la
+ * fecha exacta, elegí el año" — muestra solo el año (la fecha completa
+ * igual está guardada por dentro para poder ordenar, pero no tiene
+ * sentido mostrarla si el usuario dijo que no la sabía).
+ */
+export function formatearFechaVista(fecha: string | null | undefined, soloAño: boolean): string {
+  if (!fecha) return "—";
+  if (!soloAño) return formatearFecha(fecha);
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return "—";
+  return String(d.getUTCFullYear());
+}
+
 /** Igual, pero con hora — para fechas que incluyen timestamp (comentarios, notificaciones). */
 export function formatearFechaHora(fecha: string | null | undefined): string {
   if (!fecha) return "—";

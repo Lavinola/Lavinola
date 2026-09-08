@@ -2,10 +2,35 @@ import { supabase } from "./supabase";
 import { fetchAllRows } from "./pagination";
 import { GENEROS_SERIES, GENEROS_PELICULAS } from "./tmdbGenres";
 import { listarSeriesConEstado } from "./seriesList";
+import { MOODS } from "./moods";
 
 export interface ConteoNombre {
   nombre: string;
   cantidad: number;
+}
+
+export interface MoodVotado {
+  key: string;
+  porcentaje: number; // 0-100, sobre el total de tus propias reacciones en esta categoría
+}
+
+/**
+ * De todas las caritas que elegiste vos (no de todo el mundo, como
+ * getMoodStats) en esta categoría, qué % le tocó a cada una. Para
+ * "Series" se cuentan tanto las reacciones puestas a nivel serie como
+ * a nivel capítulo — la mayoría de las reacciones de series pasan
+ * justo ahí, capítulo por capítulo.
+ */
+async function calcularMoodsVotados(userId: string, targetTypes: ("movie" | "series" | "episode")[]): Promise<MoodVotado[]> {
+  const { data } = await supabase.from("title_mood_reactions").select("mood").eq("user_id", userId).in("target_type", targetTypes);
+  const filas = data ?? [];
+  const total = filas.length;
+  if (total === 0) return MOODS.map((m) => ({ key: m.key, porcentaje: 0 }));
+  const conteos: Record<string, number> = {};
+  filas.forEach((f: any) => {
+    conteos[f.mood] = (conteos[f.mood] ?? 0) + 1;
+  });
+  return MOODS.map((m) => ({ key: m.key, porcentaje: Math.round(((conteos[m.key] ?? 0) / total) * 100) }));
 }
 
 export interface EstadisticasSeries {
@@ -22,6 +47,7 @@ export interface EstadisticasSeries {
   episodiosPendientes: number;
   minutosEpisodiosPendientes: number;
   calificacionesVotadas: number;
+  moodsVotados: MoodVotado[];
   seriesTerminadas: number;
   seriesViendo: number;
   seriesSinComenzar: number;
@@ -36,6 +62,7 @@ export interface EstadisticasPeliculas {
   minutosPeliculasPendientes: number;
   generosPopulares: ConteoNombre[];
   calificacionesVotadas: number;
+  moodsVotados: MoodVotado[];
   comentariosCantidad: number;
   comentariosEnCuantasPeliculas: number;
   meGustaConseguidos: number;
@@ -232,6 +259,7 @@ export async function getEstadisticasSeries(userId: string): Promise<Estadistica
 
   const seriesEnProduccion = (misSeries ?? []).filter((s: any) => s.series_cache?.status === "Returning Series").length;
   const calificacionesVotadas = (misSeries ?? []).filter((s: any) => s.rating != null).length;
+  const moodsVotados = await calcularMoodsVotados(userId, ["series", "episode"]);
 
   const generosCount: Record<number, number> = {};
   const dondeLoVisteCount: Record<string, number> = {};
@@ -318,6 +346,7 @@ export async function getEstadisticasSeries(userId: string): Promise<Estadistica
     episodiosPendientes,
     minutosEpisodiosPendientes,
     calificacionesVotadas,
+    moodsVotados,
     seriesTerminadas,
     seriesViendo,
     seriesSinComenzar,
@@ -341,6 +370,7 @@ export async function getEstadisticasPeliculas(userId: string): Promise<Estadist
   const minutosPeliculasPendientes = pendientes.reduce((acc: number, p: any) => acc + (p.movies_cache?.runtime_minutes ?? 0), 0);
   const peliculasVistasUltimos7Dias = vistas.filter((p: any) => p.watched_at && p.watched_at >= hace7).length;
   const calificacionesVotadas = (misPeliculas ?? []).filter((p: any) => p.rating != null).length;
+  const moodsVotados = await calcularMoodsVotados(userId, ["movie"]);
 
   const generosCount: Record<number, number> = {};
   for (const p of misPeliculas ?? []) {
@@ -378,6 +408,7 @@ export async function getEstadisticasPeliculas(userId: string): Promise<Estadist
     minutosPeliculasPendientes,
     generosPopulares,
     calificacionesVotadas,
+    moodsVotados,
     comentariosCantidad: comentariosCantidad ?? 0,
     comentariosEnCuantasPeliculas,
     meGustaConseguidos,

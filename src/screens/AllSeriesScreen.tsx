@@ -102,7 +102,15 @@ export default function AllSeriesScreen({ route, navigation }: any) {
       const posicion = new Map(favoritos.map((f, i) => [f.tmdb_id, i]));
       return [...lista].sort((a, b) => (posicion.get(a.tmdb_id) ?? 0) - (posicion.get(b.tmdb_id) ?? 0));
     }
-    if (orden === "visto") return [...lista].sort((a, b) => (b.last_watched_at ?? "").localeCompare(a.last_watched_at ?? ""));
+    if (orden === "visto")
+      return [...lista].sort((a, b) => {
+        const cmp = (b.last_watched_at ?? "").localeCompare(a.last_watched_at ?? "");
+        // Mismo desempate que en películas: si empatan (típico cuando se
+        // eligió "solo el año" para más de una serie del mismo año),
+        // primero la más nueva.
+        if (cmp !== 0) return cmp;
+        return (b.primera_fecha ?? "").localeCompare(a.primera_fecha ?? "");
+      });
     if (orden === "alfabetico") return [...lista].sort((a, b) => (ascendente ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)));
     if (orden === "tu_puntuacion") {
       const conPuntuacion = lista.filter((s) => s.rating != null);
