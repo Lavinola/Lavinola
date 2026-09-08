@@ -2058,6 +2058,8 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: 'Se hai uno di questi salvato sul telefono (o puoi trasferirlo dal computer), tocca "Ho già il file, continua" qui sotto.',
   },
   "Letterboxd (solo películas)": { en: "Letterboxd (movies only)", pt: "Letterboxd (só filmes)", it: "Letterboxd (solo film)" },
+  "(Serie)": { en: "(TV Show)", pt: "(Série)", it: "(Serie TV)" },
+  "(Película)": { en: "(Movie)", pt: "(Filme)", it: "(Film)" },
   "JustWatch (solo películas)": { en: "JustWatch (movies only)", pt: "JustWatch (só filmes)", it: "JustWatch (solo film)" },
   "1. Desde una compu, instalá esa extensión desde la Chrome Web Store.": {
     en: "1. From a computer, install that extension from the Chrome Web Store.",

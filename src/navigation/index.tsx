@@ -333,6 +333,9 @@ function EtiquetaComunidad({ color, texto }: { color: string; texto: string }) {
   return (
     <Text
       allowFontScaling={false}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      minimumFontScale={0.75}
       style={[
         tabScreenOptions.tabBarLabelStyle,
         { color },

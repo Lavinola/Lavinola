@@ -326,7 +326,10 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
                   <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
                 )}
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.nombre}>{item.titulo}</Text>
+                  <Text style={styles.tipoEtiqueta}>{item.tipo === "series" ? t("(Serie)") : t("(Película)")}</Text>
+                  <Text style={styles.nombre} numberOfLines={2}>
+                    {item.titulo}
+                  </Text>
                   {item.anio && <Text style={styles.anio}>{item.anio}</Text>}
                 </View>
                 {abriendo === item.id && <ActivityIndicator size="small" style={{ marginRight: 8 }} />}
@@ -453,17 +456,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   input: { flex: 1, fontSize: 12.5, color: theme.colors.text, paddingVertical: 10, ...(Platform.OS === "web" ? { outlineStyle: "none" as any } : {}) },
-  card: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
+  card: { flexDirection: "row", alignItems: "center", backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 8, marginBottom: 10 },
   cardInfo: { flexDirection: "row", alignItems: "center", flex: 1 },
   followBtn: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 10 },
   followBtnTexto: { fontSize: 12, color: theme.colors.primaryLight, fontWeight: "700" },
   followBtnActivo: { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border },
   followBtnTextoActivo: { color: theme.colors.textMuted },
-  poster: { width: 40, height: 60, borderRadius: 4, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },
+  poster: { width: 60, height: 90, borderRadius: 6, marginRight: 12, backgroundColor: theme.colors.surfaceAlt },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-  nombre: { flex: 1, fontSize: 15 },
+  nombre: { fontSize: 14, fontWeight: "700" },
+  tipoEtiqueta: { fontSize: 11, color: theme.colors.textMuted, marginBottom: 1 },
   sugerenciasTitulo: { fontSize: 13, fontWeight: "700", color: theme.colors.textMuted, marginBottom: 8 },
-  anio: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
+  anio: { fontSize: 12, color: theme.colors.textMuted, marginTop: 3 },
   addBtn: { width: 30, height: 30, borderRadius: 8, borderWidth: 1.5, borderColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
   addBtnTexto: { color: theme.colors.primaryLight, fontSize: 16, fontWeight: "800" },
   addBtnAgregado: { backgroundColor: theme.colors.primary },
