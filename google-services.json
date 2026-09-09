@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "699250494169",
+    "project_id": "lavinola-a360c",
+    "storage_bucket": "lavinola-a360c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:699250494169:android:07075011f0cef1dc094cc8",
+        "android_client_info": {
+          "package_name": "com.lavinola.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0CT7BZO1vG1jy55fLF4CWe2GnZEvxAow"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
