@@ -5733,3 +5733,10 @@ returns table (tmdb_id integer, cantidad integer) as $$
   limit p_limite;
 $$ language sql security definer;
 grant execute on function top_titulos_mensual(text, text, integer, integer) to authenticated;
+
+-- Se sacó la opción de "avisarme 10 min / 1 hora / 1 día antes del
+-- estreno" — nunca se pudo mostrar de verdad porque ni TMDB ni ninguna
+-- fuente gratis dan la hora exacta de estreno, solo el día (por eso el
+-- aviso de episode-reminders dice "hoy se estrena", no una hora
+-- puntual). Quedaba declarada en el perfil sin usarse en ningún lado.
+alter table profiles drop column if exists notify_episode_timing;

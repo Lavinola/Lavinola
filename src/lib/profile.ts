@@ -30,7 +30,6 @@ export interface PerfilCompleto {
   social_tiktok: string | null;
   content_language: string;
   show_titles_in_own_language: boolean;
-  notify_episode_timing: "none" | "10min" | "1hora" | "1dia";
   notify_new_releases: boolean;
   haptics_enabled: boolean;
   notify_likes: boolean;

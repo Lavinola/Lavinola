@@ -49,7 +49,9 @@ export async function registrarPushToken(userId: string): Promise<void> {
     }
     if (status !== "granted") return;
 
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.expoConfig?.extra?.eas?.projectId,
+    });
     await supabase.from("profiles").update({ push_token: tokenData.data }).eq("id", userId);
   } catch (e) {
     // No dejamos que un fallo de push notifications rompa el flujo de login.
