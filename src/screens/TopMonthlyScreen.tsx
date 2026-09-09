@@ -82,7 +82,17 @@ export default function TopMonthlyScreen({ navigation }: any) {
     setAgregados(new Set());
     try {
       const country = alcance === "pais" ? miPais : null;
-      let lista = await topTitulosMensual(tipo, country, generoId);
+      // Si hay plataforma elegida, hace falta un pool más grande que el
+      // top 30 de siempre — esa parte del filtro no se puede resolver
+      // adentro de la base (depende de una consulta en vivo a TMDB por
+      // título, y no de un dato que ya tengamos guardado), así que se
+      // filtra acá después, sobre más candidatos, y recién ahí se corta
+      // a 30. El género en cambio ya se filtra bien adentro de la base
+      // (top_titulos_mensual) antes de cortar a 30, así que no le hace
+      // falta este mismo truco — ya trae todo lo que hay disponible de
+      // ese género.
+      const pedirLimite = plataformas.length > 0 ? 150 : 30;
+      let lista = await topTitulosMensual(tipo, country, generoId, pedirLimite);
 
       if (plataformas.length > 0 && lista.length > 0) {
         const watchRegion = miPais ?? "AR";
@@ -102,7 +112,7 @@ export default function TopMonthlyScreen({ navigation }: any) {
             return { item, pasa: esOtras ? !coincideCurada : coincideCurada };
           })
         );
-        lista = resultados.filter((r) => r.pasa).map((r) => r.item);
+        lista = resultados.filter((r) => r.pasa).map((r) => r.item).slice(0, 30);
       }
 
       setItems(lista);

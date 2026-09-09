@@ -30,6 +30,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
   const [tipo, setTipo] = useState<"series" | "movie">(route.params?.tipoInicial ?? "series");
   const [orden, setOrden] = useState<OrdenDescubrir>(route.params?.ordenInicial ?? "recomendado");
   const [generoId, setGeneroId] = useState<number | null>(null);
+  const [año, setAño] = useState<number | null>(null);
   const [estado, setEstado] = useState<EstadoSerie>("todo");
   const [plataformas, setPlataformas] = useState<string[]>([]);
   const [watchRegion, setWatchRegion] = useState("AR");
@@ -99,7 +100,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     cargar(1, true);
-  }, [tipo, orden, generoId, estado, plataformas, userId]);
+  }, [tipo, orden, generoId, estado, plataformas, año, userId]);
 
   async function cargar(paginaAPedir: number, reiniciar: boolean) {
     if (cargandoRef.current && !reiniciar) return; // ya hay un pedido de "más" en curso, no dispares otro
@@ -116,6 +117,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
         plataformasClaves: plataformas,
         todasLasPlataformas,
         watchRegion,
+        año,
         page: paginaAPedir,
         userId,
       });
@@ -337,12 +339,14 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
         estadoActual={estado}
         watchRegion={watchRegion}
         plataformasActuales={plataformas}
+        añoActual={año}
         onCerrar={() => setFiltroVisible(false)}
         onAplicar={(params) => {
           setOrden(params.orden);
           setGeneroId(params.generoId);
           setEstado(params.estado);
           setPlataformas(params.plataformas);
+          setAño(params.año);
           setFiltroVisible(false);
         }}
       />

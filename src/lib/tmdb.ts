@@ -159,6 +159,7 @@ export function discoverSeriesPaginado(params: {
   sortBy?: string;
   watchProviderIds?: number[];
   watchRegion?: string;
+  año?: number | null;
 }) {
   return tmdbFetch<any>(`/discover/tv`, {
     page: String(params.page),
@@ -168,6 +169,7 @@ export function discoverSeriesPaginado(params: {
     ...(params.watchProviderIds && params.watchProviderIds.length > 0
       ? { with_watch_providers: params.watchProviderIds.join("|"), watch_region: params.watchRegion ?? "US" }
       : {}),
+    ...(params.año ? { first_air_date_year: String(params.año) } : {}),
   });
 }
 
@@ -178,6 +180,7 @@ export function discoverMoviesPaginado(params: {
   sortBy?: string;
   watchProviderIds?: number[];
   watchRegion?: string;
+  año?: number | null;
 }) {
   return tmdbFetch<any>(`/discover/movie`, {
     page: String(params.page),
@@ -186,6 +189,7 @@ export function discoverMoviesPaginado(params: {
     ...(params.watchProviderIds && params.watchProviderIds.length > 0
       ? { with_watch_providers: params.watchProviderIds.join("|"), watch_region: params.watchRegion ?? "US" }
       : {}),
+    ...(params.año ? { primary_release_year: String(params.año) } : {}),
   });
 }
 
@@ -308,22 +312,37 @@ export function getPopularMovies() {
 // ---------- Watch Providers (powered by JustWatch) ----------
 // Requiere pasar watch_region con el país del perfil del usuario (ej "AR").
 // No lleva idioma (son solo nombres de plataformas + logos).
+// Caché en memoria (dura mientras la app esté abierta) de a qué plataformas
+// pertenece cada título — se pide a TMDB en vivo, una por título, así que
+// sin esto cada vez que se filtra Top Mensual por plataforma se repetirían
+// los mismos pedidos una y otra vez (cambiás de género con la plataforma ya
+// elegida, volvés a entrar a la pantalla, etc).
+const cacheWatchProviders = new Map<string, any>();
+
 export async function getSeriesWatchProviders(tmdbId: number, watchRegion: string) {
+  const clave = `series:${tmdbId}:${watchRegion}`;
+  if (cacheWatchProviders.has(clave)) return cacheWatchProviders.get(clave);
   const url = new URL(`${TMDB_BASE}/tv/${tmdbId}/watch/providers`);
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${TMDB_TOKEN}`, accept: "application/json" },
   });
   const data = await res.json();
-  return data?.results?.[watchRegion] ?? null; // { flatrate: [...], rent: [...], buy: [...], link }
+  const resultado = data?.results?.[watchRegion] ?? null; // { flatrate: [...], rent: [...], buy: [...], link }
+  cacheWatchProviders.set(clave, resultado);
+  return resultado;
 }
 
 export async function getMovieWatchProviders(tmdbId: number, watchRegion: string) {
+  const clave = `movie:${tmdbId}:${watchRegion}`;
+  if (cacheWatchProviders.has(clave)) return cacheWatchProviders.get(clave);
   const url = new URL(`${TMDB_BASE}/movie/${tmdbId}/watch/providers`);
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${TMDB_TOKEN}`, accept: "application/json" },
   });
   const data = await res.json();
-  return data?.results?.[watchRegion] ?? null;
+  const resultado = data?.results?.[watchRegion] ?? null;
+  cacheWatchProviders.set(clave, resultado);
+  return resultado;
 }
 
 // ---------- Búsqueda (usada por el importador de TV Time para matching) ----------

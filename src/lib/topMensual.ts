@@ -8,8 +8,8 @@ export interface ItemTopMensual {
   subtitulo: string | null; // año (película) o cantidad de temporadas (serie)
 }
 
-export async function topTitulosMensual(itemType: "series" | "movie", country: string | null, genreId: number | null = null): Promise<ItemTopMensual[]> {
-  const { data, error } = await supabase.rpc("top_titulos_mensual", { p_item_type: itemType, p_country: country, p_genre_id: genreId });
+export async function topTitulosMensual(itemType: "series" | "movie", country: string | null, genreId: number | null = null, limite: number = 30): Promise<ItemTopMensual[]> {
+  const { data, error } = await supabase.rpc("top_titulos_mensual", { p_item_type: itemType, p_country: country, p_genre_id: genreId, p_limite: limite });
   if (error) throw error;
   const filas: { tmdb_id: number; cantidad: number }[] = data ?? [];
   if (filas.length === 0) return [];

@@ -886,6 +886,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Non conosco la data esatta, scegli l'anno",
   },
   "Elegir año": { en: "Choose year", pt: "Escolher ano", it: "Scegli anno" },
+  "Año": { en: "Year", pt: "Ano", it: "Anno" },
   "Año inválido": { en: "Invalid year", pt: "Ano inválido", it: "Anno non valido" },
   "¿Marcar los anteriores también?": { en: "Mark the previous ones too?", pt: "Marcar os anteriores também?", it: "Segnare anche i precedenti?" },
   "Solo este": { en: "Just this one", pt: "Só este", it: "Solo questo" },

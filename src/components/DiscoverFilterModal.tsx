@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { SafeAreaProvider, SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { View, Modal, Pressable, ScrollView, Image, StyleSheet } from "react-native";
 import { Text, AppButton } from "./Themed";
+import AñoPickerNativo from "./AñoPickerNativo";
 import { OrdenDescubrir, EstadoSerie, ETIQUETAS_ORDEN } from "../lib/discover";
 import { GENEROS_SERIES, GENEROS_PELICULAS } from "../lib/tmdbGenres";
 import { getWatchProvidersDisponibles, posterUrl, GrupoPlataforma } from "../lib/tmdb";
@@ -16,8 +17,9 @@ interface Props {
   estadoActual: EstadoSerie;
   watchRegion: string;
   plataformasActuales: string[];
+  añoActual: number | null;
   onCerrar: () => void;
-  onAplicar: (params: { orden: OrdenDescubrir; generoId: number | null; estado: EstadoSerie; plataformas: string[] }) => void;
+  onAplicar: (params: { orden: OrdenDescubrir; generoId: number | null; estado: EstadoSerie; plataformas: string[]; año: number | null }) => void;
 }
 
 const ORDENES: OrdenDescubrir[] = ["recomendado", "tendencias", "mas_visto", "visto_amigos", "mas_añadido"];
@@ -35,6 +37,7 @@ export default function DiscoverFilterModal({
   estadoActual,
   watchRegion,
   plataformasActuales,
+  añoActual,
   onCerrar,
   onAplicar,
 }: Props) {
@@ -44,6 +47,8 @@ export default function DiscoverFilterModal({
   const [estado, setEstado] = useState(estadoActual);
   const [plataformas, setPlataformas] = useState<string[]>(plataformasActuales);
   const [plataformasDisponibles, setPlataformasDisponibles] = useState<GrupoPlataforma[]>([]);
+  const [año, setAño] = useState<number | null>(añoActual);
+  const [mostrarPickerAño, setMostrarPickerAño] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
@@ -51,6 +56,7 @@ export default function DiscoverFilterModal({
       setGeneroId(generoActual);
       setEstado(estadoActual);
       setPlataformas(plataformasActuales);
+      setAño(añoActual);
     }
   }, [visible]);
 
@@ -95,16 +101,14 @@ export default function DiscoverFilterModal({
               ))}
             </View>
 
-            <Text style={styles.seccion}>{t("Género")}</Text>
+            <Text style={styles.seccion}>{t("Año")}</Text>
             <View style={styles.chipsWrap}>
-              <Pressable style={[styles.pillChico, generoId === null && styles.chipActivo]} onPress={() => setGeneroId(null)}>
-                <Text style={[styles.pillTextoChico, generoId === null && styles.chipTextoActivo]}>{t("Todos")}</Text>
+              <Pressable style={[styles.chip, año === null && styles.chipActivo]} onPress={() => setAño(null)}>
+                <Text style={[styles.chipTexto, año === null && styles.chipTextoActivo]}>{t("Todos")}</Text>
               </Pressable>
-              {Object.entries(generos).map(([id, nombre]) => (
-                <Pressable key={id} style={[styles.pillChico, generoId === Number(id) && styles.chipActivo]} onPress={() => setGeneroId(Number(id))}>
-                  <Text style={[styles.pillTextoChico, generoId === Number(id) && styles.chipTextoActivo]}>{t(nombre)}</Text>
-                </Pressable>
-              ))}
+              <Pressable style={[styles.chip, año !== null && styles.chipActivo]} onPress={() => setMostrarPickerAño(true)}>
+                <Text style={[styles.chipTexto, año !== null && styles.chipTextoActivo]}>{año !== null ? String(año) : t("Elegir año")}</Text>
+              </Pressable>
             </View>
 
             {tipo === "series" && (
@@ -148,21 +152,43 @@ export default function DiscoverFilterModal({
                 </View>
               </>
 
-            <View style={{ height: 12 }} />
-            <AppButton title={t("Aplicar filtros")} onPress={() => onAplicar({ orden, generoId, estado, plataformas })} />
+            <Text style={styles.seccion}>{t("Género")}</Text>
+            <View style={styles.chipsWrap}>
+              <Pressable style={[styles.pillChico, generoId === null && styles.chipActivo]} onPress={() => setGeneroId(null)}>
+                <Text style={[styles.pillTextoChico, generoId === null && styles.chipTextoActivo]}>{t("Todos")}</Text>
+              </Pressable>
+              {Object.entries(generos).map(([id, nombre]) => (
+                <Pressable key={id} style={[styles.pillChico, generoId === Number(id) && styles.chipActivo]} onPress={() => setGeneroId(Number(id))}>
+                  <Text style={[styles.pillTextoChico, generoId === Number(id) && styles.chipTextoActivo]}>{t(nombre)}</Text>
+                </Pressable>
+              ))}
+            </View>
           </ScrollView>
+          <View style={styles.footerBoton}>
+            <AppButton title={t("Aplicar filtros")} onPress={() => onAplicar({ orden, generoId, estado, plataformas, año })} />
+          </View>
         </Pressable>
       </Pressable>
           )}
         </SafeAreaInsetsContext.Consumer>
       </SafeAreaProvider>
+      {mostrarPickerAño && (
+        <AñoPickerNativo
+          value={año ?? new Date().getFullYear()}
+          minimumYear={1900}
+          maximumYear={new Date().getFullYear() + 1}
+          onCerrar={() => setMostrarPickerAño(false)}
+          onElegido={setAño}
+        />
+      )}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   fondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  hoja: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, padding: 20, maxHeight: "80%" },
+  hoja: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg, padding: 20, maxHeight: "88%" },
+  footerBoton: { paddingTop: 14, borderTopWidth: 1, borderTopColor: theme.colors.border, marginTop: 6 },
   titulo: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
   seccion: { fontSize: 13, fontWeight: "700", color: theme.colors.textMuted, marginTop: 16, marginBottom: 8, textTransform: "uppercase" },
   chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

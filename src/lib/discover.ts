@@ -143,10 +143,11 @@ export async function descubrirPagina(opts: {
   plataformasClaves?: string[];
   todasLasPlataformas?: GrupoPlataforma[];
   watchRegion?: string;
+  año?: number | null;
   page: number;
   userId: string | null;
 }): Promise<{ items: ItemDescubrir[]; hayMas: boolean }> {
-  const { tipo, orden, generoId, estado, plataformasClaves, todasLasPlataformas, watchRegion, page, userId } = opts;
+  const { tipo, orden, generoId, estado, plataformasClaves, todasLasPlataformas, watchRegion, año, page, userId } = opts;
   const { ids: watchProviderIds, esOtras, universoIds } = resolverPlataformas(plataformasClaves, todasLasPlataformas ?? []);
 
   // Recomendado y Tendencias van directo a TMDB discover (soportan género,
@@ -162,8 +163,8 @@ export async function descubrirPagina(opts: {
 
     const data =
       tipo === "series"
-        ? await discoverSeriesPaginado({ page, genreId: generos[0] ?? null, status: tipo === "series" ? statusTmdbParam(estado) : null, watchProviderIds: esOtras ? undefined : watchProviderIds, watchRegion })
-        : await discoverMoviesPaginado({ page, genreId: generos[0] ?? null, watchProviderIds: esOtras ? undefined : watchProviderIds, watchRegion });
+        ? await discoverSeriesPaginado({ page, genreId: generos[0] ?? null, status: tipo === "series" ? statusTmdbParam(estado) : null, watchProviderIds: esOtras ? undefined : watchProviderIds, watchRegion, año })
+        : await discoverMoviesPaginado({ page, genreId: generos[0] ?? null, watchProviderIds: esOtras ? undefined : watchProviderIds, watchRegion, año });
 
     // Igual que en la fila de Descubrir: "tendencias" de TMDB para series
     // mezcla estrenos reales con series viejas que igual generan mucho
@@ -205,13 +206,13 @@ export async function descubrirPagina(opts: {
   let rpcParams: Record<string, any>;
   if (orden === "mas_visto") {
     rpcNombre = tipo === "series" ? "mas_vistas_series" : "mas_vistas_peliculas";
-    rpcParams = { pagina: page, por_pagina: POR_PAGINA };
+    rpcParams = { pagina: page, por_pagina: POR_PAGINA, ...(año ? { p_año: año } : {}) };
   } else if (orden === "visto_amigos") {
     rpcNombre = tipo === "series" ? "vistas_por_amigos_series" : "vistas_por_amigos_peliculas";
-    rpcParams = { p_user_id: userId, pagina: page, por_pagina: POR_PAGINA };
+    rpcParams = { p_user_id: userId, pagina: page, por_pagina: POR_PAGINA, ...(año ? { p_año: año } : {}) };
   } else {
     rpcNombre = tipo === "series" ? "mas_agregadas_series" : "mas_agregadas_peliculas";
-    rpcParams = { pagina: page, por_pagina: POR_PAGINA };
+    rpcParams = { pagina: page, por_pagina: POR_PAGINA, ...(año ? { p_año: año } : {}) };
   }
 
   if (orden === "visto_amigos" && !userId) return { items: [], hayMas: false };
@@ -224,9 +225,6 @@ export async function descubrirPagina(opts: {
 
   const ids = (data ?? []).map((r: any) => r.tmdb_id);
   let items = await enriquecerDesdeCache(tipo, ids);
-
-  const yaAgregados = await idsYaAgregados(userId, tipo);
-  items = items.filter((i) => !yaAgregados.has(i.id));
 
   if (generoId) items = items.filter((i) => i.genero_ids.includes(generoId));
   if (tipo === "series") items = items.filter((i) => pasaEstadoCache(i, estado));

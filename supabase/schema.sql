@@ -5581,3 +5581,155 @@ alter table user_movies add column if not exists first_watched_at_year_only bool
 alter table user_episodes_watched add column if not exists watched_at_year_only boolean not null default false;
 alter table user_episodes_watched add column if not exists first_watched_at_year_only boolean not null default false;
 alter table user_series add column if not exists last_watched_at_year_only boolean not null default false;
+
+-- ============================================================
+-- Filtro de año en "Más visto" / "Visto por amigos" / "Más añadido"
+-- (dentro del filtro de Descubrir, solo aplica a películas). Estas 3
+-- funciones no pasaban antes por TMDB (son rankings propios armados con
+-- datos de la app), así que el año hay que filtrarlo acá, cruzando con
+-- movies_cache para tener la fecha de estreno. Se borra primero la
+-- versión vieja (con menos parámetros) porque "create or replace"
+-- NO reemplaza una función si cambia la cantidad de parámetros — crea
+-- una segunda función al lado, y eso confunde después a Supabase sobre
+-- cuál usar.
+-- ============================================================
+drop function if exists mas_vistas_peliculas(int, int);
+create or replace function mas_vistas_peliculas(pagina int, por_pagina int default 20, p_año int default null)
+returns table(tmdb_id int, cantidad bigint) as $$
+  select um.movie_tmdb_id, count(*) as cantidad
+  from user_movies um
+  left join movies_cache mc on mc.tmdb_id = um.movie_tmdb_id
+  where um.watched = true
+    and (p_año is null or extract(year from mc.release_date::date) = p_año)
+  group by um.movie_tmdb_id
+  order by cantidad desc, um.movie_tmdb_id
+  limit por_pagina offset (pagina - 1) * por_pagina;
+$$ language sql stable security definer set search_path = public;
+grant execute on function mas_vistas_peliculas(int, int, int) to authenticated;
+
+drop function if exists mas_agregadas_peliculas(int, int);
+create or replace function mas_agregadas_peliculas(pagina int, por_pagina int default 20, p_año int default null)
+returns table(tmdb_id int, cantidad bigint) as $$
+  select um.movie_tmdb_id, count(*) as cantidad
+  from user_movies um
+  left join movies_cache mc on mc.tmdb_id = um.movie_tmdb_id
+  where (p_año is null or extract(year from mc.release_date::date) = p_año)
+  group by um.movie_tmdb_id
+  order by cantidad desc, um.movie_tmdb_id
+  limit por_pagina offset (pagina - 1) * por_pagina;
+$$ language sql stable security definer set search_path = public;
+grant execute on function mas_agregadas_peliculas(int, int, int) to authenticated;
+
+drop function if exists vistas_por_amigos_peliculas(uuid, int, int);
+create or replace function vistas_por_amigos_peliculas(p_user_id uuid, pagina int, por_pagina int default 20, p_año int default null)
+returns table(tmdb_id int, cantidad bigint) as $$
+  select um.movie_tmdb_id, count(*) as cantidad
+  from user_movies um
+  join follows f on f.followee_id = um.user_id
+  left join movies_cache mc on mc.tmdb_id = um.movie_tmdb_id
+  where f.follower_id = p_user_id and um.watched = true
+    and (p_año is null or extract(year from mc.release_date::date) = p_año)
+  group by um.movie_tmdb_id
+  order by cantidad desc, um.movie_tmdb_id
+  limit por_pagina offset (pagina - 1) * por_pagina;
+$$ language sql stable security definer set search_path = public;
+grant execute on function vistas_por_amigos_peliculas(uuid, int, int, int) to authenticated;
+
+-- ============================================================
+-- Mismo filtro de año, ahora para series (toma el año de estreno,
+-- first_air_date). Mismo cuidado que con las de películas: se borra la
+-- versión vieja antes, porque agregar un parámetro nuevo con
+-- "create or replace" no reemplaza la función si cambia la cantidad de
+-- parámetros — deja las dos al mismo tiempo.
+-- ============================================================
+drop function if exists mas_vistas_series(int, int);
+create or replace function mas_vistas_series(pagina int, por_pagina int default 20, p_año int default null)
+returns table(tmdb_id int, cantidad bigint) as $$
+  select uew.series_tmdb_id, count(distinct uew.user_id) as cantidad
+  from user_episodes_watched uew
+  left join series_cache sc on sc.tmdb_id = uew.series_tmdb_id
+  where (p_año is null or extract(year from sc.first_air_date) = p_año)
+  group by uew.series_tmdb_id
+  order by cantidad desc, uew.series_tmdb_id
+  limit por_pagina offset (pagina - 1) * por_pagina;
+$$ language sql stable security definer set search_path = public;
+grant execute on function mas_vistas_series(int, int, int) to authenticated;
+
+drop function if exists mas_agregadas_series(int, int);
+create or replace function mas_agregadas_series(pagina int, por_pagina int default 20, p_año int default null)
+returns table(tmdb_id int, cantidad bigint) as $$
+  select us.series_tmdb_id, count(*) as cantidad
+  from user_series us
+  left join series_cache sc on sc.tmdb_id = us.series_tmdb_id
+  where (p_año is null or extract(year from sc.first_air_date) = p_año)
+  group by us.series_tmdb_id
+  order by cantidad desc, us.series_tmdb_id
+  limit por_pagina offset (pagina - 1) * por_pagina;
+$$ language sql stable security definer set search_path = public;
+grant execute on function mas_agregadas_series(int, int, int) to authenticated;
+
+drop function if exists vistas_por_amigos_series(uuid, int, int);
+create or replace function vistas_por_amigos_series(p_user_id uuid, pagina int, por_pagina int default 20, p_año int default null)
+returns table(tmdb_id int, cantidad bigint) as $$
+  select uew.series_tmdb_id, count(distinct uew.user_id) as cantidad
+  from user_episodes_watched uew
+  join follows f on f.followee_id = uew.user_id
+  left join series_cache sc on sc.tmdb_id = uew.series_tmdb_id
+  where f.follower_id = p_user_id
+    and (p_año is null or extract(year from sc.first_air_date) = p_año)
+  group by uew.series_tmdb_id
+  order by cantidad desc, uew.series_tmdb_id
+  limit por_pagina offset (pagina - 1) * por_pagina;
+$$ language sql stable security definer set search_path = public;
+grant execute on function vistas_por_amigos_series(uuid, int, int, int) to authenticated;
+
+-- ============================================================
+-- Top Mensual: cuando se filtra por plataforma (algo que no se puede
+-- chequear del lado de la base, porque esa info viene de una consulta en
+-- vivo a TMDB por título) se necesita pedir un pool más grande que el
+-- top 30 de siempre, porque despues de filtrar por plataforma se
+-- termina viendo mucho menos de 30. El género sí se filtra bien acá
+-- adentro, antes de cortar, así que ese no tenía este problema — se
+-- agrega el límite como parámetro ajustable para que la app pueda pedir
+-- de a 100 cuando hay plataforma elegida, y filtrar sobre ese pool más
+-- grande en vez de sobre el top 30 fijo de siempre.
+-- ============================================================
+drop function if exists top_titulos_mensual(text, text, integer);
+create or replace function top_titulos_mensual(p_item_type text, p_country text default null, p_genre_id integer default null, p_limite integer default 30)
+returns table (tmdb_id integer, cantidad integer) as $$
+  select t.tmdb_id, sum(t.puntos)::integer as cantidad from (
+    select um.movie_tmdb_id as tmdb_id, (1 + case when um.watched then 1 else 0 end) as puntos
+      from user_movies um
+      join profiles p on p.id = um.user_id
+      join movies_cache mc on mc.tmdb_id = um.movie_tmdb_id
+      where p_item_type = 'movie'
+        and um.added_at > now() - interval '30 days'
+        and (p_country is null or p.country = p_country)
+        and (mc.release_date is null or mc.release_date <= current_date)
+        and (p_genre_id is null or mc.genre_ids @> array[p_genre_id])
+    union all
+    select us.series_tmdb_id as tmdb_id, 1 as puntos
+      from user_series us
+      join profiles p on p.id = us.user_id
+      join series_cache sc on sc.tmdb_id = us.series_tmdb_id
+      where p_item_type = 'series'
+        and us.created_at > now() - interval '30 days'
+        and (p_country is null or p.country = p_country)
+        and (sc.first_air_date is null or sc.first_air_date <= current_date)
+        and (p_genre_id is null or sc.genre_ids @> array[p_genre_id])
+    union all
+    select uew.series_tmdb_id as tmdb_id, 1 as puntos
+      from user_episodes_watched uew
+      join profiles p on p.id = uew.user_id
+      join series_cache sc on sc.tmdb_id = uew.series_tmdb_id
+      where p_item_type = 'series'
+        and uew.watched_at > now() - interval '30 days'
+        and (p_country is null or p.country = p_country)
+        and (sc.first_air_date is null or sc.first_air_date <= current_date)
+        and (p_genre_id is null or sc.genre_ids @> array[p_genre_id])
+  ) t
+  group by t.tmdb_id
+  order by cantidad desc
+  limit p_limite;
+$$ language sql security definer;
+grant execute on function top_titulos_mensual(text, text, integer, integer) to authenticated;
