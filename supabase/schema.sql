@@ -2801,6 +2801,10 @@ drop policy if exists "app_config_select_all" on app_config;
 create policy "app_config_select_all" on app_config for select using (true);
 insert into app_config (key, value) values ('min_app_version', '0.1.0') on conflict (key) do nothing;
 insert into app_config (key, value) values ('store_url', '') on conflict (key) do nothing;
+-- 'latest_app_version': igual que min_app_version pero NO bloquea la app —
+-- solo dispara un banner cerrable avisando que hay una versión más nueva
+-- (ver chequearVersionRecomendada en src/lib/appVersionCheck.ts).
+insert into app_config (key, value) values ('latest_app_version', '0.1.0') on conflict (key) do nothing;
 
 -- ============================================================
 -- Aplica lo mismo de arriba (usuario derivado del mail, avatar de

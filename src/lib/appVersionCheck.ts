@@ -42,3 +42,30 @@ export async function chequearVersionMinima(): Promise<{ bloqueada: boolean; sto
   }
   return { bloqueada: false };
 }
+
+/**
+ * Versión "recomendada" — el aviso amigable de "hay una actualización
+ * nueva" para cuando NO hace falta forzar a nadie (a diferencia de
+ * `min_app_version`, que bloquea la app entera). Se controla con la clave
+ * `latest_app_version` en `app_config`: subís ese número a mano en Supabase
+ * cada vez que publicás una versión nueva y listo, no hace falta tocar
+ * código ni pedir nada de vuelta.
+ *
+ * Devuelve `null` si no hay nada nuevo para avisar.
+ */
+export async function chequearVersionRecomendada(): Promise<{ ultimaVersion: string; storeUrl?: string } | null> {
+  try {
+    const versionActual = Constants.expoConfig?.version ?? "0.0.0";
+    const { data } = await supabase.from("app_config").select("value").eq("key", "latest_app_version").maybeSingle();
+    const ultima = data?.value;
+    if (!ultima) return null;
+
+    if (compararVersiones(versionActual, ultima) < 0) {
+      const { data: urlRow } = await supabase.from("app_config").select("value").eq("key", "store_url").maybeSingle();
+      return { ultimaVersion: ultima, storeUrl: urlRow?.value };
+    }
+  } catch (e) {
+    console.error("No se pudo chequear la versión recomendada:", e);
+  }
+  return null;
+}
