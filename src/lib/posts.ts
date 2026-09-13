@@ -319,6 +319,9 @@ async function resolverDatosDeTitulos(filas: any[], viewerId?: string | null): P
       if (f.item_type === "episode") {
         subtitulo = `T${f.season_number} - E${f.episode_number}`;
         episodio_nombre = episodios[`${f.tmdb_id}:${f.season_number}:${f.episode_number}`]?.name ?? null;
+      } else if (f.season_number != null) {
+        // Post/recomendación sobre una temporada puntual (sin capítulo específico).
+        subtitulo = `Temporada ${f.season_number}`;
       } else {
         subtitulo = s?.total_seasons ? `${s.total_seasons} temporada${s.total_seasons === 1 ? "" : "s"}` : null;
       }

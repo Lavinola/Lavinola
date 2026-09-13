@@ -17,6 +17,7 @@ interface Props {
   maxLength?: number;
   autoFocus?: boolean;
   editable?: boolean;
+  sinFlexContenedor?: boolean; // true cuando el input va solo en una columna (no en una fila junto a un botón de enviar) — sin esto, el flex:1 del contenedor puede comprimir/superponer el cuadro de texto con lo que sigue debajo (visto en el modal de Publicar en el Lobby)
 }
 
 /**
@@ -26,7 +27,7 @@ interface Props {
  * criterio que cualquier red social, pero acotado a follows (no se puede
  * mencionar a cualquiera).
  */
-export default function MentionTextInput({ userId, groupId, value, onChangeText, style, placeholder, placeholderTextColor, multiline, maxLength, autoFocus, editable }: Props) {
+export default function MentionTextInput({ userId, groupId, value, onChangeText, style, placeholder, placeholderTextColor, multiline, maxLength, autoFocus, editable, sinFlexContenedor }: Props) {
   const [candidatos, setCandidatos] = useState<CandidatoMencion[]>([]);
   const [mencionEnCurso, setMencionEnCurso] = useState<{ query: string; inicio: number } | null>(null);
   const cursorRef = useRef(0);
@@ -68,7 +69,7 @@ export default function MentionTextInput({ userId, groupId, value, onChangeText,
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={sinFlexContenedor ? undefined : { flex: 1 }}>
       {mencionEnCurso && candidatos.length > 0 && (
         <View style={styles.listaBox}>
           <FlatList

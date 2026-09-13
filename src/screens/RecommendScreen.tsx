@@ -9,6 +9,7 @@ import { obtenerOCrearChat, enviarRecomendacionAUsuario, enviarRecomendacionDeGr
 import { recomendarEnGrupo } from "../lib/comments";
 import { posterUrl } from "../lib/tmdb";
 import { Text } from "../components/Themed";
+import NombreUsuario from "../components/NombreUsuario";
 import Avatar from "../components/Avatar";
 import UnderlineTabs from "../components/UnderlineTabs";
 import { useT } from "../i18n/i18n";
@@ -182,11 +183,12 @@ export default function RecommendScreen({ route, navigation }: Props) {
             />
           }
           ListEmptyComponent={<Text style={styles.vacio}>{t("Solo podés recomendarle a gente que te sigue Y que vos seguís.")}</Text>}
+          ListFooterComponent={<View style={styles.espacioTeclado} />}
           renderItem={({ item }) => (
             <View>
               <View style={styles.card}>
                 <Avatar uri={item.avatar_url} size={40} style={{ marginRight: 10, borderRadius: 8 }} />
-                <Text style={styles.username}>{item.username ?? t("Usuario")}</Text>
+                <NombreUsuario displayName={item.display_name} username={item.username} style={styles.username} numberOfLines={1} />
                 <Pressable style={styles.recomendarBtn} onPress={() => abrirCompositor(item.id)} disabled={enviadoA.has(item.id)}>
                   <Text style={styles.recomendarBtnTexto}>{enviadoA.has(item.id) ? t("Enviado ✓") : t("Recomendar")}</Text>
                 </Pressable>
@@ -225,6 +227,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
             />
           }
           ListEmptyComponent={<Text style={styles.vacio}>{t("Todavía no sos parte de ningún grupo.")}</Text>}
+          ListFooterComponent={<View style={styles.espacioTeclado} />}
           renderItem={({ item }) => (
             <View>
               <View style={styles.card}>
@@ -277,6 +280,7 @@ const styles = StyleSheet.create({
   tabRectActivo: { borderColor: theme.colors.primary },
   tabRectTexto: { fontSize: 13, fontWeight: "700", color: theme.colors.primaryLight },
   vacio: { textAlign: "center", color: theme.colors.textMuted, marginTop: 24, paddingHorizontal: 20 },
+  espacioTeclado: { height: 260, backgroundColor: theme.colors.background },
   buscador: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: theme.radius.md, padding: 10, marginBottom: 12 },
   card: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
   avatar: { width: 40, height: 40, borderRadius: 8, marginRight: 10, backgroundColor: theme.colors.surfaceAlt },

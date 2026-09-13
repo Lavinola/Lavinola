@@ -12,6 +12,7 @@ import { listarFavoritos, guardarOrdenFavoritos, Favorito } from "../lib/favorit
 import DraggableReorderList from "../components/DraggableReorderList";
 import FiltroPeliculasModal, { OrdenPeliculas, FiltroEstadoPelicula } from "../components/FiltroPeliculasModal";
 import RatingStars from "../components/RatingStars";
+import SeriesProgressBar from "../components/SeriesProgressBar";
 import AgregarButton from "../components/AgregarButton";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -208,7 +209,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
         )}
         {!modoReordenar && !soloFavoritas && (
           <Pressable style={styles.iconBtn} onPress={() => setOjoActivo(!ojoActivo)}>
-            <Ionicons name={ojoActivo ? "eye" : "eye-outline"} size={20} color={ojoActivo ? theme.colors.primaryLight : theme.colors.textMuted} />
+            <Ionicons name={ojoActivo ? "albums" : "albums-outline"} size={20} color={ojoActivo ? theme.colors.primaryLight : theme.colors.textMuted} />
           </Pressable>
         )}
         {soloFavoritas && !soloLectura && (
@@ -286,6 +287,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
                   {item.runtime_minutes ? ` · ${Math.floor(item.runtime_minutes / 60)} h ${item.runtime_minutes % 60} min` : ""}
                 </Text>
                 {mostrarEstrellas && <RatingStars rating={item.rating} size={11} />}
+                <SeriesProgressBar estado={item.watched ? "terminada" : "sin_comenzar"} porcentaje={100} />
               </View>
             </Pressable>
           )}
@@ -320,6 +322,7 @@ export default function AllMoviesScreen({ route, navigation }: any) {
                       </View>
                     )}
                   </View>
+                  <SeriesProgressBar estado={item.watched ? "terminada" : "sin_comenzar"} porcentaje={100} />
                 </Pressable>
               ))}
               {fila.length < 3 && Array.from({ length: 3 - fila.length }).map((_, i) => <View key={`vacio-${i}`} style={styles.item} />)}

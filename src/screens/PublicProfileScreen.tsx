@@ -121,6 +121,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
       listasVisibles,
       peliculasVistasPreview,
       seriesEnCursoPreview,
+      vistoPeliculasMap,
     ] = await Promise.all([
       obtenerPuntosInsignias(targetId).catch((e) => {
         console.error("Error al calcular el nivel de insignias:", e);
@@ -136,7 +137,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
         .eq("id", vid)
         .single()
         .then((r) => r.data),
-      resultado.puedeVerActividad && p.show_favorite_series ? progresoDeSeries(targetId) : Promise.resolve<Record<number, ProgresoSerie>>({}),
+      resultado.puedeVerActividad && (p.show_favorite_series || p.show_watched_series) ? progresoDeSeries(targetId) : Promise.resolve<Record<number, ProgresoSerie>>({}),
       resultado.puedeVerActividad
         ? Promise.all([
             fetchAllRows((desde, hasta) =>
@@ -166,7 +167,9 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
       resultado.puedeVerActividad ? listarListasDeUsuarioOrdenadasPorSeguidores(targetId) : Promise.resolve<Lista[]>([]),
       resultado.puedeVerActividad && p.show_watched_movies
         ? listarPeliculasVistasDeUsuario(targetId, "ultima_vista", false).then((items) =>
-            items.slice(0, 15).map((i) => ({ tmdb_id: i.tmdb_id, nombre: i.title, poster_path: i.poster_path } as ItemMiniTitulo))
+            // Esta función ya filtra solo las vistas, así que acá watched
+            // siempre es true — no hace falta consultarlo aparte.
+            items.slice(0, 15).map((i) => ({ tmdb_id: i.tmdb_id, nombre: i.title, poster_path: i.poster_path, watched: true } as ItemMiniTitulo))
           )
         : Promise.resolve<ItemMiniTitulo[]>([]),
       resultado.puedeVerActividad && p.show_watched_series
@@ -174,6 +177,14 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
             items.slice(0, 15).map((i) => ({ tmdb_id: i.tmdb_id, nombre: i.name, poster_path: i.poster_path } as ItemMiniTitulo))
           )
         : Promise.resolve<ItemMiniTitulo[]>([]),
+      // Solo para saber cuáles de las películas FAVORITAS ya están vistas
+      // (a diferencia de "vistas", las favoritas pueden incluir alguna
+      // todavía pendiente) — la barra violeta se pinta según esto.
+      resultado.puedeVerActividad && p.show_favorite_movies
+        ? fetchAllRows((desde, hasta) => supabase.from("user_movies").select("movie_tmdb_id, watched").eq("user_id", targetId).range(desde, hasta)).then(
+            (rows) => new Map<number, boolean>((rows ?? []).map((r: any) => [r.movie_tmdb_id, !!r.watched]))
+          )
+        : Promise.resolve<Map<number, boolean>>(new Map()),
     ]);
 
     // Depende de listasVisibles (recién resuelto arriba), así que va después.
@@ -201,7 +212,13 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
     setProgreso(progreso);
     setStatsTiempo(statsTiempo);
     setFavSeries(p.show_favorite_series ? favoritos.filter((f) => f.tipo === "series").map((f) => f.item) : []);
-    setFavPeliculas(p.show_favorite_movies ? favoritos.filter((f) => f.tipo === "movie").map((f) => f.item) : []);
+    setFavPeliculas(
+      p.show_favorite_movies
+        ? favoritos
+            .filter((f) => f.tipo === "movie")
+            .map((f) => ({ ...f.item, watched: vistoPeliculasMap.get(f.item.tmdb_id) ?? false }))
+        : []
+    );
     setPeliculasVistas(peliculasVistasPreview);
     setSeriesEnCurso(seriesEnCursoPreview);
     setGrupos(gruposPublicos);
@@ -492,6 +509,7 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
               items={seriesEnCurso}
               tipo="series"
               navigation={navigation}
+              progreso={progreso}
               onVerTodo={() => navigation.navigate("SeriesEnCursoPerfil", { targetUserId: targetId })}
             />
           )}

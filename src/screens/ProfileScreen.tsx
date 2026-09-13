@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
 import { View, Image, Pressable, StyleSheet, ScrollView, Share } from "react-native";
 import { Text, AppButton } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
@@ -42,6 +42,7 @@ interface ItemMini {
   tmdb_id: number;
   nombre: string;
   poster_path: string | null;
+  watched?: boolean;
 }
 
 export default function ProfileScreen({ navigation }: any) {
@@ -164,6 +165,11 @@ export default function ProfileScreen({ navigation }: any) {
 
   const [menuVisible, setMenuVisible] = useState(false);
 
+  // Para saber si una película favorita ya está vista o no (y así pintarle
+  // la barra violeta o no): cruzamos por tmdb_id contra "mis películas",
+  // que ya trae ese dato — no hace falta pedirlo de nuevo.
+  const pelisVistasPorId = useMemo(() => new Map(misPeliculas.map((p) => [p.tmdb_id, !!p.watched])), [misPeliculas]);
+
   return (
     <>
     <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -254,7 +260,9 @@ export default function ProfileScreen({ navigation }: any) {
       <FilaMiniTitulos titulo={t("Películas")} items={misPeliculas} tipo="movie" navigation={navigation} onVerTodo={() => navigation.navigate("TodasLasPeliculas")} />
       <FilaMiniTitulos
         titulo={t("Películas favoritas")}
-        items={favoritos.filter((f) => f.item_type === "movie").map((f) => ({ tmdb_id: f.tmdb_id, nombre: f.nombre, poster_path: f.poster_path }))}
+        items={favoritos
+          .filter((f) => f.item_type === "movie")
+          .map((f) => ({ tmdb_id: f.tmdb_id, nombre: f.nombre, poster_path: f.poster_path, watched: pelisVistasPorId.get(f.tmdb_id) ?? false }))}
         tipo="movie"
         navigation={navigation}
         favoritas

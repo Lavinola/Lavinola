@@ -3,10 +3,13 @@ import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndica
 import { Text, AppButton } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { Alert } from "../lib/alert";
+import ConfirmModal from "../components/ConfirmModal";
+import SeriesProgressBar from "../components/SeriesProgressBar";
 import { supabase } from "../lib/supabase";
 import { buscarTitulosTolerante, ResultadoTitulo } from "../lib/tituloSearch";
 import { recomendarEnGrupo } from "../lib/comments";
 import { enviarRecomendacionAUsuario } from "../lib/chats";
+import { progresoDeSeries, ProgresoSerie } from "../lib/seriesList";
 import { posterUrl } from "../lib/tmdb";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
@@ -32,17 +35,50 @@ export default function RecomendarTituloScreen({ route, navigation }: Props) {
   const [nota, setNota] = useState("");
   const [esSpoiler, setEsSpoiler] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [ayudaVisible, setAyudaVisible] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [progresoSeries, setProgresoSeries] = useState<Record<number, ProgresoSerie>>({});
+  const [peliculasVistas, setPeliculasVistas] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     navigation.setOptions({
-      title: t("Recomendar"),
+      title: t("Enviar Película/Serie"),
       headerRight: () => (
-        <Pressable onPress={mostrarAyuda} hitSlop={10} style={{ marginRight: 12 }}>
+        <Pressable onPress={() => setAyudaVisible(true)} hitSlop={10} style={{ marginRight: 12 }}>
           <Ionicons name="help-circle-outline" size={24} color={theme.colors.primary} />
         </Pressable>
       ),
     });
   }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user?.id ?? null;
+      setUserId(uid);
+      if (uid) progresoDeSeries(uid).then(setProgresoSeries);
+    });
+  }, []);
+
+  // Para pintar la barra de progreso en los resultados de búsqueda: solo
+  // hace falta consultar las películas que van apareciendo en pantalla, no
+  // todas las que existen.
+  useEffect(() => {
+    if (!userId) return;
+    const idsPelicula = resultados.filter((r) => r.tipo === "movie").map((r) => r.id);
+    if (idsPelicula.length === 0) return;
+    supabase
+      .from("user_movies")
+      .select("movie_tmdb_id, watched")
+      .eq("user_id", userId)
+      .in("movie_tmdb_id", idsPelicula)
+      .then(({ data }) => {
+        const mapa: Record<number, boolean> = {};
+        (data ?? []).forEach((r: any) => {
+          mapa[r.movie_tmdb_id] = !!r.watched;
+        });
+        setPeliculasVistas((prev) => ({ ...prev, ...mapa }));
+      });
+  }, [resultados, userId]);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -62,13 +98,6 @@ export default function RecomendarTituloScreen({ route, navigation }: Props) {
       clearTimeout(idTimeout);
     };
   }, [query]);
-
-  function mostrarAyuda() {
-    Alert.alert(
-      t("¿Qué es esto?"),
-      t("Elegí una película o serie y lo recomendás directo por acá, con una notita si querés.")
-    );
-  }
 
   async function enviar() {
     setEnviando(true);
@@ -167,12 +196,21 @@ export default function RecomendarTituloScreen({ route, navigation }: Props) {
           ListEmptyComponent={query.trim() ? <Text style={styles.vacio}>{t("No encontramos nada con ese nombre.")}</Text> : null}
           renderItem={({ item }) => (
             <Pressable style={styles.fila} onPress={() => setElegido(item)}>
-              {item.poster_path ? (
-                <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.poster} />
-              ) : (
-                <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
-              )}
+              <View>
+                {item.poster_path ? (
+                  <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.poster} />
+                ) : (
+                  <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
+                )}
+                {item.tipo === "movie" && peliculasVistas[item.id] != null && (
+                  <SeriesProgressBar estado={peliculasVistas[item.id] ? "terminada" : "sin_comenzar"} porcentaje={100} />
+                )}
+                {item.tipo === "series" && progresoSeries[item.id] && (
+                  <SeriesProgressBar estado={progresoSeries[item.id].estado} porcentaje={progresoSeries[item.id].porcentaje} />
+                )}
+              </View>
               <View style={{ flex: 1 }}>
+                <Text style={styles.tipoEtiqueta}>{item.tipo === "series" ? t("(Serie)") : t("(Película)")}</Text>
                 <Text style={styles.nombre} numberOfLines={2}>
                   {item.titulo}
                 </Text>
@@ -183,6 +221,13 @@ export default function RecomendarTituloScreen({ route, navigation }: Props) {
           )}
         />
       )}
+      <ConfirmModal
+        visible={ayudaVisible}
+        onCerrar={() => setAyudaVisible(false)}
+        titulo={t("¿Qué es esto?")}
+        mensaje={t("Elegí una película o serie y enviala directo por acá, con una notita si querés.")}
+        botones={[{ label: t("Entendido"), onPress: () => {}, destacado: true }]}
+      />
     </View>
   );
 }
@@ -205,6 +250,7 @@ const styles = StyleSheet.create({
   fila: { flexDirection: "row", alignItems: "center", paddingVertical: 8, gap: 12 },
   poster: { width: 46, height: 69, borderRadius: 6 },
   nombre: { fontSize: 14, fontWeight: "600" },
+  tipoEtiqueta: { fontSize: 11, color: theme.colors.textMuted, marginBottom: 1 },
   subtitulo: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   tituloRow: { flexDirection: "row", alignItems: "center", backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 8, marginBottom: 16, gap: 10 },
   tituloNombre: { fontSize: 15, fontWeight: "700" },

@@ -198,6 +198,9 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                   .maybeSingle();
                 nombreFinal = `${nombreFinal} — ${ep?.name ?? `T${m.season_number}E${m.episode_number}`}`;
                 subtitulo = `T${m.season_number} - E${m.episode_number}`;
+              } else if (m.item_type === "series" && m.season_number) {
+                // Se recomendó una temporada puntual, sin capítulo específico.
+                subtitulo = `Temporada ${m.season_number}`;
               } else if (m.item_type === "series") {
                 subtitulo = cache.total_seasons ? `${cache.total_seasons} ${cache.total_seasons === 1 ? t("temporada") : t("temporadas")}` : null;
               } else {
@@ -506,13 +509,15 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
                         </Text>
                       ) : (
                         <>
-                          <Text style={[styles.recomendacionEtiqueta, esQueVemos && styles.textoQueVemos]}>
-                            {esQueVemos
-                              ? item.item_type === "series"
-                                ? t("Hoy empezamos:")
-                                : t("Hoy vemos:")
-                              : `${esMio ? t("Recomendaste") : t("Te recomendó")} ${item.shared_group_id ? t("el grupo ") : ""}`}
-                          </Text>
+                          {(esQueVemos || item.shared_group_id) && (
+                            <Text style={[styles.recomendacionEtiqueta, esQueVemos && styles.textoQueVemos]}>
+                              {esQueVemos
+                                ? item.item_type === "series"
+                                  ? t("Hoy empezamos:")
+                                  : t("Hoy vemos:")
+                                : `${esMio ? t("Recomendaste") : t("Te recomendó")} ${t("el grupo ")}`}
+                            </Text>
+                          )}
                           <Text style={[styles.recomendacionTitulo, esQueVemos && styles.textoQueVemos]} numberOfLines={2}>
                             {preview?.nombre ?? "..."}
                           </Text>

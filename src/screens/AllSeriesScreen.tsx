@@ -11,6 +11,7 @@ import { listarSeriesConEstado, progresoDeSeries, SerieListado, ProgresoSerie } 
 import { listarFavoritos, guardarOrdenFavoritos, Favorito } from "../lib/favorites";
 import DraggableReorderList from "../components/DraggableReorderList";
 import SeriesProgressBar from "../components/SeriesProgressBar";
+import UltimoCapituloBadge from "../components/UltimoCapituloBadge";
 import RatingStars from "../components/RatingStars";
 import AgregarButton from "../components/AgregarButton";
 import FiltroSeriesModal, { OrdenSeries, CategoriaSerie, CATEGORIAS_SERIE } from "../components/FiltroSeriesModal";
@@ -48,7 +49,7 @@ export default function AllSeriesScreen({ route, navigation }: any) {
   const [modoReordenar, setModoReordenar] = useState(false);
   const [vista, setVista] = useState<"grilla" | "lista">("grilla");
   const [mostrarEstrellas, setMostrarEstrellas] = useState(!soloLectura);
-  const [ojoActivo, setOjoActivo] = useState(!soloFavoritas && !soloLectura);
+  const [ojoActivo, setOjoActivo] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const yaCargoRef = useRef(false);
 
@@ -181,7 +182,7 @@ export default function AllSeriesScreen({ route, navigation }: any) {
         )}
         {!modoReordenar && !soloLectura && (
           <Pressable style={styles.iconBtn} onPress={() => setOjoActivo(!ojoActivo)}>
-            <Ionicons name={ojoActivo ? "eye" : "eye-outline"} size={20} color={ojoActivo ? theme.colors.primaryLight : theme.colors.textMuted} />
+            <Ionicons name={ojoActivo ? "albums" : "albums-outline"} size={20} color={ojoActivo ? theme.colors.primaryLight : theme.colors.textMuted} />
           </Pressable>
         )}
         {soloFavoritas && !soloLectura && (
@@ -259,6 +260,11 @@ export default function AllSeriesScreen({ route, navigation }: any) {
                   {item.anio ? ` · ${item.anio}` : ""}
                 </Text>
                 {mostrarEstrellas && <RatingStars rating={item.rating} size={11} />}
+                {!soloLectura && (item.estado === "viendo" || item.estado === "abandonada") && item.ultimo_capitulo_visto != null && (
+                  <View style={styles.capituloListaRow}>
+                    <UltimoCapituloBadge temporada={item.ultima_temporada_vista!} capitulo={item.ultimo_capitulo_visto} />
+                  </View>
+                )}
                 {!soloLectura && <SeriesProgressBar estado={item.estado} porcentaje={progreso[item.tmdb_id]?.porcentaje ?? 0} />}
               </View>
             </Pressable>
@@ -292,6 +298,13 @@ export default function AllSeriesScreen({ route, navigation }: any) {
                       <View style={styles.estrellasOverlay}>
                         <RatingStars rating={item.rating} size={11} />
                       </View>
+                    )}
+                    {!soloLectura && (item.estado === "viendo" || item.estado === "abandonada") && item.ultimo_capitulo_visto != null && (
+                      <UltimoCapituloBadge
+                        temporada={item.ultima_temporada_vista!}
+                        capitulo={item.ultimo_capitulo_visto}
+                        style={styles.capituloOverlayGrilla}
+                      />
                     )}
                   </View>
                   {!soloLectura && <SeriesProgressBar estado={item.estado} porcentaje={progreso[item.tmdb_id]?.porcentaje ?? 0} />}
@@ -347,6 +360,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     borderRadius: 4,
   },
+  capituloOverlayGrilla: { position: "absolute", top: 4, left: 4 },
+  capituloListaRow: { alignItems: "flex-end", marginTop: 2 },
   filaReordenar: { flexDirection: "row", alignItems: "center", padding: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border, backgroundColor: theme.colors.background },
   filaReordenarArrastrando: { backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md, borderBottomWidth: 0 },
   handleArrastre: { padding: 10, marginRight: -10 },

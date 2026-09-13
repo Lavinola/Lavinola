@@ -409,7 +409,12 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
             <Pressable style={styles.menuBtnFlotante} onPress={() => setMenuVisible(true)} hitSlop={12}>
               <Text style={styles.menuBtnFlotanteTexto}>⋯</Text>
             </Pressable>
-            <Pressable style={styles.recomendarBtnFlotante} onPress={() => setPublishModalVisible(true)} hitSlop={12}>
+            <Pressable
+              style={[styles.recomendarBtnFlotante, noSalioTodavia && styles.recomendarBtnFlotanteDeshabilitado]}
+              onPress={() => !noSalioTodavia && setPublishModalVisible(true)}
+              disabled={noSalioTodavia}
+              hitSlop={12}
+            >
               <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
             </Pressable>
           </View>
@@ -628,6 +633,7 @@ const styles = StyleSheet.create({
   headerWrap: { backgroundColor: theme.colors.background, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   headerFlotante: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 50, elevation: 50 },
   recomendarBtnFlotante: { position: "absolute", top: 56, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
+  recomendarBtnFlotanteDeshabilitado: { opacity: 0.35 },
   menuBtnFlotante: { position: "absolute", top: 12, right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.surface, alignItems: "center", justifyContent: "center" },
   menuBtnSinBackdrop: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, alignItems: "center", justifyContent: "center" },
   menuBtnFlotanteTexto: { fontSize: 20, color: "#FFFFFF", fontWeight: "700" },

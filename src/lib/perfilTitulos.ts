@@ -24,6 +24,8 @@ export interface SeriePerfilItem {
   estado: SeriesStatusFilter;
   porcentaje: number;
   total_seasons: number;
+  ultima_temporada_vista: number | null; // hasta dónde va — para el badge "T2 E4" sobre el poster
+  ultimo_capitulo_visto: number | null;
 }
 
 function ordenar<T extends { rating: number | null }>(
@@ -98,15 +100,26 @@ export async function listarSeriesEnCursoDeUsuario(
       .range(desde, hasta)
   );
   const vistos = await fetchAllRows((desde, hasta) =>
-    supabase.from("user_episodes_watched").select("series_tmdb_id, watched_at").eq("user_id", targetUserId).range(desde, hasta)
+    supabase.from("user_episodes_watched").select("series_tmdb_id, season_number, episode_number, watched_at").eq("user_id", targetUserId).range(desde, hasta)
   );
 
   const conteoPorSerie: Record<number, number> = {};
   const ultimaVistaPorSerie: Record<number, string> = {};
+  // "Hasta dónde va" para el badge T{season} E{episode} — mismo criterio
+  // que en seriesList.ts: el capítulo con mayor (temporada, número) visto.
+  const ultimaTemporadaPorSerie: Record<number, number> = {};
+  const ultimoCapituloPorSerie: Record<number, number> = {};
   (vistos ?? []).forEach((v: any) => {
     conteoPorSerie[v.series_tmdb_id] = (conteoPorSerie[v.series_tmdb_id] ?? 0) + 1;
     if (v.watched_at && (!ultimaVistaPorSerie[v.series_tmdb_id] || v.watched_at > ultimaVistaPorSerie[v.series_tmdb_id])) {
       ultimaVistaPorSerie[v.series_tmdb_id] = v.watched_at;
+    }
+    const temporadaActual = ultimaTemporadaPorSerie[v.series_tmdb_id];
+    const capituloActual = ultimoCapituloPorSerie[v.series_tmdb_id];
+    const esMasAlto = temporadaActual == null || v.season_number > temporadaActual || (v.season_number === temporadaActual && v.episode_number > capituloActual);
+    if (esMasAlto) {
+      ultimaTemporadaPorSerie[v.series_tmdb_id] = v.season_number;
+      ultimoCapituloPorSerie[v.series_tmdb_id] = v.episode_number;
     }
   });
 
@@ -132,6 +145,8 @@ export async function listarSeriesEnCursoDeUsuario(
       estado,
       porcentaje: cache?.total_episodes > 0 ? Math.round((episodesWatched / cache.total_episodes) * 100) : 0,
       total_seasons: cache?.total_seasons ?? 0,
+      ultima_temporada_vista: ultimaTemporadaPorSerie[row.series_tmdb_id] ?? null,
+      ultimo_capitulo_visto: ultimoCapituloPorSerie[row.series_tmdb_id] ?? null,
     });
   }
 

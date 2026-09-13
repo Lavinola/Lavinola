@@ -4,6 +4,7 @@ import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import RatingStars from "../components/RatingStars";
 import SeriesProgressBar from "../components/SeriesProgressBar";
+import UltimoCapituloBadge from "../components/UltimoCapituloBadge";
 import OrdenTitulosPerfilModal from "../components/OrdenTitulosPerfilModal";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
@@ -95,6 +96,11 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
                   {item.first_air_date ? ` · ${item.first_air_date.slice(0, 4)}` : ""}
                 </Text>
                 {mostrarEstrellas && <RatingStars rating={item.rating} size={11} />}
+                {(item.estado === "viendo" || item.estado === "abandonada") && item.ultimo_capitulo_visto != null && (
+                  <View style={styles.capituloListaRow}>
+                    <UltimoCapituloBadge temporada={item.ultima_temporada_vista!} capitulo={item.ultimo_capitulo_visto} />
+                  </View>
+                )}
                 <SeriesProgressBar estado={item.estado} porcentaje={item.porcentaje} />
               </View>
             </Pressable>
@@ -128,6 +134,13 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
                       <View style={styles.estrellasOverlay}>
                         <RatingStars rating={item.rating} size={11} />
                       </View>
+                    )}
+                    {(item.estado === "viendo" || item.estado === "abandonada") && item.ultimo_capitulo_visto != null && (
+                      <UltimoCapituloBadge
+                        temporada={item.ultima_temporada_vista!}
+                        capitulo={item.ultimo_capitulo_visto}
+                        style={styles.capituloOverlayGrilla}
+                      />
                     )}
                   </View>
                   <SeriesProgressBar estado={item.estado} porcentaje={item.porcentaje} />
@@ -171,6 +184,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   miniPoster: { width: 40, height: 60, borderRadius: 4, marginRight: 10 },
+  capituloOverlayGrilla: { position: "absolute", top: 4, left: 4 },
+  capituloListaRow: { alignItems: "flex-end", marginTop: 2 },
   filaLista: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },
   filaListaTitulo: { fontSize: 15, fontWeight: "600" },
   filaListaSub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },

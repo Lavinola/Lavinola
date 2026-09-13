@@ -183,7 +183,7 @@ function ContenidoModal({
         {modo === "menu" ? (
           <>
             <Pressable style={styles.opcionRect} onPress={irARecomendar}>
-              <Text style={styles.opcionRectTexto}>{t("Recomendar (Chat/Grupo)")}</Text>
+              <Text style={styles.opcionRectTexto}>{t("Enviar (Chat/Grupo)")}</Text>
             </Pressable>
             {(publicarParams || publicarListaParams || publicarGrupoParams) && (
               <Pressable style={styles.opcionRect} onPress={() => setModo("publicar")}>
@@ -205,6 +205,7 @@ function ContenidoModal({
               maxLength={2000}
               autoFocus
               editable={!publicado}
+              sinFlexContenedor
             />
             {!publicarListaParams && !publicarGrupoParams && (
               <Pressable style={styles.spoilerRow} onPress={() => !publicado && setEsSpoiler(!esSpoiler)}>

@@ -275,7 +275,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   'Recomendar "{nombre}"': { en: 'Recommend "{nombre}"', pt: 'Recomendar "{nombre}"', it: 'Consiglia "{nombre}"' },
   "Enviado ✓": { en: "Sent ✓", pt: "Enviado ✓", it: "Inviato ✓" },
   Recomendar: { en: "Recommend", pt: "Recomendar", it: "Consiglia" },
-  "Recomendar (Chat/Grupo)": { en: "Recommend (Chat/Group)", pt: "Recomendar (Chat/Grupo)", it: "Consiglia (Chat/Gruppo)" },
+  "Enviar (Chat/Grupo)": { en: "Send (Chat/Group)", pt: "Enviar (Chat/Grupo)", it: "Invia (Chat/Gruppo)" },
   "¿Tiene spoiler?": { en: "Does it have spoilers?", pt: "Tem spoiler?", it: "Contiene spoiler?" },
   Encuesta: { en: "Poll", pt: "Enquete", it: "Sondaggio" },
   "Elegir fecha": { en: "Choose date", pt: "Escolher data", it: "Scegli data" },
@@ -449,11 +449,12 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Vibrazione al tocco (segna visto, reagisci, segui)",
   },
   "¿Qué es esto?": { en: "What's this?", pt: "O que é isso?", it: "Cos'è questo?" },
-  "Elegí una película o serie y lo recomendás directo por acá, con una notita si querés.": {
-    en: "Pick a movie or series and recommend it right here, with a short note if you want.",
-    pt: "Escolha um filme ou série e recomende direto por aqui, com uma notinha se quiser.",
-    it: "Scegli un film o una serie e consiglialo direttamente da qui, con una nota se vuoi.",
+  "Elegí una película o serie y enviala directo por acá, con una notita si querés.": {
+    en: "Pick a movie or series and send it right here, with a short note if you want.",
+    pt: "Escolha um filme ou série e envie direto por aqui, com uma notinha se quiser.",
+    it: "Scegli un film o una serie e invialo direttamente da qui, con una nota se vuoi.",
   },
+  "Enviar Película/Serie": { en: "Send Movie/Show", pt: "Enviar Filme/Série", it: "Invia Film/Serie" },
   "¿Querés agregar algo? (opcional)": {
     en: "Want to add something? (optional)",
     pt: "Quer adicionar algo? (opcional)",
@@ -650,8 +651,8 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "Quando alguém interagir com você, vai aparecer aqui.",
     it: "Quando qualcuno interagisce con te, lo vedrai qui.",
   },
-  "Recomendaste un título": { en: "You recommended a title", pt: "Você recomendou um título", it: "Hai consigliato un titolo" },
-  "Te recomendó un título": { en: "Recommended you a title", pt: "Recomendou um título para você", it: "Ti ha consigliato un titolo" },
+  "Enviaste un título": { en: "You sent a title", pt: "Você enviou um título", it: "Hai inviato un titolo" },
+  "Te envió un título": { en: "Sent you a title", pt: "Enviou um título para você", it: "Ti ha inviato un titolo" },
   "Enviaste un mensaje": { en: "You sent a message", pt: "Você enviou uma mensagem", it: "Hai inviato un messaggio" },
   "Te envió un mensaje": { en: "Sent you a message", pt: "Enviou uma mensagem para você", it: "Ti ha inviato un messaggio" },
   "Fuiste silenciado en un grupo: {motivo}": { en: "You were muted in a group: {motivo}", pt: "Você foi silenciado em um grupo: {motivo}", it: "Sei stato silenziato in un gruppo: {motivo}" },
@@ -755,6 +756,9 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Faltan {n} días": { en: "{n} days left", pt: "Faltam {n} dias", it: "Mancano {n} giorni" },
   Filtros: { en: "Filters", pt: "Filtros", it: "Filtri" },
   "Agregar/Quitar": { en: "Add/Remove", pt: "Adicionar/Remover", it: "Aggiungi/Rimuovi" },
+  "+ AGREGAR SERIE": { en: "+ ADD SHOW", pt: "+ ADICIONAR SÉRIE", it: "+ AGGIUNGI SERIE" },
+  "+ AGREGAR PELÍCULA": { en: "+ ADD MOVIE", pt: "+ ADICIONAR FILME", it: "+ AGGIUNGI FILM" },
+  "AGREGANDO...": { en: "ADDING...", pt: "ADICIONANDO...", it: "AGGIUNTA IN CORSO..." },
   "No hay películas acá todavía.": { en: "No movies here yet.", pt: "Nenhum filme aqui ainda.", it: "Ancora nessun film qui." },
   "No hay series acá todavía.": { en: "No shows here yet.", pt: "Nenhuma série aqui ainda.", it: "Ancora nessuna serie qui." },
   "Todavía no marcaste {tipo} como favoritas.": {
@@ -926,7 +930,18 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "mensaje editado": { en: "message edited", pt: "mensagem editada", it: "messaggio modificato" },
   "Fecha por confirmar": { en: "Date to be confirmed", pt: "Data a confirmar", it: "Data da confermare" },
   Temporada: { en: "Season", pt: "Temporada", it: "Stagione" },
-  "Elegir un capítulo": { en: "Choose an episode", pt: "Escolher um episódio", it: "Scegli un episodio" },
+  "Publicar sobre un capítulo": { en: "Post about an episode", pt: "Publicar sobre um episódio", it: "Pubblica su un episodio" },
+  "Publicar sobre una temporada": { en: "Post about a season", pt: "Publicar sobre uma temporada", it: "Pubblica su una stagione" },
+  "Las temporadas que todavía no terminaron de estrenarse no se pueden elegir.": {
+    en: "Seasons that haven't finished airing yet can't be chosen.",
+    pt: "Temporadas que ainda não terminaram de estrear não podem ser escolhidas.",
+    it: "Le stagioni che non hanno ancora finito di uscire non si possono scegliere.",
+  },
+  "Los capítulos que todavía no se estrenaron no se pueden elegir.": {
+    en: "Episodes that haven't aired yet can't be chosen.",
+    pt: "Episódios que ainda não estrearam não podem ser escolhidos.",
+    it: "Gli episodi non ancora usciti non si possono scegliere.",
+  },
   Insignias: { en: "Badges", pt: "Insígnias", it: "Distintivi" },
   "Nivel {n}: {nombre}": { en: "Level {n}: {nombre}", pt: "Nível {n}: {nombre}", it: "Livello {n}: {nombre}" },
   "Todavía sin nivel": { en: "No level yet", pt: "Ainda sem nível", it: "Ancora nessun livello" },
@@ -1236,7 +1251,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
 
   // ---------- Notificaciones (completando) ----------
   "{nombre} te envió un mensaje": { en: "{nombre} sent you a message", pt: "{nombre} te enviou uma mensagem", it: "{nombre} ti ha inviato un messaggio" },
-  "{nombre} te recomendó {titulo}": { en: "{nombre} recommended you {titulo}", pt: "{nombre} recomendou {titulo} para você", it: "{nombre} ti ha consigliato {titulo}" },
+  "{nombre} te envió {titulo}": { en: "{nombre} sent you {titulo}", pt: "{nombre} enviou {titulo} para você", it: "{nombre} ti ha inviato {titulo}" },
 
   // ---------- Chat (menú de opciones), denuncias, Lobby, filtros de grupos, Descubrir (completando) ----------
   "1 día": { en: "1 day", pt: "1 dia", it: "1 giorno" },
@@ -1717,6 +1732,11 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "Descubra filmes e séries em alta, e recomendações para você.",
     it: "Scopri film e serie di tendenza, e consigli pensati per te.",
   },
+  "Tocá el + sobre cualquier película o serie para agregarlo a tus pendientes, o el ojo para marcarlo como visto directamente.": {
+    en: "Tap the + on any movie or show to add it to your pending list, or the eye to mark it as watched directly.",
+    pt: "Toque no + em qualquer filme ou série para adicioná-lo aos seus pendentes, ou no olho para marcá-lo como visto diretamente.",
+    it: "Tocca il + su qualsiasi film o serie per aggiungerlo ai tuoi da vedere, o l'occhio per segnarlo come visto direttamente.",
+  },
   "Top mensual: lo más visto y mejor calificado del mes.": {
     en: "Monthly top: the most watched and best rated of the month.",
     pt: "Top mensal: o mais assistido e mais bem avaliado do mês.",
@@ -1727,10 +1747,10 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "Notícias: fique por dentro de estreias e novidades do mundo do cinema e das séries.",
     it: "Notizie: scopri anteprime e novità dal mondo del cinema e delle serie.",
   },
-  "Lobby: mirá lo que están comentando y compartiendo otros usuarios.": {
-    en: "Lobby: see what other users are commenting on and sharing.",
-    pt: "Lobby: veja o que outros usuários estão comentando e compartilhando.",
-    it: "Lobby: guarda cosa stanno commentando e condividendo altri utenti.",
+  "Lobby: mirá lo que están comentando y compartiendo otros usuarios, y publicá vos también tocando el +.": {
+    en: "Lobby: see what other users are commenting on and sharing, and post your own by tapping the +.",
+    pt: "Lobby: veja o que outros usuários estão comentando e compartilhando, e publique você também tocando no +.",
+    it: "Lobby: guarda cosa stanno commentando e condividendo altri utenti, e pubblica anche tu toccando il +.",
   },
   "Grupos: creá o sumate a comunidades temáticas para hablar de tus series y películas favoritas.": {
     en: "Groups: create or join themed communities to talk about your favorite shows and movies.",

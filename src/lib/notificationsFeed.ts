@@ -209,7 +209,7 @@ export function textoNotificacion(n: Notificacion, t: (s: string) => string = (s
     case "shared_title":
       if (n.message === "__MULTIPLE__") return t("{nombre} te envió mensajes").replace("{nombre}", nombre);
       return n.message
-        ? t("{nombre} te recomendó {titulo}").replace("{nombre}", nombre).replace("{titulo}", n.message)
+        ? t("{nombre} te envió {titulo}").replace("{nombre}", nombre).replace("{titulo}", n.message)
         : t("{nombre} te envió un mensaje").replace("{nombre}", nombre);
     case "group_muted":
       return n.message ? t("Fuiste silenciado en un grupo: {motivo}").replace("{motivo}", n.message) : t("Fuiste silenciado en un grupo");

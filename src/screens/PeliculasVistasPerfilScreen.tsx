@@ -3,6 +3,7 @@ import { View, SectionList, Image, Pressable, StyleSheet, ActivityIndicator } fr
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import RatingStars from "../components/RatingStars";
+import SeriesProgressBar from "../components/SeriesProgressBar";
 import OrdenTitulosPerfilModal from "../components/OrdenTitulosPerfilModal";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
@@ -98,6 +99,7 @@ export default function PeliculasVistasPerfilScreen({ route, navigation }: any) 
                   {item.runtime_minutes ? ` · ${Math.floor(item.runtime_minutes / 60)} h ${item.runtime_minutes % 60} min` : ""}
                 </Text>
                 {mostrarEstrellas && <RatingStars rating={item.rating} size={11} />}
+                <SeriesProgressBar estado="terminada" porcentaje={100} />
               </View>
             </Pressable>
           )}
@@ -133,6 +135,7 @@ export default function PeliculasVistasPerfilScreen({ route, navigation }: any) 
                       </View>
                     )}
                   </View>
+                  <SeriesProgressBar estado="terminada" porcentaje={100} />
                 </Pressable>
               ))}
               {fila.length < 3 && Array.from({ length: 3 - fila.length }).map((_, i) => <View key={`vacio-${i}`} style={styles.item} />)}

@@ -3,6 +3,7 @@ import { View, Image, FlatList, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Themed";
 import SeriesProgressBar from "./SeriesProgressBar";
+import UltimoCapituloBadge from "./UltimoCapituloBadge";
 import { posterUrl } from "../lib/tmdb";
 import { ProgresoSerie } from "../lib/seriesList";
 import { theme } from "../theme";
@@ -11,6 +12,7 @@ export interface ItemMiniTitulo {
   tmdb_id: number;
   nombre: string;
   poster_path: string | null;
+  watched?: boolean; // solo se usa para tipo "movie" — pinta la barra violeta completa, igual que una serie terminada
 }
 
 interface Props {
@@ -54,14 +56,27 @@ export default function FilaMiniTitulos({ titulo, items, tipo, navigation, progr
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 10 }}
           renderItem={({ item }) => (
             <Pressable style={styles.miniCard} onPress={() => navigation.navigate("DetalleTitulo", { tmdbId: item.tmdb_id, tipo })}>
-              {item.poster_path ? (
-                <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.miniPoster} />
-              ) : (
-                <View style={[styles.miniPoster, { backgroundColor: theme.colors.surfaceAlt }]} />
-              )}
+              <View style={{ position: "relative" }}>
+                {item.poster_path ? (
+                  <Image source={{ uri: posterUrl(item.poster_path, "w185")! }} style={styles.miniPoster} />
+                ) : (
+                  <View style={[styles.miniPoster, { backgroundColor: theme.colors.surfaceAlt }]} />
+                )}
+                {tipo === "series" &&
+                  progreso?.[item.tmdb_id] &&
+                  (progreso[item.tmdb_id].estado === "viendo" || progreso[item.tmdb_id].estado === "abandonada") &&
+                  progreso[item.tmdb_id].ultimo_capitulo_visto != null && (
+                    <UltimoCapituloBadge
+                      temporada={progreso[item.tmdb_id].ultima_temporada_vista!}
+                      capitulo={progreso[item.tmdb_id].ultimo_capitulo_visto!}
+                      style={styles.capituloOverlay}
+                    />
+                  )}
+              </View>
               {tipo === "series" && progreso?.[item.tmdb_id] && (
                 <SeriesProgressBar estado={progreso[item.tmdb_id].estado} porcentaje={progreso[item.tmdb_id].porcentaje} />
               )}
+              {tipo === "movie" && <SeriesProgressBar estado={item.watched ? "terminada" : "sin_comenzar"} porcentaje={100} />}
             </Pressable>
           )}
         />
@@ -89,4 +104,5 @@ const styles = StyleSheet.create({
   filaMiniVacio: { color: theme.colors.textMuted, fontSize: 12, paddingHorizontal: 16, marginTop: 10 },
   miniCard: { marginRight: 8 },
   miniPoster: { width: 90, height: 135, borderRadius: 6 },
+  capituloOverlay: { position: "absolute", top: 4, left: 4 },
 });

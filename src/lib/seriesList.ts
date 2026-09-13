@@ -25,6 +25,8 @@ export interface SerieListado {
   primer_capitulo_number: number | null;
   primer_capitulo_nombre: string | null;
   primer_capitulo_fecha: string | null;
+  ultima_temporada_vista: number | null; // hasta dónde vas — para el badge "T2 E4" sobre el poster
+  ultimo_capitulo_visto: number | null;
 }
 
 export interface EventoHistorial {
@@ -40,6 +42,8 @@ export interface EventoHistorial {
 export interface ProgresoSerie {
   estado: SeriesStatusFilter;
   porcentaje: number; // 0-100, solo relevante cuando estado es "viendo" o "abandonada"
+  ultima_temporada_vista: number | null; // hasta dónde vas — para el badge "T2 E4" sobre el poster
+  ultimo_capitulo_visto: number | null;
 }
 
 /**
@@ -61,7 +65,7 @@ export async function progresoDeSeries(userId: string): Promise<Record<number, P
   // los episodios vistos del usuario en una sola tanda paginada, y contamos
   // acá mismo, agrupando por serie.
   const vistos = await fetchAllRows((desde, hasta) =>
-    supabase.from("user_episodes_watched").select("series_tmdb_id, watched_at").eq("user_id", userId).range(desde, hasta)
+    supabase.from("user_episodes_watched").select("series_tmdb_id, season_number, episode_number, watched_at").eq("user_id", userId).range(desde, hasta)
   );
   const conteoPorSerie: Record<number, number> = {};
   // Igual que en listarSeriesConEstado: calculamos acá la fecha real del
@@ -70,10 +74,24 @@ export async function progresoDeSeries(userId: string): Promise<Record<number, P
   // — si no, una serie podía clasificarse mal como "abandonada" (o nunca
   // pasar a estarlo) según qué tan al día estuviera ese campo.
   const ultimaVistaPorSerie: Record<number, string> = {};
+  // "Hasta dónde vas" para el badge T{season} E{episode} — el capítulo con
+  // mayor (temporada, número) que tenés visto de esa serie. No hace falta
+  // traer todos los episodios de la serie para esto (a diferencia de
+  // listarSeriesConEstado): con los que el usuario ya vio alcanza, porque
+  // solo nos interesa el más alto de ESOS.
+  const ultimaTemporadaPorSerie: Record<number, number> = {};
+  const ultimoCapituloPorSerie: Record<number, number> = {};
   (vistos ?? []).forEach((v: any) => {
     conteoPorSerie[v.series_tmdb_id] = (conteoPorSerie[v.series_tmdb_id] ?? 0) + 1;
     if (v.watched_at && (!ultimaVistaPorSerie[v.series_tmdb_id] || v.watched_at > ultimaVistaPorSerie[v.series_tmdb_id])) {
       ultimaVistaPorSerie[v.series_tmdb_id] = v.watched_at;
+    }
+    const temporadaActual = ultimaTemporadaPorSerie[v.series_tmdb_id];
+    const capituloActual = ultimoCapituloPorSerie[v.series_tmdb_id];
+    const esMasAlto = temporadaActual == null || v.season_number > temporadaActual || (v.season_number === temporadaActual && v.episode_number > capituloActual);
+    if (esMasAlto) {
+      ultimaTemporadaPorSerie[v.series_tmdb_id] = v.season_number;
+      ultimoCapituloPorSerie[v.series_tmdb_id] = v.episode_number;
     }
   });
 
@@ -93,6 +111,8 @@ export async function progresoDeSeries(userId: string): Promise<Record<number, P
     resultado[row.series_tmdb_id] = {
       estado,
       porcentaje: totalEpisodes > 0 ? Math.min(100, Math.round((episodesWatched / totalEpisodes) * 100)) : 0,
+      ultima_temporada_vista: ultimaTemporadaPorSerie[row.series_tmdb_id] ?? null,
+      ultimo_capitulo_visto: ultimoCapituloPorSerie[row.series_tmdb_id] ?? null,
     };
   }
   return resultado;
@@ -260,6 +280,23 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
     const todosLosEpisodios = episodiosPorSerie.get(row.series_tmdb_id) ?? [];
     const primerCapitulo = todosLosEpisodios[0] ?? null;
 
+    // "Hasta dónde vas" para el badge T{season} E{episode}: recorremos los
+    // episodios de la serie EN ORDEN y nos quedamos con el último que esté
+    // marcado como visto — así, si en algún momento viste algo salteado,
+    // igual mostramos el punto más lejano al que llegaste en la historia,
+    // no cualquier capítulo visto al azar.
+    const vistosDeEstaSerie = vistosPorSerie.get(row.series_tmdb_id);
+    let ultimaTemporadaVista: number | null = null;
+    let ultimoCapituloVisto: number | null = null;
+    if (vistosDeEstaSerie) {
+      for (const ep of todosLosEpisodios) {
+        if (vistosDeEstaSerie.has(`${ep.season_number}-${ep.episode_number}`)) {
+          ultimaTemporadaVista = ep.season_number;
+          ultimoCapituloVisto = ep.episode_number;
+        }
+      }
+    }
+
     resultado.push({
       tmdb_id: row.series_tmdb_id,
       name: cache?.name ?? "—",
@@ -282,6 +319,8 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
       primer_capitulo_number: primerCapitulo?.episode_number ?? null,
       primer_capitulo_nombre: primerCapitulo?.name ?? null,
       primer_capitulo_fecha: primerCapitulo?.air_date ?? null,
+      ultima_temporada_vista: ultimaTemporadaVista,
+      ultimo_capitulo_visto: ultimoCapituloVisto,
     });
   }
   return resultado;

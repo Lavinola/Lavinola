@@ -169,7 +169,7 @@ export default function CommentThread({ targetType, targetId, groupId, navigatio
         <View style={styles.botonesGrupoRow}>
           {onAbrirRecomendar && (
             <Pressable style={styles.queVemosBtn} onPress={onAbrirRecomendar}>
-              <Text style={styles.queVemosBtnTexto}>{t("Recomendar")}</Text>
+              <Text style={styles.queVemosBtnTexto}>{t("Enviar")}</Text>
             </Pressable>
           )}
           <Pressable style={styles.queVemosBtn} onPress={() => setQueVemosVisible(true)}>
@@ -844,6 +844,9 @@ function RecomendacionPreview({
               .maybeSingle();
             sufijoEpisodio = ep?.name ?? `T${seasonNumber}E${episodeNumber}`;
             setSubtitulo(`T${seasonNumber} - E${episodeNumber}`);
+          } else if (itemType === "series" && seasonNumber) {
+            // Se recomendó una temporada puntual, sin capítulo específico.
+            setSubtitulo(`Temporada ${seasonNumber}`);
           } else {
             setSubtitulo(
               itemType === "series"
@@ -904,13 +907,15 @@ function RecomendacionPreview({
           </Text>
         ) : (
           <>
-            <Text style={[stylesRecomendacion.etiqueta, esQueVemos && stylesRecomendacion.textoQueVemos]}>
-              {esQueVemos
-                ? itemType === "series"
-                  ? t("Hoy empezamos:")
-                  : t("Hoy vemos:")
-                : `${autorUsername ?? t("Alguien")} ${t("recomendó ")}${groupId ? t("el grupo ") : ""}`}
-            </Text>
+            {(esQueVemos || groupId) && (
+              <Text style={[stylesRecomendacion.etiqueta, esQueVemos && stylesRecomendacion.textoQueVemos]}>
+                {esQueVemos
+                  ? itemType === "series"
+                    ? t("Hoy empezamos:")
+                    : t("Hoy vemos:")
+                  : `${autorUsername ?? t("Alguien")} ${t("recomendó ")}${t("el grupo ")}`}
+              </Text>
+            )}
             <Text style={[stylesRecomendacion.titulo, esQueVemos && stylesRecomendacion.textoQueVemos]}>{nombre ?? "..."}</Text>
             {subtitulo && <Text style={[stylesRecomendacion.sub, esQueVemos && stylesRecomendacion.textoQueVemos]}>{subtitulo}</Text>}
           </>

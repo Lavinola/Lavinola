@@ -429,7 +429,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
           {!agregada && userId && (
             <Pressable style={styles.agregarBtnGrande} onPress={agregarAlPerfil} disabled={agregando}>
               <Text style={styles.agregarBtnGrandeTexto}>
-                {agregando ? "AGREGANDO..." : `+ AÑADIR ${tipo === "series" ? "SERIE" : "PELÍCULA"}`}
+                {agregando ? t("AGREGANDO...") : t(`+ AGREGAR ${tipo === "series" ? "SERIE" : "PELÍCULA"}`)}
               </Text>
             </Pressable>
           )}
@@ -443,7 +443,16 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
           tab === "info" ? (
             <InformacionTab tmdbId={tmdbId} tipo={tipo} titulo={titulo} userId={userId} navigation={navigation} vista={vista} vistaVersion={vistaVersion} />
           ) : (
-            <EpisodiosTab tmdbId={tmdbId} userId={userId} navigation={navigation} onSerieAgregada={() => setAgregada(true)} onSerieCompletada={celebrarSerieCompletada} vistaVersion={vistaVersion} />
+            <EpisodiosTab
+              tmdbId={tmdbId}
+              userId={userId}
+              navigation={navigation}
+              onSerieAgregada={() => setAgregada(true)}
+              onSerieCompletada={celebrarSerieCompletada}
+              vistaVersion={vistaVersion}
+              nombre={nombre}
+              posterPath={customPoster ?? titulo.poster_path}
+            />
           )
         ) : (
           <InformacionTab tmdbId={tmdbId} tipo={tipo} titulo={titulo} userId={userId} navigation={navigation} vista={vista} vistaVersion={vistaVersion} />
@@ -1069,6 +1078,8 @@ function EpisodiosTab({
   onSerieAgregada,
   onSerieCompletada,
   vistaVersion,
+  nombre,
+  posterPath,
 }: {
   tmdbId: number;
   userId: string | null;
@@ -1076,6 +1087,8 @@ function EpisodiosTab({
   onSerieAgregada?: () => void;
   onSerieCompletada?: () => void;
   vistaVersion?: number;
+  nombre: string;
+  posterPath: string | null;
 }) {
   const { t } = useT();
   const [porTemporada, setPorTemporada] = useState<Record<number, EpisodioConEstado[]>>({});
@@ -1087,6 +1100,14 @@ function EpisodiosTab({
   const [menuVistoEpisodio, setMenuVistoEpisodio] = useState<EpisodioConEstado | null>(null);
   const [confirmTemporadaVisible, setConfirmTemporadaVisible] = useState(false);
   const [confirmTemporadaDatos, setConfirmTemporadaDatos] = useState<{ titulo: string; mensaje: string; accion: () => void } | null>(null);
+  // Botón del avioncito en la barra de cada temporada (recomendar por
+  // chat/grupo, o publicar en el Lobby, sobre esa temporada puntual).
+  const [temporadaParaCompartir, setTemporadaParaCompartir] = useState<number | null>(null);
+  // Esto solo tiene sentido para series con más de una temporada (o que
+  // todavía podrían tener una segunda) — una miniserie de una sola
+  // temporada ya finalizada no lo necesita: "temporada" y "serie entera"
+  // serían lo mismo.
+  const [permiteCompartirPorTemporada, setPermiteCompartirPorTemporada] = useState(true);
 
   useEffect(() => {
     cargar();
@@ -1108,8 +1129,12 @@ function EpisodiosTab({
     const data = await listarEpisodiosPorTemporada(userId, tmdbId);
     setPorTemporada(data);
 
-    const { data: cache } = await supabase.from("series_cache").select("seasons_meta").eq("tmdb_id", tmdbId).maybeSingle();
+    const { data: cache } = await supabase.from("series_cache").select("seasons_meta, status").eq("tmdb_id", tmdbId).maybeSingle();
     const meta = (cache?.seasons_meta ?? []) as { season_number: number; air_date: string | null; episode_count: number; name: string | null }[];
+    // Miniserie de una sola temporada, ya finalizada: no tiene sentido
+    // ofrecer "compartir/publicar sobre la temporada" como algo distinto
+    // de "compartir/publicar sobre la serie entera".
+    setPermiteCompartirPorTemporada(!(meta.length === 1 && !!cache?.status && cache.status !== "Returning Series"));
     // Temporadas confirmadas por TMDB que todavía no tienen episodios cargados (sin salir).
     setTemporadasFuturas(meta.filter((s) => !data[s.season_number]).map((s) => ({ season_number: s.season_number, air_date: s.air_date, name: s.name })));
     const totales: Record<number, number> = {};
@@ -1275,6 +1300,19 @@ function EpisodiosTab({
                 >
                   <Ionicons name="eye" size={16} color={temporadaCompleta ? theme.colors.text : theme.colors.primary} />
                 </Pressable>
+                {permiteCompartirPorTemporada && (
+                  <Pressable
+                    style={[styles.tildeBtn, !temporadaTerminoDeEmitir && styles.tildeBtnDeshabilitado, { marginLeft: 8 }]}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setTemporadaParaCompartir(num);
+                    }}
+                    disabled={!temporadaTerminoDeEmitir}
+                    hitSlop={10}
+                  >
+                    <Ionicons name="paper-plane" size={15} color={theme.colors.primary} />
+                  </Pressable>
+                )}
               </View>
             </Pressable>
             {abierta &&
@@ -1357,6 +1395,20 @@ function EpisodiosTab({
         { label: t("No visto (me equivoqué)"), icono: "eye-off-outline", onPress: marcarNoVistoDesdeMenu },
         { label: t("Volví a verlo"), icono: "eye-outline", onPress: marcarVolverAVerDesdeMenu },
       ]}
+    />
+    <PublishActionModal
+      visible={temporadaParaCompartir != null}
+      onCerrar={() => setTemporadaParaCompartir(null)}
+      navigation={navigation}
+      recomendarParams={{
+        kind: "title",
+        itemType: "series",
+        tmdbId,
+        seasonNumber: temporadaParaCompartir,
+        nombre: `${nombre} · ${t("Temporada")} ${temporadaParaCompartir}`,
+        posterPath,
+      }}
+      publicarParams={{ itemType: "series", tmdbId, seasonNumber: temporadaParaCompartir }}
     />
     </>
   );

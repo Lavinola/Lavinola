@@ -100,8 +100,8 @@ export async function listarChats(userId: string, t: (s: string) => string = (s)
       ultimoMensaje: ultimo
         ? ultimo.kind === "shared_title"
           ? ultimo.sender_id === userId
-            ? t("Recomendaste un título")
-            : t("Te recomendó un título")
+            ? t("Enviaste un título")
+            : t("Te envió un título")
           : ultimo.sender_id === userId
           ? t("Enviaste un mensaje")
           : t("Te envió un mensaje")
@@ -237,8 +237,11 @@ export async function enviarRecomendacionAUsuario(
     content: nota?.trim() || null,
     item_type: itemType === "episode" ? "series" : itemType,
     tmdb_id: tmdbId,
-    season_number: itemType === "episode" ? seasonNumber ?? null : null,
-    episode_number: itemType === "episode" ? episodeNumber ?? null : null,
+    // Antes esto solo guardaba temporada/capítulo cuando itemType === "episode"
+    // — una recomendación de "toda una temporada" (itemType "series" +
+    // seasonNumber, sin episodeNumber) perdía el dato de la temporada.
+    season_number: itemType !== "movie" ? seasonNumber ?? null : null,
+    episode_number: itemType !== "movie" ? episodeNumber ?? null : null,
     has_spoiler: !!hasSpoiler,
   });
   if (error) throw error;

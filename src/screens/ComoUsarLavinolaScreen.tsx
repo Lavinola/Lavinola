@@ -36,6 +36,7 @@ export default function ComoUsarLavinolaScreen() {
       titulo: t("Explorar"),
       pasos: [
         t("Descubrí películas y series en tendencia, y recomendaciones para vos."),
+        t("Tocá el + sobre cualquier película o serie para agregarlo a tus pendientes, o el ojo para marcarlo como visto directamente."),
         t("Top mensual: lo más visto y mejor calificado del mes."),
         t("Noticias: enterate de estrenos y novedades del mundo del cine y las series."),
       ],
@@ -43,7 +44,7 @@ export default function ComoUsarLavinolaScreen() {
     {
       titulo: t("Comunidad"),
       pasos: [
-        t("Lobby: mirá lo que están comentando y compartiendo otros usuarios."),
+        t("Lobby: mirá lo que están comentando y compartiendo otros usuarios, y publicá vos también tocando el +."),
         t("Grupos: creá o sumate a comunidades temáticas para hablar de tus series y películas favoritas."),
         t("Chats: compartí un título puntual con alguien que sigas."),
       ],

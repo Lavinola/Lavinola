@@ -10,6 +10,7 @@ export interface ItemMiniPerfil {
   tmdb_id: number;
   nombre: string;
   poster_path: string | null;
+  watched?: boolean;
 }
 
 export interface StatsPerfil {
@@ -57,7 +58,7 @@ export async function cargarDatosPerfilPropio(userId: string): Promise<DatosPerf
     fetchAllRows<any>((desde, hasta) =>
       supabase
         .from("user_movies")
-        .select("movie_tmdb_id, custom_poster_path, movies_cache(title, poster_path)")
+        .select("movie_tmdb_id, watched, custom_poster_path, movies_cache(title, poster_path)")
         .eq("user_id", userId)
         .order("added_at", { ascending: false })
         .range(desde, hasta)
@@ -101,6 +102,7 @@ export async function cargarDatosPerfilPropio(userId: string): Promise<DatosPerf
       tmdb_id: r.movie_tmdb_id,
       nombre: r.movies_cache?.title ?? "—",
       poster_path: r.custom_poster_path ?? r.movies_cache?.poster_path ?? null,
+      watched: !!r.watched,
     })),
     // Las revisitas suman: si volviste a ver algo, cuenta de nuevo en el total.
     stats: {

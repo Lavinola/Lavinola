@@ -215,8 +215,10 @@ export async function recomendarEnGrupo(params: {
     has_spoiler: params.hasSpoiler ?? false,
     shared_item_type: params.itemType === "episode" ? "series" : params.itemType ?? null,
     shared_tmdb_id: params.tmdbId ?? null,
-    shared_season_number: params.itemType === "episode" ? params.seasonNumber ?? null : null,
-    shared_episode_number: params.itemType === "episode" ? params.episodeNumber ?? null : null,
+    // Mismo arreglo que en chats.ts: antes se perdía la temporada cuando se
+    // recomendaba la temporada sola (sin capítulo puntual).
+    shared_season_number: params.itemType && params.itemType !== "movie" ? params.seasonNumber ?? null : null,
+    shared_episode_number: params.itemType && params.itemType !== "movie" ? params.episodeNumber ?? null : null,
     shared_group_id: params.recomendarGroupId ?? null,
     shared_list_id: params.recomendarListaId ?? null,
     es_que_vemos: params.esQueVemos ?? false,
