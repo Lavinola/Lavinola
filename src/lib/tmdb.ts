@@ -364,8 +364,25 @@ export function multiSearch(query: string) {
 }
 
 // ---------- Reparto / personas ----------
-export function getSeriesCredits(tmdbId: number) {
-  return tmdbFetch<any>(`/tv/${tmdbId}/credits`);
+// OJO: para series usamos "aggregate_credits", no "credits" a secas.
+// El endpoint /tv/{id}/credits de TMDB devuelve el reparto tal como está
+// curado para la temporada más reciente/la ficha general de la serie —
+// en la práctica, bastantes series terminan con actores principales
+// faltando ahí (pasaba con Pedro Pascal en The Last of Us, por ejemplo).
+// "aggregate_credits" junta el reparto real de TODAS las temporadas y
+// episodios, ordenado por participación — mucho más confiable.
+export async function getSeriesCredits(tmdbId: number) {
+  const data = await tmdbFetch<any>(`/tv/${tmdbId}/aggregate_credits`);
+  return {
+    ...data,
+    cast: (data.cast ?? []).map((c: any) => ({
+      ...c,
+      // aggregate_credits no trae "character" directo: viene adentro de
+      // "roles" (por si el actor tuvo más de un personaje). Nos quedamos
+      // con el principal para que el resto del código no note la diferencia.
+      character: c.roles?.[0]?.character ?? c.character ?? "",
+    })),
+  };
 }
 
 export function getMovieCredits(tmdbId: number) {

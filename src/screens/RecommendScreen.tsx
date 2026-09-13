@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { usuariosMutuos, UsuarioBasico } from "../lib/follows";
 import { listarMisGrupos, Grupo } from "../lib/groups";
-import { obtenerOCrearChat, enviarRecomendacionAUsuario, enviarRecomendacionDeGrupoAUsuario, enviarRecomendacionDeListaAUsuario } from "../lib/chats";
+import { listarChats, obtenerOCrearChat, enviarRecomendacionAUsuario, enviarRecomendacionDeGrupoAUsuario, enviarRecomendacionDeListaAUsuario } from "../lib/chats";
 import { recomendarEnGrupo } from "../lib/comments";
 import { posterUrl } from "../lib/tmdb";
 import { Text } from "../components/Themed";
@@ -60,10 +60,54 @@ export default function RecommendScreen({ route, navigation }: Props) {
     const uid = data.session?.user?.id ?? null;
     setUserId(uid);
     if (uid) {
-      const [u, g] = await Promise.all([usuariosMutuos(uid), listarMisGrupos(uid)]);
-      setUsuarios(u);
+      const [u, g, chats, interaccionesGrupo] = await Promise.all([
+        usuariosMutuos(uid),
+        listarMisGrupos(uid),
+        listarChats(uid),
+        // Última vez que posteaste/comentaste/recomendaste algo en cada grupo —
+        // lo usamos como "con qué grupos interactuaste" para ordenarlos.
+        supabase
+          .from("comentarios")
+          .select("target_id, created_at")
+          .eq("user_id", uid)
+          .eq("target_type", "group")
+          .order("created_at", { ascending: false }),
+      ]);
+
+      // Usuarios: mismo orden que la pantalla de Chats (por chat más
+      // reciente primero) y, atrás, los que todavía no tenés chat con
+      // ellos, alfabético por username.
+      const ordenChatPorUsuario = new Map<string, string>();
+      chats.forEach((c) => {
+        if (!ordenChatPorUsuario.has(c.otroUserId)) ordenChatPorUsuario.set(c.otroUserId, c.ultimoMensajeFecha ?? "");
+      });
+      const usuariosOrdenados = [...u].sort((a, b) => {
+        const fechaA = ordenChatPorUsuario.get(a.id);
+        const fechaB = ordenChatPorUsuario.get(b.id);
+        if (fechaA && fechaB) return fechaB.localeCompare(fechaA);
+        if (fechaA) return -1;
+        if (fechaB) return 1;
+        return (a.username ?? "").toLowerCase().localeCompare((b.username ?? "").toLowerCase());
+      });
+      setUsuarios(usuariosOrdenados);
+
+      // Grupos: mismo criterio — primero con los que interactuaste (tu
+      // última publicación ahí), después el resto alfabético.
+      const ultimaInteraccionPorGrupo = new Map<string, string>();
+      (interaccionesGrupo.data ?? []).forEach((fila: any) => {
+        if (!ultimaInteraccionPorGrupo.has(fila.target_id)) ultimaInteraccionPorGrupo.set(fila.target_id, fila.created_at);
+      });
+      const gruposFiltradosPorSelf = kind === "group" ? g.filter((gr) => gr.id !== groupId) : g;
+      const gruposOrdenados = [...gruposFiltradosPorSelf].sort((a, b) => {
+        const fechaA = ultimaInteraccionPorGrupo.get(a.id);
+        const fechaB = ultimaInteraccionPorGrupo.get(b.id);
+        if (fechaA && fechaB) return fechaB.localeCompare(fechaA);
+        if (fechaA) return -1;
+        if (fechaB) return 1;
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+      });
       // No tiene sentido recomendarle un grupo a sí mismo.
-      setGrupos(kind === "group" ? g.filter((gr) => gr.id !== groupId) : g);
+      setGrupos(gruposOrdenados);
     }
     setLoading(false);
   }
@@ -153,7 +197,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
     <View style={styles.container}>
       <View style={styles.tituloBox}>
         {posterPath && <Image source={{ uri: kind === "group" ? posterPath : posterUrl(posterPath, "w185")! }} style={styles.poster} />}
-        <Text style={styles.titulo}>{t('Recomendar "{nombre}"').replace("{nombre}", nombre)}</Text>
+        <Text style={styles.titulo}>{t('Enviar "{nombre}"').replace("{nombre}", nombre)}</Text>
       </View>
 
       <UnderlineTabs
@@ -190,7 +234,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
                 <Avatar uri={item.avatar_url} size={40} style={{ marginRight: 10, borderRadius: 8 }} />
                 <NombreUsuario displayName={item.display_name} username={item.username} style={styles.username} numberOfLines={1} />
                 <Pressable style={styles.recomendarBtn} onPress={() => abrirCompositor(item.id)} disabled={enviadoA.has(item.id)}>
-                  <Text style={styles.recomendarBtnTexto}>{enviadoA.has(item.id) ? t("Enviado ✓") : t("Recomendar")}</Text>
+                  <Text style={styles.recomendarBtnTexto}>{enviadoA.has(item.id) ? t("Enviado ✓") : t("Enviar")}</Text>
                 </Pressable>
               </View>
               {expandidoId === item.id && (
@@ -238,7 +282,7 @@ export default function RecommendScreen({ route, navigation }: Props) {
                 )}
                 <Text style={styles.username}>{item.name}</Text>
                 <Pressable style={styles.recomendarBtn} onPress={() => abrirCompositor(item.id)} disabled={enviadoA.has(item.id)}>
-                  <Text style={styles.recomendarBtnTexto}>{enviadoA.has(item.id) ? t("Enviado ✓") : t("Recomendar")}</Text>
+                  <Text style={styles.recomendarBtnTexto}>{enviadoA.has(item.id) ? t("Enviado ✓") : t("Enviar")}</Text>
                 </Pressable>
               </View>
               {expandidoId === item.id && (

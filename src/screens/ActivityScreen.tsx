@@ -6,15 +6,21 @@ import { Text } from "../components/Themed";
 import Avatar from "../components/Avatar";
 import NombreUsuario from "../components/NombreUsuario";
 import { supabase } from "../lib/supabase";
-import { listarChats, ChatResumen } from "../lib/chats";
+import { listarChats, ChatResumen, obtenerOCrearChat } from "../lib/chats";
+import { usuariosQueSigo, UsuarioBasico } from "../lib/follows";
 import ChatOptionsMenu from "../components/ChatOptionsMenu";
 import { formatearFechaHora } from "../lib/dates";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
+const TANDA_INICIAL = 15;
+const TANDA_SIGUIENTE = 10;
+
 export default function ActivityScreen({ navigation }: any) {
   const { t } = useT();
   const [chats, setChats] = useState<ChatResumen[]>([]);
+  const [sinInteractuar, setSinInteractuar] = useState<UsuarioBasico[]>([]);
+  const [cantidadMostrada, setCantidadMostrada] = useState(TANDA_INICIAL);
   const [userId, setUserId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [menuChat, setMenuChat] = useState<ChatResumen | null>(null);
@@ -30,7 +36,15 @@ export default function ActivityScreen({ navigation }: any) {
     const { data } = await supabase.auth.getSession();
     const uid = data.session?.user?.id ?? null;
     setUserId(uid);
-    if (uid) setChats(await listarChats(uid, t));
+    if (!uid) return;
+    const [chatsData, seguidos] = await Promise.all([listarChats(uid, t), usuariosQueSigo(uid)]);
+    setChats(chatsData);
+    const conChatYa = new Set(chatsData.map((c) => c.otroUserId));
+    const sinChat = seguidos
+      .filter((u) => !conChatYa.has(u.id))
+      .sort((a, b) => (a.username ?? "").toLowerCase().localeCompare((b.username ?? "").toLowerCase()));
+    setSinInteractuar(sinChat);
+    setCantidadMostrada(TANDA_INICIAL);
   }
 
   const chatsFiltrados = busqueda.trim()
@@ -41,6 +55,22 @@ export default function ActivityScreen({ navigation }: any) {
       )
     : chats;
 
+  const sinInteractuarFiltrados = busqueda.trim()
+    ? sinInteractuar.filter(
+        (u) =>
+          (u.username ?? "").toLowerCase().includes(busqueda.trim().toLowerCase()) ||
+          (u.display_name ?? "").toLowerCase().includes(busqueda.trim().toLowerCase())
+      )
+    : sinInteractuar;
+
+  const sinInteractuarMostrados = sinInteractuarFiltrados.slice(0, cantidadMostrada);
+
+  async function abrirChatCon(u: UsuarioBasico) {
+    if (!userId) return;
+    const chatId = await obtenerOCrearChat(u.id);
+    navigation.navigate("HiloActividad", { chatId, otroUsername: u.username, otroUserId: u.id });
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -48,6 +78,8 @@ export default function ActivityScreen({ navigation }: any) {
         data={chatsFiltrados}
         keyExtractor={(c) => c.chatId}
         contentContainerStyle={{ padding: 12 }}
+        onEndReachedThreshold={0.4}
+        onEndReached={() => setCantidadMostrada((prev) => Math.min(prev + TANDA_SIGUIENTE, sinInteractuarFiltrados.length))}
         ListHeaderComponent={
           <View style={styles.buscadorFilaConBoton}>
             <View style={[styles.buscadorConLupa, { flex: 1, marginBottom: 0 }]}>
@@ -66,9 +98,23 @@ export default function ActivityScreen({ navigation }: any) {
           </View>
         }
         ListEmptyComponent={
-          <Text style={styles.vacio}>
-            {busqueda.trim() ? "No encontramos ningún chat con ese nombre." : t("Todavía no tenés conversaciones. Recomendale algo a alguien para arrancar una.")}
-          </Text>
+          chatsFiltrados.length === 0 && sinInteractuarMostrados.length === 0 ? (
+            <Text style={styles.vacio}>
+              {busqueda.trim() ? "No encontramos ningún chat con ese nombre." : t("Todavía no tenés conversaciones. Recomendale algo a alguien para arrancar una.")}
+            </Text>
+          ) : null
+        }
+        ListFooterComponent={
+          sinInteractuarMostrados.length > 0 ? (
+            <View>
+              {sinInteractuarMostrados.map((u) => (
+                <Pressable key={u.id} style={styles.card} onPress={() => abrirChatCon(u)}>
+                  <Avatar uri={u.avatar_url} size={46} style={{ marginRight: 12 }} />
+                  <NombreUsuario style={styles.nombre} displayName={u.display_name} username={u.username} />
+                </Pressable>
+              ))}
+            </View>
+          ) : null
         }
         renderItem={({ item }) => (
           <Pressable

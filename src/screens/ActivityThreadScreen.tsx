@@ -173,7 +173,16 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
     await Promise.all(
       data.map(async (m) => {
         if (m.kind !== "shared_title") return;
-        const clave = m.tmdb_id ? `title-${m.tmdb_id}` : m.shared_group_id ? `group-${m.shared_group_id}` : `list-${m.shared_list_id}`;
+        // La clave tiene que incluir temporada/capítulo — si no, cuando se
+        // recomienda la MISMA serie dos veces con distinta temporada o
+        // capítulo, la segunda vez quedaba pegada mostrando la vista previa
+        // de la primera (mismo tmdb_id, entonces "ya estaba resuelta" y no
+        // se volvía a calcular).
+        const clave = m.tmdb_id
+          ? `title-${m.tmdb_id}${m.season_number ? `-s${m.season_number}` : ""}${m.episode_number ? `-e${m.episode_number}` : ""}`
+          : m.shared_group_id
+          ? `group-${m.shared_group_id}`
+          : `list-${m.shared_list_id}`;
         if (previews[clave]) return;
         if (m.tmdb_id) {
           if (m.item_type) {
@@ -344,7 +353,11 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
   function vistaPreviaMensaje(m: MensajeChat): string {
     if (m.deleted) return t("Mensaje eliminado");
     if (m.kind === "shared_title") {
-      const clave = m.tmdb_id ? `title-${m.tmdb_id}` : m.shared_group_id ? `group-${m.shared_group_id}` : `list-${m.shared_list_id}`;
+      const clave = m.tmdb_id
+        ? `title-${m.tmdb_id}${m.season_number ? `-s${m.season_number}` : ""}${m.episode_number ? `-e${m.episode_number}` : ""}`
+        : m.shared_group_id
+        ? `group-${m.shared_group_id}`
+        : `list-${m.shared_list_id}`;
       const nombre = previews[clave]?.nombre;
       if (m.es_que_vemos) return `🎬 ${nombre ?? "..."}`;
       if (m.shared_group_id) return `👥 ${nombre ?? t("Grupo")}`;
@@ -412,7 +425,11 @@ export default function ActivityThreadScreen({ route, navigation }: Props) {
           const esMio = item.sender_id === userId;
           const esLista = !!item.shared_list_id;
           const esQueVemos = !!item.es_que_vemos;
-          const clave = item.tmdb_id ? `title-${item.tmdb_id}` : item.shared_group_id ? `group-${item.shared_group_id}` : `list-${item.shared_list_id}`;
+          const clave = item.tmdb_id
+            ? `title-${item.tmdb_id}${item.season_number ? `-s${item.season_number}` : ""}${item.episode_number ? `-e${item.episode_number}` : ""}`
+            : item.shared_group_id
+            ? `group-${item.shared_group_id}`
+            : `list-${item.shared_list_id}`;
           const preview = item.kind === "shared_title" ? previews[clave] : null;
           const leido = esMio && !!otroLastReadAt && otroLastReadAt >= item.created_at;
 

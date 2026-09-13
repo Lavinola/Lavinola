@@ -12,8 +12,8 @@ export async function usuariosMutuos(userId: string): Promise<UsuarioBasico[]> {
   const mutuosIds = [...sigoSet].filter((id) => meSiguenSet.has(id));
   if (mutuosIds.length === 0) return [];
 
-  const { data: perfiles } = await supabase.from("profiles").select("id, username, avatar_url").in("id", mutuosIds);
-  return (perfiles ?? []).map((p: any) => ({ id: p.id, username: p.username, avatar_url: p.avatar_url, siguiendo: true }));
+  const { data: perfiles } = await supabase.from("profiles").select("id, username, avatar_url, display_name").in("id", mutuosIds);
+  return (perfiles ?? []).map((p: any) => ({ id: p.id, username: p.username, avatar_url: p.avatar_url, display_name: p.display_name, siguiendo: true }));
 }
 
 /**

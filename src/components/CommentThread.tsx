@@ -879,7 +879,7 @@ function RecomendacionPreview({
         setEliminado(true);
       }
     })();
-  }, [tmdbId, itemType, groupId, listId]);
+  }, [tmdbId, itemType, groupId, listId, seasonNumber, episodeNumber]);
 
   function abrir() {
     if (!navigation) return;

@@ -228,7 +228,7 @@ function pantallasComunes(Stack: any, t: (s: string) => string) {
       <Stack.Screen name="DescubrirMas" component={DiscoverMoreScreen} options={{ title: t("Descubre más") }} />
       <Stack.Screen name="CrearLista" component={CreateListScreen} options={{ title: t("Nueva lista") }} />
       <Stack.Screen name="ElegirImagenTmdb" component={ChooseTmdbImageScreen} options={{ title: t("Elegir imagen") }} />
-      <Stack.Screen name="Recomendar" component={RecommendScreen} options={{ title: t("Recomendar"), presentation: "modal" }} />
+      <Stack.Screen name="Recomendar" component={RecommendScreen} options={{ title: t("Enviar"), presentation: "modal" }} />
       <Stack.Screen name="CrearPost" component={CreatePostScreen} options={{ title: t("Publicar en el Lobby"), presentation: "modal" }} />
       <Stack.Screen
         name="SeleccionarTituloPost"

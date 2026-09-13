@@ -272,7 +272,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   Recomendaste: { en: "You recommended", pt: "Você recomendou", it: "Hai consigliato" },
   "Te recomendó": { en: "Recommended you", pt: "Recomendou para você", it: "Ti ha consigliato" },
   "Escribir...": { en: "Write...", pt: "Escrever...", it: "Scrivi..." },
-  'Recomendar "{nombre}"': { en: 'Recommend "{nombre}"', pt: 'Recomendar "{nombre}"', it: 'Consiglia "{nombre}"' },
+  'Enviar "{nombre}"': { en: 'Send "{nombre}"', pt: 'Enviar "{nombre}"', it: 'Invia "{nombre}"' },
   "Enviado ✓": { en: "Sent ✓", pt: "Enviado ✓", it: "Inviato ✓" },
   Recomendar: { en: "Recommend", pt: "Recomendar", it: "Consiglia" },
   "Enviar (Chat/Grupo)": { en: "Send (Chat/Group)", pt: "Enviar (Chat/Grupo)", it: "Invia (Chat/Gruppo)" },

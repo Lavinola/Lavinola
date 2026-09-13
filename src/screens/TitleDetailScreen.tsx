@@ -1131,10 +1131,14 @@ function EpisodiosTab({
 
     const { data: cache } = await supabase.from("series_cache").select("seasons_meta, status").eq("tmdb_id", tmdbId).maybeSingle();
     const meta = (cache?.seasons_meta ?? []) as { season_number: number; air_date: string | null; episode_count: number; name: string | null }[];
-    // Miniserie de una sola temporada, ya finalizada: no tiene sentido
-    // ofrecer "compartir/publicar sobre la temporada" como algo distinto
-    // de "compartir/publicar sobre la serie entera".
-    setPermiteCompartirPorTemporada(!(meta.length === 1 && !!cache?.status && cache.status !== "Returning Series"));
+    // Miniserie de una sola temporada, ya finalizada (o cancelada): no
+    // tiene sentido ofrecer "compartir/publicar sobre la temporada" como
+    // algo distinto de "compartir/publicar sobre la serie entera". Si el
+    // estado indica que todavía puede/va a haber más (en emisión, en
+    // producción, planeada, piloto), el botón se muestra igual aunque por
+    // ahora solo haya una temporada afuera.
+    const estadosQueIndicanMas = ["Returning Series", "In Production", "Planned", "Pilot"];
+    setPermiteCompartirPorTemporada(!(meta.length === 1 && !!cache?.status && !estadosQueIndicanMas.includes(cache.status)));
     // Temporadas confirmadas por TMDB que todavía no tienen episodios cargados (sin salir).
     setTemporadasFuturas(meta.filter((s) => !data[s.season_number]).map((s) => ({ season_number: s.season_number, air_date: s.air_date, name: s.name })));
     const totales: Record<number, number> = {};
