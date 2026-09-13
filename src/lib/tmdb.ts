@@ -389,6 +389,28 @@ export function getMovieCredits(tmdbId: number) {
   return tmdbFetch<any>(`/movie/${tmdbId}/credits`);
 }
 
+/**
+ * Reparto de UN capítulo puntual (no de la serie entera): junta el
+ * elenco regular acreditado para esa temporada ("cast") con los
+ * invitados específicos de ese capítulo ("guest_stars") — así, por
+ * ejemplo, el capítulo de un personaje que solo aparece ahí lo incluye,
+ * y no mezcla actores de otras temporadas que no tienen nada que ver.
+ */
+export async function getEpisodeCredits(seriesTmdbId: number, seasonNumber: number, episodeNumber: number) {
+  const data = await tmdbFetch<any>(`/tv/${seriesTmdbId}/season/${seasonNumber}/episode/${episodeNumber}/credits`);
+  const regulares = data.cast ?? [];
+  const invitados = data.guest_stars ?? [];
+  // Un actor regular a veces también aparece listado como invitado en el
+  // mismo capítulo (duplicado) — nos quedamos con una sola aparición por persona.
+  const vistos = new Set<number>();
+  const cast = [...regulares, ...invitados].filter((c: any) => {
+    if (vistos.has(c.id)) return false;
+    vistos.add(c.id);
+    return true;
+  });
+  return { ...data, cast };
+}
+
 // ---------- Reseñas de TMDB (solo lectura, no son de la comunidad de Lavinola) ----------
 export function getMovieReviews(tmdbId: number, page = 1) {
   return tmdbFetch<any>(`/movie/${tmdbId}/reviews`, { page: String(page) }, "en-US");

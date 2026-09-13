@@ -17,7 +17,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import CastVotePicker from "../components/CastVotePicker";
 import { supabase } from "../lib/supabase";
 import { calificarEpisodio, promedioEpisodio, guardarPlataformaEpisodio } from "../lib/ratings";
-import { getSeriesWatchProviders, getSeriesCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getContentLanguageCruda } from "../lib/tmdb";
+import { getSeriesWatchProviders, getEpisodeCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getContentLanguageCruda } from "../lib/tmdb";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { marcarVariosEpisodios, desmarcarEpisodio, episodiosAnterioresNoVistos, obtenerEpisodiosAdyacentes } from "../lib/episodes";
 import { impactoLiviano } from "../lib/haptics";
@@ -198,7 +198,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       setProviders(p);
     }
 
-    const credits = await getSeriesCredits(seriesTmdbId);
+    const credits = await getEpisodeCredits(seriesTmdbId, seasonNumber, episodeNumber);
     setReparto((credits.cast ?? []).slice(0, 15));
 
     setPromedio(await promedioEpisodio(seriesTmdbId, seasonNumber, episodeNumber));
