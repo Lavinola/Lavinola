@@ -160,6 +160,8 @@ export function discoverSeriesPaginado(params: {
   watchProviderIds?: number[];
   watchRegion?: string;
   año?: number | null;
+  fechaEstrenoDesde?: string | null; // "aaaa-mm-dd" — para "próximos estrenos": solo lo que sale de acá en adelante
+  votosMinimos?: number; // filtra ruido (fichas sin data real) cuando ordenamos por popularidad
 }) {
   return tmdbFetch<any>(`/discover/tv`, {
     page: String(params.page),
@@ -170,6 +172,8 @@ export function discoverSeriesPaginado(params: {
       ? { with_watch_providers: params.watchProviderIds.join("|"), watch_region: params.watchRegion ?? "US" }
       : {}),
     ...(params.año ? { first_air_date_year: String(params.año) } : {}),
+    ...(params.fechaEstrenoDesde ? { "first_air_date.gte": params.fechaEstrenoDesde } : {}),
+    ...(params.votosMinimos ? { "vote_count.gte": String(params.votosMinimos) } : {}),
   });
 }
 
@@ -181,6 +185,8 @@ export function discoverMoviesPaginado(params: {
   watchProviderIds?: number[];
   watchRegion?: string;
   año?: number | null;
+  fechaEstrenoDesde?: string | null; // "aaaa-mm-dd" — para "próximos estrenos": solo lo que sale de acá en adelante
+  votosMinimos?: number;
 }) {
   return tmdbFetch<any>(`/discover/movie`, {
     page: String(params.page),
@@ -190,6 +196,8 @@ export function discoverMoviesPaginado(params: {
       ? { with_watch_providers: params.watchProviderIds.join("|"), watch_region: params.watchRegion ?? "US" }
       : {}),
     ...(params.año ? { primary_release_year: String(params.año) } : {}),
+    ...(params.fechaEstrenoDesde ? { "primary_release_date.gte": params.fechaEstrenoDesde } : {}),
+    ...(params.votosMinimos ? { "vote_count.gte": String(params.votosMinimos) } : {}),
   });
 }
 

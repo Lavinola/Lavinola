@@ -22,7 +22,7 @@ interface Props {
   onAplicar: (params: { orden: OrdenDescubrir; generoId: number | null; estado: EstadoSerie; plataformas: string[]; año: number | null }) => void;
 }
 
-const ORDENES: OrdenDescubrir[] = ["recomendado", "tendencias", "mas_visto", "visto_amigos", "mas_añadido"];
+const ORDENES: OrdenDescubrir[] = ["recomendado", "tendencias", "mas_visto", "proximos_estrenos", "visto_amigos", "mas_añadido"];
 const ESTADOS: { key: EstadoSerie; label: string }[] = [
   { key: "todo", label: "Todo" },
   { key: "en_emision", label: "En emisión" },

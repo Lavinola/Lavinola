@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { establecerFechaPrimeraVistaEpisodio, recalcularUltimaVistaSerie } from "./watchStatus";
+import { hoyLocalISO } from "./dates";
 
 export interface ProximoEpisodio {
   series_tmdb_id: number;
@@ -17,7 +18,7 @@ export async function getProximoEpisodio(
   userId: string,
   seriesTmdbId: number
 ): Promise<ProximoEpisodio | null> {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocalISO();
 
   const { data: todos } = await supabase
     .from("episodes_cache")
@@ -192,7 +193,7 @@ export async function marcarVariosEpisodios(
 
 /** "Ví toda la serie": marca como vistos (recién ahora) todos los capítulos YA ESTRENADOS que todavía no estaban vistos. Los que todavía no salieron nunca se tocan (no se pueden marcar como vistos hasta su estreno), y los que ya estaban vistos quedan como estaban. */
 export async function marcarTodaLaSerieVista(userId: string, seriesTmdbId: number) {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocalISO();
   const { data: todos } = await supabase.from("episodes_cache").select("season_number, episode_number, air_date").eq("series_tmdb_id", seriesTmdbId);
   const { data: vistos } = await supabase.from("user_episodes_watched").select("season_number, episode_number").eq("user_id", userId).eq("series_tmdb_id", seriesTmdbId);
   const vistosSet = new Set((vistos ?? []).map((v) => `${v.season_number}-${v.episode_number}`));
@@ -202,7 +203,7 @@ export async function marcarTodaLaSerieVista(userId: string, seriesTmdbId: numbe
 
 /** Pone la fecha en la que viste (por primera vez) cada capítulo YA VISTO y YA ESTRENADO de la serie en su propio día de estreno — solo corrige la fecha, no marca como vistos los que todavía no lo estaban. */
 export async function marcarTodaLaSerieVistaEnEstreno(userId: string, seriesTmdbId: number) {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocalISO();
   const { data: todos } = await supabase.from("episodes_cache").select("season_number, episode_number, air_date").eq("series_tmdb_id", seriesTmdbId);
   const { data: vistos } = await supabase.from("user_episodes_watched").select("season_number, episode_number").eq("user_id", userId).eq("series_tmdb_id", seriesTmdbId);
   const vistosSet = new Set((vistos ?? []).map((v) => `${v.season_number}-${v.episode_number}`));
@@ -250,7 +251,7 @@ export async function obtenerEpisodiosAdyacentes(
 
   const anterior = idx > 0 ? episodios[idx - 1] : null;
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocalISO();
   const candidatoSiguiente = idx < episodios.length - 1 ? episodios[idx + 1] : null;
   const siguiente = candidatoSiguiente && candidatoSiguiente.air_date && candidatoSiguiente.air_date <= hoy ? candidatoSiguiente : null;
 

@@ -2,14 +2,16 @@ import { supabase } from "./supabase";
 import { fetchAllRows } from "./pagination";
 import { discoverSeriesPaginado, discoverMoviesPaginado, getWatchProvidersDisponibles, getSeriesWatchProviders, getMovieWatchProviders, GrupoPlataforma } from "./tmdb";
 import { generosMasFrecuentes } from "./recommendations";
+import { hoyLocalISO } from "./dates";
 
-export type OrdenDescubrir = "recomendado" | "tendencias" | "mas_visto" | "visto_amigos" | "mas_añadido";
+export type OrdenDescubrir = "recomendado" | "tendencias" | "mas_visto" | "proximos_estrenos" | "visto_amigos" | "mas_añadido";
 export type EstadoSerie = "todo" | "en_emision" | "finalizada";
 
 export const ETIQUETAS_ORDEN: Record<OrdenDescubrir, string> = {
   recomendado: "Mejores recomendaciones para ti",
   tendencias: "Tendencias",
   mas_visto: "Lo más visto",
+  proximos_estrenos: "Próximos estrenos",
   visto_amigos: "Visto por amigos",
   mas_añadido: "Lo más añadido",
 };
@@ -150,9 +152,10 @@ export async function descubrirPagina(opts: {
   const { tipo, orden, generoId, estado, plataformasClaves, todasLasPlataformas, watchRegion, año, page, userId } = opts;
   const { ids: watchProviderIds, esOtras, universoIds } = resolverPlataformas(plataformasClaves, todasLasPlataformas ?? []);
 
-  // Recomendado y Tendencias van directo a TMDB discover (soportan género,
-  // plataforma y paginación nativos; el estado de series se manda como with_status).
-  if (orden === "recomendado" || orden === "tendencias") {
+  // Recomendado, Tendencias y Próximos estrenos van directo a TMDB discover
+  // (soportan género, plataforma y paginación nativos; el estado de series
+  // se manda como with_status).
+  if (orden === "recomendado" || orden === "tendencias" || orden === "proximos_estrenos") {
     let generos: number[] = generoId ? [generoId] : [];
     if (orden === "recomendado" && generos.length === 0 && userId) {
       const tabla = tipo === "series" ? "user_series" : "user_movies";
@@ -161,10 +164,34 @@ export async function descubrirPagina(opts: {
       generos = await generosMasFrecuentes((data ?? []).map((r: any) => (tipo === "series" ? r.series_cache?.genre_ids : r.movies_cache?.genre_ids)));
     }
 
+    // "Próximos estrenos": todavía no salió (fecha desde hoy en adelante) y
+    // ordenado por popularidad — eso, en la práctica, es "lo más esperado".
+    // El mínimo de votos filtra fichas sin nada de data que a veces se cuelan.
+    const esProximosEstrenos = orden === "proximos_estrenos";
+    const fechaEstrenoDesde = esProximosEstrenos ? hoyLocalISO() : null;
+    const votosMinimos = esProximosEstrenos ? 5 : undefined;
+
     const data =
       tipo === "series"
-        ? await discoverSeriesPaginado({ page, genreId: generos[0] ?? null, status: tipo === "series" ? statusTmdbParam(estado) : null, watchProviderIds: esOtras ? undefined : watchProviderIds, watchRegion, año })
-        : await discoverMoviesPaginado({ page, genreId: generos[0] ?? null, watchProviderIds: esOtras ? undefined : watchProviderIds, watchRegion, año });
+        ? await discoverSeriesPaginado({
+            page,
+            genreId: generos[0] ?? null,
+            status: tipo === "series" ? statusTmdbParam(estado) : null,
+            watchProviderIds: esOtras ? undefined : watchProviderIds,
+            watchRegion,
+            año,
+            fechaEstrenoDesde,
+            votosMinimos,
+          })
+        : await discoverMoviesPaginado({
+            page,
+            genreId: generos[0] ?? null,
+            watchProviderIds: esOtras ? undefined : watchProviderIds,
+            watchRegion,
+            año,
+            fechaEstrenoDesde,
+            votosMinimos,
+          });
 
     // Igual que en la fila de Descubrir: "tendencias" de TMDB para series
     // mezcla estrenos reales con series viejas que igual generan mucho

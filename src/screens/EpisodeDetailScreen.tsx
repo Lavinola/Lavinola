@@ -38,7 +38,7 @@ import AñoPickerNativo from "../components/AñoPickerNativo";
 import { getMoodStats, elegirMood, MoodStats } from "../lib/moods";
 import { getCastVoteStats, votarActor, CastVoteStats } from "../lib/castVotes";
 import { theme } from "../theme";
-import { formatearFecha, formatearFechaVista } from "../lib/dates";
+import { formatearFecha, formatearFechaVista, hoyLocalISO } from "../lib/dates";
 
 interface Props {
   route: {
@@ -93,7 +93,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
   const [castStats, setCastStats] = useState<CastVoteStats>({ miVoto: null, porcentajes: {}, total: 0 });
 
   const targetId = `${seriesTmdbId}:${seasonNumber}:${episodeNumber}`;
-  const hoyStr = new Date().toISOString().slice(0, 10);
+  const hoyStr = hoyLocalISO();
   const noSalioTodavia = !episodio?.air_date || episodio.air_date > hoyStr;
 
   useFocusEffect(
@@ -217,7 +217,7 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       setMenuVistoVisible(true);
       return;
     }
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyLocalISO();
     if (!episodio?.air_date || episodio.air_date > hoy) return; // todavía no salió
     marcarComoVisto();
   }

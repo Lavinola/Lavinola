@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { fetchAllRows } from "./pagination";
 import { computeSeriesStatus, SeriesStatusFilter, DIAS_SIN_COMENZAR_EN_VER_A_CONTINUACION } from "../types";
 import { refrescarMetaSerie } from "./sync";
+import { hoyLocalISO } from "./dates";
 
 export interface SerieListado {
   tmdb_id: number;
@@ -204,7 +205,7 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
     });
   }
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocalISO();
   function proximoEpisodioDe(seriesTmdbId: number) {
     const todos = episodiosPorSerie.get(seriesTmdbId) ?? [];
     const vistosSet = vistosPorSerie.get(seriesTmdbId) ?? new Set<string>();

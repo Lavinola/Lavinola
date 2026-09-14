@@ -3,6 +3,7 @@ import { View, TextInput, FlatList, Image, Pressable, StyleSheet, ActivityIndica
 import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import TopPills from "../components/TopPills";
+import { hoyLocalISO } from "../lib/dates";
 import PublishActionModal from "../components/PublishActionModal";
 import CrearEncuestaModal from "../components/CrearEncuestaModal";
 import SeriesProgressBar from "../components/SeriesProgressBar";
@@ -142,7 +143,7 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
       supabase.from("episodes_cache").select("season_number, air_date").eq("series_tmdb_id", item.tmdb_id),
       supabase.from("series_cache").select("seasons_meta").eq("tmdb_id", item.tmdb_id).maybeSingle(),
     ]);
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyLocalISO();
     const seasonsMeta: { season_number: number; episode_count: number }[] = (serieData as any)?.seasons_meta ?? [];
     const emitidosPorTemporada = new Map<number, number>();
     (episodiosData ?? []).forEach((e: any) => {
@@ -194,7 +195,7 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
 
   function elegirEpisodio(ep: { episode_number: number; name: string | null; air_date: string | null }) {
     if (!serieElegida || temporadaElegida == null) return;
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyLocalISO();
     if (!ep.air_date || ep.air_date > hoy) return; // todavía no se estrenó — no se puede elegir
     setSeleccion({
       itemType: "episode",
@@ -325,7 +326,7 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
                         keyExtractor={(e) => String(e.episode_number)}
                         style={{ maxHeight: 260, marginTop: 8 }}
                         renderItem={({ item: ep }) => {
-                          const hoy = new Date().toISOString().slice(0, 10);
+                          const hoy = hoyLocalISO();
                           const yaSalio = !!ep.air_date && ep.air_date <= hoy;
                           return (
                             <Pressable
@@ -345,7 +346,7 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
                           );
                         }}
                       />
-                      {episodios.some((e) => !e.air_date || e.air_date > new Date().toISOString().slice(0, 10)) && (
+                      {episodios.some((e) => !e.air_date || e.air_date > hoyLocalISO()) && (
                         <Text style={styles.ayudaTemporada}>{t("Los capítulos que todavía no se estrenaron no se pueden elegir.")}</Text>
                       )}
                     </>

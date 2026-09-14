@@ -733,6 +733,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Mejores recomendaciones para ti": { en: "Best recommendations for you", pt: "Melhores recomendações para você", it: "I migliori consigli per te" },
   Tendencias: { en: "Trending", pt: "Tendências", it: "Tendenze" },
   "Lo más visto": { en: "Most watched", pt: "Mais assistidos", it: "Più visti" },
+  "Próximos estrenos": { en: "Upcoming releases", pt: "Próximos lançamentos", it: "Prossime uscite" },
   "Visto por amigos": { en: "Watched by friends", pt: "Assistido por amigos", it: "Visti dagli amici" },
   "Lo más añadido": { en: "Most added", pt: "Mais adicionados", it: "Più aggiunti" },
 

@@ -83,7 +83,7 @@ import {
   EpisodioConEstado,
 } from "../lib/episodes";
 import { theme } from "../theme";
-import { formatearFecha, formatearFechaVista } from "../lib/dates";
+import { formatearFecha, formatearFechaVista, hoyLocalISO } from "../lib/dates";
 import { GENEROS_PELICULAS } from "../lib/tmdbGenres";
 
 interface Props {
@@ -94,7 +94,7 @@ interface Props {
 type Tab = "info" | "episodios";
 
 function etiquetaEstadoSerie(status: string | null | undefined, firstAirDate: string | null | undefined): string {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocalISO();
   if (status === "Ended") return "Finalizada";
   if (status === "Canceled") return "Cancelada";
   if (!firstAirDate || firstAirDate > hoy) return "Próximamente";
@@ -204,7 +204,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
 
   function toqueVista() {
     if (!userId || tipo !== "movie") return;
-    if (!vista && titulo?.release_date && titulo.release_date > new Date().toISOString().slice(0, 10)) return; // todavía no se estrenó
+    if (!vista && titulo?.release_date && titulo.release_date > hoyLocalISO()) return; // todavía no se estrenó
     impactoLiviano();
     if (vista) {
       // Ya está vista: en vez de destildarla directo, preguntamos qué quiso decir
@@ -372,7 +372,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
           </View>
           {tipo === "movie" &&
             (() => {
-              const noSalioTodavia = !vista && !!titulo?.release_date && titulo.release_date > new Date().toISOString().slice(0, 10);
+              const noSalioTodavia = !vista && !!titulo?.release_date && titulo.release_date > hoyLocalISO();
               return (
                 <View style={styles.vistaRowHeader}>
                   <Text style={styles.vistaTextoHeader}>{vista ? t("Vista") : t("No vista")}</Text>
@@ -1150,7 +1150,7 @@ function EpisodiosTab({
 
   async function toggleEpisodio(ep: EpisodioConEstado) {
     if (!userId) return;
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyLocalISO();
     if (!ep.visto && (!ep.air_date || ep.air_date > hoy)) return; // todavía no salió, no se puede marcar
     impactoLiviano();
 
@@ -1183,7 +1183,7 @@ function EpisodiosTab({
 
   async function toggleTemporadaCompleta(episodios: EpisodioConEstado[]) {
     if (!userId) return;
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyLocalISO();
     const emitidos = episodios.filter((e) => e.air_date && e.air_date <= hoy);
     if (emitidos.length === 0) return;
     const todosVistos = emitidos.every((e) => e.visto);
@@ -1244,7 +1244,7 @@ function EpisodiosTab({
   }
 
   const temporadas = Object.keys(porTemporada).map(Number).sort((a, b) => a - b);
-  const hoyStr = new Date().toISOString().slice(0, 10);
+  const hoyStr = hoyLocalISO();
   const todosLosEpisodios = temporadas.flatMap((n) => porTemporada[n]);
   const episodiosYaEmitidos = todosLosEpisodios.filter((e) => e.air_date && e.air_date <= hoyStr);
   const totalVistos = episodiosYaEmitidos.filter((e) => e.visto).length;
@@ -1270,7 +1270,7 @@ function EpisodiosTab({
         const episodios = porTemporada[num];
         const vistos = episodios.filter((e) => e.visto).length;
         const abierta = temporadaAbierta === num;
-        const hoyTemp = new Date().toISOString().slice(0, 10);
+        const hoyTemp = hoyLocalISO();
         const emitidosTemporada = episodios.filter((e) => e.air_date && e.air_date <= hoyTemp);
         // El total "real" de la temporada según TMDB — puede ser mayor a lo
         // que tenemos cargado en episodios (si todavía no salieron todos).
@@ -1321,7 +1321,7 @@ function EpisodiosTab({
             </Pressable>
             {abierta &&
               episodios.map((ep) => {
-                const hoy = new Date().toISOString().slice(0, 10);
+                const hoy = hoyLocalISO();
                 const yaSalio = !!ep.air_date && ep.air_date <= hoy;
                 return (
                   <Pressable

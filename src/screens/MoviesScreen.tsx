@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl, getMovieWatchProviders, getWatchProvidersDisponibles, GrupoPlataforma } from "../lib/tmdb";
-import { formatearFecha } from "../lib/dates";
+import { formatearFecha, hoyLocalISO } from "../lib/dates";
 import CalificarModal from "../components/CalificarModal";
 import { toggleVistaPelicula } from "../lib/watchStatus";
 import OrdenPeliculasModal from "../components/OrdenPeliculasModal";
@@ -126,7 +126,7 @@ export default function MoviesScreen({ navigation }: any) {
     const universoIds = todasLasPlataformas.filter((g) => g.clave !== "otras").flatMap((g) => g.provider_ids);
     const idsElegidos = esOtras ? [] : todasLasPlataformas.filter((g) => plataformas.includes(g.clave)).flatMap((g) => g.provider_ids);
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = hoyLocalISO();
     const candidatas = movies.filter((m) => !m.watched && (!m.release_date || m.release_date <= hoy));
     let cancelado = false;
     (async () => {
@@ -145,7 +145,7 @@ export default function MoviesScreen({ navigation }: any) {
     };
   }, [plataformas, movies, watchRegion, todasLasPlataformas]);
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocalISO();
   let pendientesSinOrdenar = movies.filter((m) => !m.watched && (!m.release_date || m.release_date <= hoy));
   if (generoId !== null) pendientesSinOrdenar = pendientesSinOrdenar.filter((m) => m.genre_ids.includes(generoId));
   if (pendientesConPlataforma !== null) pendientesSinOrdenar = pendientesSinOrdenar.filter((m) => pendientesConPlataforma.has(m.tmdb_id));

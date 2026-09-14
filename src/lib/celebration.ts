@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { hoyLocalISO } from "./dates";
 
 /**
  * True si, después de marcar un capítulo, la serie quedó 100% vista Y ya no
@@ -13,7 +14,7 @@ export async function serieRecienCompletada(userId: string, seriesTmdbId: number
     return false;
   }
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyLocalISO();
   const { data: episodios } = await supabase.from("episodes_cache").select("season_number, episode_number, air_date").eq("series_tmdb_id", seriesTmdbId);
   const emitidos = (episodios ?? []).filter((e: any) => e.air_date && e.air_date <= hoy);
   if (emitidos.length === 0) return false;

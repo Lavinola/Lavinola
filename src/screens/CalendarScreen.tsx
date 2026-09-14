@@ -64,10 +64,10 @@ export default function CalendarScreen({ navigation }: any) {
     }
 
     const hoyDate = new Date();
-    const hoy = hoyDate.toISOString().slice(0, 10);
+    const hoy = fechaLocalISO(hoyDate);
     const desde = new Date(hoyDate);
     desde.setDate(desde.getDate() - DIAS_HACIA_ATRAS);
-    const desdeStr = desde.toISOString().slice(0, 10);
+    const desdeStr = fechaLocalISO(desde);
 
     const { data: seguidas } = await supabase
       .from("user_series")
@@ -230,16 +230,29 @@ const MESES: Record<Idioma, string[]> = {
   it: ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
 };
 
+// Ojo con esto: NUNCA usar toISOString() acá para comparar fechas de
+// calendario — toISOString() convierte a UTC, y a la noche en Argentina
+// (UTC-3) ya cae del lado del día siguiente en UTC, corriendo "hoy" y
+// "mañana" un día para adelante. Comparamos siempre con los componentes
+// de fecha en hora LOCAL del celular (año/mes/día), igual que ya hace
+// diasHasta() más abajo.
+function fechaLocalISO(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dia}`;
+}
+
 function etiquetaFecha(iso: string, t: (s: string) => string, idioma: Idioma): string {
   const hoy = new Date();
   const fecha = new Date(iso + "T00:00:00");
-  const hoyStr = hoy.toISOString().slice(0, 10);
+  const hoyStr = fechaLocalISO(hoy);
   const mañana = new Date(hoy);
   mañana.setDate(mañana.getDate() + 1);
-  const mañanaStr = mañana.toISOString().slice(0, 10);
+  const mañanaStr = fechaLocalISO(mañana);
   const ayer = new Date(hoy);
   ayer.setDate(ayer.getDate() - 1);
-  const ayerStr = ayer.toISOString().slice(0, 10);
+  const ayerStr = fechaLocalISO(ayer);
 
   if (iso === hoyStr) return t("Hoy");
   if (iso === mañanaStr) return t("Mañana");
