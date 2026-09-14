@@ -343,13 +343,23 @@ export default function MoviesScreen({ navigation }: any) {
                   </>
                 )}
               </View>
-              {subTab === "proximamente" && diasHasta(item.release_date) > 0 && (
-                <View style={styles.faltanCol}>
-                  <Text style={styles.faltanTexto}>{diasHasta(item.release_date) === 1 ? t("Falta") : t("Faltan")}</Text>
-                  <Text style={styles.faltanNumero}>{diasHasta(item.release_date)}</Text>
-                  <Text style={styles.faltanTexto}>{diasHasta(item.release_date) === 1 ? t("día") : t("días")}</Text>
-                </View>
-              )}
+              {subTab === "proximamente" &&
+                (() => {
+                  // Mismo criterio que la fecha de arriba: si hay fecha para
+                  // tu país, la cuenta de "Faltan X días" tiene que usar ESA
+                  // fecha — si no, se desincroniza con lo que se ve en pantalla.
+                  const fechaParaContar = infoEstreno[item.tmdb_id]?.fecha ?? item.release_date;
+                  const dias = diasHasta(fechaParaContar);
+                  return (
+                    dias > 0 && (
+                      <View style={styles.faltanCol}>
+                        <Text style={styles.faltanTexto}>{dias === 1 ? t("Falta") : t("Faltan")}</Text>
+                        <Text style={styles.faltanNumero}>{dias}</Text>
+                        <Text style={styles.faltanTexto}>{dias === 1 ? t("día") : t("días")}</Text>
+                      </View>
+                    )
+                  );
+                })()}
               {subTab === "pendiente" && (
                 <Pressable
                   style={[styles.tildeBtn, item.watched && styles.tildeBtnMarcado]}

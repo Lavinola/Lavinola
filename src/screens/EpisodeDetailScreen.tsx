@@ -20,6 +20,7 @@ import { calificarEpisodio, promedioEpisodio, guardarPlataformaEpisodio } from "
 import { getSeriesWatchProviders, getEpisodeCredits, getEpisodeExternalIds, posterUrl, obtenerOverviewLocalizado, getContentLanguageCruda } from "../lib/tmdb";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { marcarVariosEpisodios, desmarcarEpisodio, episodiosAnterioresNoVistos, obtenerEpisodiosAdyacentes } from "../lib/episodes";
+import { syncSeries } from "../lib/sync";
 import { impactoLiviano } from "../lib/haptics";
 import { pedirReseñaSiCorresponde } from "../lib/storeReview";
 import {
@@ -174,6 +175,24 @@ export default function EpisodeDetailScreen({ route, navigation }: Props) {
       .maybeSingle();
     setEpisodio(ep);
     obtenerEpisodiosAdyacentes(seriesTmdbId, seasonNumber, episodeNumber).then(setAdyacentes);
+
+    // En segundo plano, sin bloquear lo que ya se ve: nos aseguramos de que
+    // la serie esté al día en TMDB (por si llegaste acá directo, por
+    // ejemplo desde una notificación, sin pasar antes por la ficha de la
+    // serie, que es la que normalmente dispara esta sincronización).
+    // syncSeries se frena solo si sincronizó hace menos de 24hs.
+    syncSeries(seriesTmdbId)
+      .then(async () => {
+        const { data: epFresco } = await supabase
+          .from("episodes_cache")
+          .select("*")
+          .eq("series_tmdb_id", seriesTmdbId)
+          .eq("season_number", seasonNumber)
+          .eq("episode_number", episodeNumber)
+          .maybeSingle();
+        if (epFresco) setEpisodio(epFresco);
+      })
+      .catch((e) => console.error("No se pudo resincronizar la serie", seriesTmdbId, e));
 
     if (uid) {
       const { data: watched } = await supabase

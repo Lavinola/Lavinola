@@ -13,6 +13,7 @@ import { posterUrl, getWatchProvidersDisponibles, GrupoPlataforma } from "../lib
 import { syncSeries, syncMovie, seguirSerie, agregarPelicula } from "../lib/sync";
 import { marcarTodaLaSerieVista } from "../lib/episodes";
 import { toggleVistaPelicula } from "../lib/watchStatus";
+import { formatearFecha } from "../lib/dates";
 import CalificarModal from "../components/CalificarModal";
 import ConfirmModal from "../components/ConfirmModal";
 import { descubrirPagina, idsYaAgregados, idsYaVistos, OrdenDescubrir, EstadoSerie, ItemDescubrir, ETIQUETAS_ORDEN } from "../lib/discover";
@@ -291,7 +292,11 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
                   <Text style={styles.nombre} numberOfLines={2}>
                     {item.titulo}
                   </Text>
-                  {item.anio && <Text style={styles.sub}>{item.anio}</Text>}
+                  {orden === "proximos_estrenos" && item.fechaEstreno ? (
+                    <Text style={styles.sub}>{formatearFecha(item.fechaEstreno)}</Text>
+                  ) : (
+                    item.anio && <Text style={styles.sub}>{item.anio}</Text>
+                  )}
                   {item.tipo === "movie" && item.genero_ids.length > 0 && (
                     <Text style={styles.sub}>{item.genero_ids.map((g) => t(GENEROS_PELICULAS[g])).filter(Boolean).slice(0, 2).join(", ")}</Text>
                   )}

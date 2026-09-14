@@ -12,7 +12,7 @@
  * ese título (pantalla en blanco, o el "+" que no queda guardado).
  */
 import { supabase } from "./supabase";
-import { getSeriesDetails, getSeasonEpisodes, getMovieDetails, getMovieCredits, getSeriesCredits, getTmdbLanguage, getSeriesWatchProviders, getMovieWatchProviders, getMovieReleaseInfo } from "./tmdb";
+import { getSeriesDetails, getSeasonEpisodes, getMovieDetails, getMovieCredits, getSeriesCredits, getTmdbLanguage, getSeriesWatchProviders, getMovieWatchProviders, getMovieReleaseInfo, normalizarNombrePlataforma, rankPlataforma } from "./tmdb";
 
 const STALE_AFTER_HOURS = 24;
 
@@ -296,7 +296,12 @@ async function watchProvidersDesdeCache(itemType: "movie" | "series", tmdbId: nu
     .eq("region", region)
     .maybeSingle();
   if (!data || isStale(data.synced_at)) return null;
-  return (data.providers as any[]) ?? [];
+  // Normalizamos también al leer, para que lo que ya haya quedado
+  // guardado con el nombre viejo (antes de este arreglo) se corrija al
+  // toque, sin esperar a que venza la caché.
+  return ((data.providers as any[]) ?? [])
+    .map((p) => ({ ...p, provider_name: normalizarNombrePlataforma(p.provider_name) }))
+    .sort((a, b) => rankPlataforma(a.provider_name) - rankPlataforma(b.provider_name));
 }
 
 async function guardarWatchProvidersEnCache(itemType: "movie" | "series", tmdbId: number, region: string, flatrate: any[]) {
@@ -304,6 +309,51 @@ async function guardarWatchProvidersEnCache(itemType: "movie" | "series", tmdbId
     .from("watch_providers_cache")
     .upsert({ item_type: itemType, tmdb_id: tmdbId, region, providers: flatrate, synced_at: new Date().toISOString() });
   if (error) console.error("No se pudo guardar la caché de watch providers:", error.message);
+}
+
+/** Igual que getSeriesWatchProvidersCacheado, pero para VARIAS series de
+ * una — una sola consulta a la base para todas juntas en vez de una por
+ * serie. Antes, aunque todo estuviera guardado en caché, tardaba porque
+ * hacía N idas y vueltas a Supabase (una por serie); ahora es una sola. */
+export async function getSeriesWatchProvidersLoteCacheado(tmdbIds: number[], region: string): Promise<Record<number, string[]>> {
+  const idsUnicos = [...new Set(tmdbIds)];
+  if (idsUnicos.length === 0) return {};
+
+  const { data } = await supabase
+    .from("watch_providers_cache")
+    .select("tmdb_id, providers, synced_at")
+    .eq("item_type", "series")
+    .eq("region", region)
+    .in("tmdb_id", idsUnicos);
+
+  const cachePorId = new Map((data ?? []).map((d: any) => [d.tmdb_id, d]));
+  const resultado: Record<number, string[]> = {};
+  const faltan: number[] = [];
+
+  idsUnicos.forEach((id) => {
+    const fila = cachePorId.get(id);
+    if (fila && !isStale(fila.synced_at)) {
+      resultado[id] = ((fila.providers as any[]) ?? [])
+        .map((p: any) => normalizarNombrePlataforma(p.provider_name))
+        .sort((a: string, b: string) => rankPlataforma(a) - rankPlataforma(b));
+    } else {
+      faltan.push(id);
+    }
+  });
+
+  // Solo las que faltan (nunca se pidieron, o quedaron viejas) se piden a
+  // TMDB en vivo — el resto ya salió instantáneo de la consulta de arriba.
+  if (faltan.length > 0) {
+    await Promise.all(
+      faltan.map(async (id) => {
+        const fresco = await getSeriesWatchProviders(id, region);
+        resultado[id] = (fresco?.flatrate ?? []).map((p: any) => p.provider_name);
+        await guardarWatchProvidersEnCache("series", id, region, fresco?.flatrate ?? []);
+      })
+    );
+  }
+
+  return resultado;
 }
 
 /** Igual que getSeriesWatchProviders, pero primero mira la caché compartida en Supabase antes de pedirle a TMDB. */

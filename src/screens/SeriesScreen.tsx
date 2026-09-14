@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
-import { getSeriesWatchProvidersCacheado } from "../lib/sync";
+import { getSeriesWatchProvidersLoteCacheado, syncSeries } from "../lib/sync";
 import { marcarEpisodioVisto, episodiosAnterioresNoVistos, marcarVariosEpisodios, getProximoEpisodio } from "../lib/episodes";
 import { impactoLiviano } from "../lib/haptics";
 import ConfirmModal from "../components/ConfirmModal";
@@ -91,21 +91,8 @@ function ListaPendiente({ navigation }: any) {
     if (faltan.length === 0) return;
     let cancelado = false;
     (async () => {
-      const resultados = await Promise.all(
-        faltan.map(async (id) => {
-          const p = await getSeriesWatchProvidersCacheado(id, watchRegion);
-          return { id, nombres: (p?.flatrate ?? []).map((prov: any) => prov.provider_name) };
-        })
-      );
-      if (!cancelado) {
-        setPlataformasPorSerie((prev) => {
-          const nuevo = { ...prev };
-          resultados.forEach((r) => {
-            nuevo[r.id] = r.nombres;
-          });
-          return nuevo;
-        });
-      }
+      const resultado = await getSeriesWatchProvidersLoteCacheado(faltan, watchRegion);
+      if (!cancelado) setPlataformasPorSerie((prev) => ({ ...prev, ...resultado }));
     })();
     return () => {
       cancelado = true;
@@ -152,6 +139,17 @@ function ListaPendiente({ navigation }: any) {
         yaScrolleoRef.current = false;
         indiceVerARef.current = datos.historial.length > 0 ? 1 : 0;
         setTimeout(() => scrollAVerAContinuacion(), 60);
+      }
+
+      // En segundo plano, sin bloquear lo que ya se ve: nos aseguramos de
+      // que cada serie esté al día en TMDB (mismo criterio que en
+      // Próximamente). syncSeries se frena solo si sincronizó hace menos
+      // de 24hs, así que en el caso normal esto no hace nada.
+      if (!silencioso) {
+        const idsUnicos = [...new Set(datos.series.map((s) => s.tmdb_id))];
+        Promise.all(idsUnicos.map((id) => syncSeries(id).catch((e) => console.error("No se pudo resincronizar la serie", id, e)))).then(() => {
+          cargar(true);
+        });
       }
     } catch (e: any) {
       console.error("Error al cargar tus series:", e);
@@ -566,7 +564,7 @@ const styles = StyleSheet.create({
   filaTituloRow: { flexDirection: "row", alignItems: "flex-start" },
   filaTitulo: { fontSize: 15, fontWeight: "600", flexShrink: 1 },
   filaFlecha: { fontSize: 18, color: theme.colors.textMuted, marginLeft: 3 },
-  filaSub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2, flexShrink: 1 },
+  filaSub: { fontSize: 12, color: theme.colors.text, marginTop: 2, flexShrink: 1 },
   filaMasCapitulos: { fontSize: 11, color: theme.colors.textFaint, marginTop: 2 },
   filaFechaEstreno: { fontSize: 11, color: theme.colors.textFaint },
   filaSubMarcada: { fontSize: 13, color: theme.colors.text, fontWeight: "700", marginTop: 2 },

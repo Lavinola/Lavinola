@@ -279,9 +279,9 @@ export async function getWatchProvidersDisponibles(tipo: "series" | "movie", wat
   const data = await res.json();
   // TMDB los devuelve ordenados por "display_priority" (relevancia por país),
   // que es justo el orden en el que conviene mostrarlos.
-  const todas = ((data.results ?? []) as any[]).sort(
-    (a, b) => (a.display_priorities?.[watchRegion] ?? 999) - (b.display_priorities?.[watchRegion] ?? 999)
-  );
+  const todas = ((data.results ?? []) as any[])
+    .map((p) => ({ ...p, provider_name: normalizarNombrePlataforma(p.provider_name) }))
+    .sort((a, b) => (a.display_priorities?.[watchRegion] ?? 999) - (b.display_priorities?.[watchRegion] ?? 999));
 
   const OTRAS: GrupoPlataforma = { clave: "otras", label: "Otras", logo_path: null, provider_ids: [] };
 
@@ -327,6 +327,56 @@ export function getPopularMovies() {
 // elegida, volvés a entrar a la pantalla, etc).
 const cacheWatchProviders = new Map<string, any>();
 
+// Algunos nombres "oficiales" que trae TMDB son más largos de lo que la
+// gente realmente dice/reconoce — los acortamos acá, en la fuente, así
+// se corrige en TODA la app (ficha del título, próximamente, filtros,
+// etc.) sin tener que tocar cada pantalla que los muestra.
+export function normalizarNombrePlataforma(nombre: string): string {
+  if (nombre === "Disney Plus") return "Disney+";
+  if (nombre === "Amazon Prime Video") return "Prime Video";
+  return nombre;
+}
+
+// Orden de preferencia cuando se muestran varias plataformas juntas — el
+// resto (las que no matchean ninguna de estas) van después, en el orden
+// que ya traían. Usamos "incluye" en vez de igualdad exacta por si TMDB
+// trae alguna variante del nombre (ej "Apple TV Plus" en vez de "Apple TV").
+const ORDEN_PLATAFORMAS: string[][] = [
+  ["netflix"],
+  ["hbo max", "max"],
+  ["prime video", "amazon prime video"],
+  ["disney plus", "disney+"],
+  ["apple tv"],
+  ["movistar"],
+];
+
+function rankPlataforma(nombre: string): number {
+  const n = (nombre || "").toLowerCase();
+  const idx = ORDEN_PLATAFORMAS.findIndex((claves) => claves.some((c) => n.includes(c)));
+  return idx === -1 ? ORDEN_PLATAFORMAS.length : idx;
+}
+export { rankPlataforma };
+
+/** Mismo orden de preferencia (Netflix, HBO Max, Prime Video, Disney+, Apple TV, Movistar TV, el resto) — para usar donde ya se tienen los nombres sueltos, no el array completo de TMDB. */
+export function ordenarPlataformasPorPrioridad(nombres: string[]): string[] {
+  return [...nombres].sort((a, b) => rankPlataforma(a) - rankPlataforma(b));
+}
+
+function normalizarListaProviders(arr: any[] | undefined): any[] | undefined {
+  if (!arr) return arr;
+  return arr.map((p) => ({ ...p, provider_name: normalizarNombrePlataforma(p.provider_name) })).sort((a, b) => rankPlataforma(a.provider_name) - rankPlataforma(b.provider_name));
+}
+
+function normalizarResultadoProviders(resultado: any): any {
+  if (!resultado) return resultado;
+  return {
+    ...resultado,
+    flatrate: normalizarListaProviders(resultado.flatrate),
+    rent: normalizarListaProviders(resultado.rent),
+    buy: normalizarListaProviders(resultado.buy),
+  };
+}
+
 export async function getSeriesWatchProviders(tmdbId: number, watchRegion: string) {
   const clave = `series:${tmdbId}:${watchRegion}`;
   if (cacheWatchProviders.has(clave)) return cacheWatchProviders.get(clave);
@@ -335,7 +385,7 @@ export async function getSeriesWatchProviders(tmdbId: number, watchRegion: strin
     headers: { Authorization: `Bearer ${TMDB_TOKEN}`, accept: "application/json" },
   });
   const data = await res.json();
-  const resultado = data?.results?.[watchRegion] ?? null; // { flatrate: [...], rent: [...], buy: [...], link }
+  const resultado = normalizarResultadoProviders(data?.results?.[watchRegion] ?? null); // { flatrate: [...], rent: [...], buy: [...], link }
   cacheWatchProviders.set(clave, resultado);
   return resultado;
 }
@@ -348,7 +398,7 @@ export async function getMovieWatchProviders(tmdbId: number, watchRegion: string
     headers: { Authorization: `Bearer ${TMDB_TOKEN}`, accept: "application/json" },
   });
   const data = await res.json();
-  const resultado = data?.results?.[watchRegion] ?? null;
+  const resultado = normalizarResultadoProviders(data?.results?.[watchRegion] ?? null);
   cacheWatchProviders.set(clave, resultado);
   return resultado;
 }

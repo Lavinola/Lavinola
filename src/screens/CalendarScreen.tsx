@@ -3,7 +3,7 @@ import { View, Image, Pressable, SectionList, StyleSheet } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
-import { getSeriesWatchProvidersCacheado } from "../lib/sync";
+import { getSeriesWatchProvidersLoteCacheado, syncSeries } from "../lib/sync";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import { useT } from "../i18n/i18n";
@@ -55,8 +55,8 @@ export default function CalendarScreen({ navigation }: any) {
     }, [idioma])
   );
 
-  async function cargar() {
-    setLoading(true);
+  async function cargar(esRefrescoSilencioso = false) {
+    if (!esRefrescoSilencioso) setLoading(true);
     const { data: userData } = await supabase.auth.getSession();
     const userId = userData.session?.user?.id;
     if (!userId) {
@@ -91,23 +91,17 @@ export default function CalendarScreen({ navigation }: any) {
       .select("series_tmdb_id, season_number, episode_number, name, air_date")
       .in("series_tmdb_id", ids)
       .gte("air_date", desdeStr)
-      .order("air_date", { ascending: true });
+      .order("air_date", { ascending: true })
+      .order("series_tmdb_id", { ascending: true })
+      .order("season_number", { ascending: true })
+      .order("episode_number", { ascending: true });
 
     // Dónde ver cada serie según el país del usuario — no el canal de
     // emisión original de TMDB (ese es fijo, sin importar el país; por
     // ejemplo una serie de FX en EE.UU. puede estar en Disney+ acá).
+    // Una sola consulta para todas las series juntas (no una por serie).
     const idsUnicos = [...new Set(ids)];
-    const providersPorSerie: Record<number, string[]> = {};
-    await Promise.all(
-      idsUnicos.map(async (id) => {
-        try {
-          const providers = await getSeriesWatchProvidersCacheado(id, watchRegion);
-          providersPorSerie[id] = (providers?.flatrate ?? []).map((p: any) => p.provider_name);
-        } catch {
-          providersPorSerie[id] = [];
-        }
-      })
-    );
+    const providersPorSerie = await getSeriesWatchProvidersLoteCacheado(idsUnicos, watchRegion);
 
     const infoSerie: Record<number, { nombre: string; poster: string | null; networks: string[] }> = {};
     (seguidas ?? []).forEach((s: any) => {
@@ -153,6 +147,18 @@ export default function CalendarScreen({ navigation }: any) {
     setLoading(false);
     yaScrolleoRef.current = false;
     setTimeout(() => scrollAHoy(), 60);
+
+    // En segundo plano, sin bloquear lo que ya se ve: nos aseguramos de que
+    // cada serie seguida esté al día en TMDB. syncSeries ya se frena solo
+    // si se sincronizó hace menos de 24hs, así que en el caso normal esto
+    // no hace nada — pero si alguna quedó vieja (nadie entró a su ficha en
+    // un tiempo), se actualiza acá y recargamos una vez más, ya con los
+    // datos frescos, sin mostrar el spinner de nuevo.
+    if (!esRefrescoSilencioso) {
+      Promise.all(idsUnicos.map((id) => syncSeries(id).catch((e) => console.error("No se pudo resincronizar la serie", id, e)))).then(() => {
+        cargar(true);
+      });
+    }
   }
 
   return (
@@ -302,7 +308,7 @@ const styles = StyleSheet.create({
   itemTitle: { fontSize: 13, fontWeight: "600", color: theme.colors.textMuted, flexShrink: 1 },
   flecha: { fontSize: 16, color: theme.colors.textMuted, marginLeft: 4 },
   itemNombreEpisodio: { fontSize: 15, fontWeight: "700", marginTop: 2 },
-  itemSub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 1 },
+  itemSub: { fontSize: 12, color: theme.colors.text, marginTop: 1 },
   itemPlataforma: { fontSize: 11, color: theme.colors.textMuted, marginTop: 2 },
   faltanCol: { alignItems: "center", justifyContent: "center", marginLeft: 8, paddingLeft: 8 },
   faltanTexto: { fontSize: 11, color: "#FFFFFF", fontWeight: "600" },

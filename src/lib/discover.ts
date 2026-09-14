@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { fetchAllRows } from "./pagination";
 import { discoverSeriesPaginado, discoverMoviesPaginado, getWatchProvidersDisponibles, getSeriesWatchProviders, getMovieWatchProviders, GrupoPlataforma } from "./tmdb";
+import { getMovieReleaseInfoCacheado } from "./sync";
 import { generosMasFrecuentes } from "./recommendations";
 import { hoyLocalISO } from "./dates";
 
@@ -21,6 +22,7 @@ export interface ItemDescubrir {
   titulo: string;
   poster_path: string | null;
   anio: string | null;
+  fechaEstreno?: string | null; // fecha completa (aaaa-mm-dd) — solo se usa/completa con el orden "Próximos estrenos"
   tipo: "series" | "movie";
   genero_ids: number[];
   total_seasons?: number | null;
@@ -111,11 +113,13 @@ function reordenarSeriesPorRecencia(results: any[]): any[] {
 }
 
 function mapearResultadoTmdb(tipo: "series" | "movie", r: any): ItemDescubrir {
+  const fechaCompleta = tipo === "series" ? r.first_air_date : r.release_date;
   return {
     id: r.id,
     titulo: tipo === "series" ? r.name : r.title,
     poster_path: r.poster_path,
-    anio: (tipo === "series" ? r.first_air_date : r.release_date)?.slice(0, 4) ?? null,
+    anio: fechaCompleta?.slice(0, 4) ?? null,
+    fechaEstreno: fechaCompleta || null, // fecha genérica de TMDB — para "Próximos estrenos" se intenta mejorar con la del país más abajo
     tipo,
     genero_ids: r.genre_ids ?? [],
     total_seasons: null,
@@ -200,6 +204,24 @@ export async function descubrirPagina(opts: {
     // todo el orden de popularidad. En películas esto no hacía falta.
     const resultadosCrudos = orden === "tendencias" && tipo === "series" ? reordenarSeriesPorRecencia(data.results ?? []) : data.results ?? [];
     let resultados = resultadosCrudos.map((r: any) => mapearResultadoTmdb(tipo, r));
+
+    // Para "Próximos estrenos" de películas: si TMDB tiene la fecha real de
+    // estreno en cine/plataforma para TU país (ver movie_release_info_cache),
+    // la usamos en vez de la genérica. Series no tiene esto (TMDB no da
+    // fecha de estreno por país para shows) — se queda con la genérica.
+    if (esProximosEstrenos && tipo === "movie" && resultados.length > 0) {
+      const region = watchRegion ?? "AR";
+      resultados = await Promise.all(
+        resultados.map(async (item: ItemDescubrir) => {
+          try {
+            const info = await getMovieReleaseInfoCacheado(item.id, region);
+            return info.fecha ? { ...item, fechaEstreno: info.fecha } : item;
+          } catch {
+            return item;
+          }
+        })
+      );
+    }
 
     // "Recomendado para vos" nunca debería repetirte algo que ya tenés — para
     // eso ya lo tenés en tu lista. "Tendencias" en cambio, en Descubre más, sí

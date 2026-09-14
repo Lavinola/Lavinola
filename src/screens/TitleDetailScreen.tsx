@@ -40,7 +40,7 @@ import {
   obtenerOverviewLocalizado,
   getContentLanguageCruda,
 } from "../lib/tmdb";
-import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMisSeries, eliminarPeliculaDeMisPeliculas, getSeriesWatchProvidersCacheado, getMovieWatchProvidersCacheado } from "../lib/sync";
+import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMisSeries, eliminarPeliculaDeMisPeliculas, getSeriesWatchProvidersCacheado, getMovieWatchProvidersCacheado, getMovieReleaseInfoCacheado } from "../lib/sync";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { supabase } from "../lib/supabase";
 import { esFavorito, toggleFavorito, contarFavoritosDeTitulo } from "../lib/favorites";
@@ -133,10 +133,29 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
   const [menuVistaVisible, setMenuVistaVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [certificacion, setCertificacion] = useState<string | null>(null);
+  const [fechaEstrenoPais, setFechaEstrenoPais] = useState<string | null>(null);
 
   useEffect(() => {
     cargar();
   }, [tmdbId]);
+
+  useEffect(() => {
+    if (tipo !== "movie" || !userId) return;
+    let cancelado = false;
+    (async () => {
+      try {
+        const { data: profile } = await supabase.from("profiles").select("country").eq("id", userId).maybeSingle();
+        const watchRegion = profile?.country ?? "AR";
+        const info = await getMovieReleaseInfoCacheado(tmdbId, watchRegion);
+        if (!cancelado) setFechaEstrenoPais(info.fecha ?? null);
+      } catch {
+        if (!cancelado) setFechaEstrenoPais(null);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [tmdbId, tipo, userId]);
 
   useEffect(() => {
     if (!userId || tipo !== "movie") return;
@@ -350,6 +369,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
             <TituloConTraduccion tipo={tipo} id={tmdbId} titulo={nombre} style={styles.nombre} styleSecundario={{ paddingLeft: 16 }} />
             {tipo === "series" ? (
               <>
+                {titulo.first_air_date && <Text style={styles.subInfo}>{titulo.first_air_date.slice(0, 4)}</Text>}
                 <Text style={styles.subInfo}>{titulo.total_seasons ? `${titulo.total_seasons} ${titulo.total_seasons === 1 ? t("temporada") : t("temporadas")}` : ""}</Text>
                 <Text style={styles.subInfo}>{t(etiquetaEstadoSerie(titulo.status, titulo.first_air_date))}</Text>
               </>
@@ -358,7 +378,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
                 {titulo.runtime_minutes ? (
                   <Text style={styles.subInfo}>{`${Math.floor(titulo.runtime_minutes / 60)} h ${titulo.runtime_minutes % 60} min`}</Text>
                 ) : null}
-                {titulo.release_date && <Text style={styles.subInfo}>{formatearFecha(titulo.release_date)}</Text>}
+                {titulo.release_date && <Text style={styles.subInfo}>{formatearFecha(fechaEstrenoPais ?? titulo.release_date)}</Text>}
                 {(titulo.genre_ids ?? []).length > 0 && (
                   <Text style={styles.subInfo}>
                     {(titulo.genre_ids ?? []).map((id: number) => GENEROS_PELICULAS[id]).filter(Boolean).map((g: string) => t(g)).slice(0, 3).join(", ")}
