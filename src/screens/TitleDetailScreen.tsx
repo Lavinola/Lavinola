@@ -23,8 +23,6 @@ import TopPills from "../components/TopPills";
 import MoodPicker from "../components/MoodPicker";
 import CastVotePicker from "../components/CastVotePicker";
 import {
-  getSeriesWatchProviders,
-  getMovieWatchProviders,
   getSeriesCredits,
   getMovieCredits,
   getMovieDetails,
@@ -42,7 +40,7 @@ import {
   obtenerOverviewLocalizado,
   getContentLanguageCruda,
 } from "../lib/tmdb";
-import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMisSeries, eliminarPeliculaDeMisPeliculas } from "../lib/sync";
+import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMisSeries, eliminarPeliculaDeMisPeliculas, getSeriesWatchProvidersCacheado, getMovieWatchProvidersCacheado } from "../lib/sync";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { supabase } from "../lib/supabase";
 import { esFavorito, toggleFavorito, contarFavoritosDeTitulo } from "../lib/favorites";
@@ -745,7 +743,7 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
     if (userId) {
       const { data: profile } = await supabase.from("profiles").select("country").eq("id", userId).maybeSingle();
       const watchRegion = profile?.country ?? "AR";
-      const p = tipo === "series" ? await getSeriesWatchProviders(tmdbId, watchRegion) : await getMovieWatchProviders(tmdbId, watchRegion);
+      const p = tipo === "series" ? await getSeriesWatchProvidersCacheado(tmdbId, watchRegion) : await getMovieWatchProvidersCacheado(tmdbId, watchRegion);
       setProviders(p);
 
       if (tipo === "series") {

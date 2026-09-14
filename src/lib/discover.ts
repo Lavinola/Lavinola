@@ -166,10 +166,13 @@ export async function descubrirPagina(opts: {
 
     // "Próximos estrenos": todavía no salió (fecha desde hoy en adelante) y
     // ordenado por popularidad — eso, en la práctica, es "lo más esperado".
-    // El mínimo de votos filtra fichas sin nada de data que a veces se cuelan.
+    // Ojo: acá NO pedimos un mínimo de votos, porque algo que todavía no
+    // se estrenó casi nunca tiene votos en TMDB (nadie lo vio todavía) —
+    // pedirlo dejaba la lista vacía casi siempre. La popularidad de TMDB ya
+    // reduce el ruido sola (cuenta búsquedas, gente que lo agregó a su
+    // watchlist, etc., no solo votos).
     const esProximosEstrenos = orden === "proximos_estrenos";
     const fechaEstrenoDesde = esProximosEstrenos ? hoyLocalISO() : null;
-    const votosMinimos = esProximosEstrenos ? 5 : undefined;
 
     const data =
       tipo === "series"
@@ -181,7 +184,6 @@ export async function descubrirPagina(opts: {
             watchRegion,
             año,
             fechaEstrenoDesde,
-            votosMinimos,
           })
         : await discoverMoviesPaginado({
             page,
@@ -190,7 +192,6 @@ export async function descubrirPagina(opts: {
             watchRegion,
             año,
             fechaEstrenoDesde,
-            votosMinimos,
           });
 
     // Igual que en la fila de Descubrir: "tendencias" de TMDB para series

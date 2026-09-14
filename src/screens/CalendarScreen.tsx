@@ -3,6 +3,7 @@ import { View, Image, Pressable, SectionList, StyleSheet } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
+import { getSeriesWatchProvidersCacheado } from "../lib/sync";
 import { Text } from "../components/Themed";
 import EstadoVacio from "../components/EstadoVacio";
 import { useT } from "../i18n/i18n";
@@ -13,7 +14,7 @@ interface EpisodioProximo {
   series_tmdb_id: number;
   series_name: string;
   poster_path: string | null;
-  networks: string[];
+  plataformas: string[]; // dónde verlo, según el país del usuario (no el canal de emisión original)
   season_number: number;
   episode_number: number;
   name: string | null;
@@ -69,6 +70,9 @@ export default function CalendarScreen({ navigation }: any) {
     desde.setDate(desde.getDate() - DIAS_HACIA_ATRAS);
     const desdeStr = fechaLocalISO(desde);
 
+    const { data: perfil } = await supabase.from("profiles").select("country").eq("id", userId).maybeSingle();
+    const watchRegion = perfil?.country ?? "AR";
+
     const { data: seguidas } = await supabase
       .from("user_series")
       .select("series_tmdb_id, series_cache(name, poster_path, networks)")
@@ -89,6 +93,22 @@ export default function CalendarScreen({ navigation }: any) {
       .gte("air_date", desdeStr)
       .order("air_date", { ascending: true });
 
+    // Dónde ver cada serie según el país del usuario — no el canal de
+    // emisión original de TMDB (ese es fijo, sin importar el país; por
+    // ejemplo una serie de FX en EE.UU. puede estar en Disney+ acá).
+    const idsUnicos = [...new Set(ids)];
+    const providersPorSerie: Record<number, string[]> = {};
+    await Promise.all(
+      idsUnicos.map(async (id) => {
+        try {
+          const providers = await getSeriesWatchProvidersCacheado(id, watchRegion);
+          providersPorSerie[id] = (providers?.flatrate ?? []).map((p: any) => p.provider_name);
+        } catch {
+          providersPorSerie[id] = [];
+        }
+      })
+    );
+
     const infoSerie: Record<number, { nombre: string; poster: string | null; networks: string[] }> = {};
     (seguidas ?? []).forEach((s: any) => {
       infoSerie[s.series_tmdb_id] = {
@@ -103,11 +123,15 @@ export default function CalendarScreen({ navigation }: any) {
       const fecha = e.air_date as string;
       if (!porFecha[fecha]) porFecha[fecha] = [];
       const info = infoSerie[e.series_tmdb_id];
+      // Si no hay dato de plataforma para el país del usuario (puede pasar
+      // con series chicas o sin distribución confirmada ahí todavía),
+      // mostramos el canal original como respaldo antes que no mostrar nada.
+      const plataformas = providersPorSerie[e.series_tmdb_id]?.length ? providersPorSerie[e.series_tmdb_id] : info?.networks ?? [];
       porFecha[fecha].push({
         series_tmdb_id: e.series_tmdb_id,
         series_name: info?.nombre ?? "—",
         poster_path: info?.poster ?? null,
-        networks: info?.networks ?? [],
+        plataformas,
         season_number: e.season_number,
         episode_number: e.episode_number,
         name: e.name,
@@ -185,7 +209,7 @@ export default function CalendarScreen({ navigation }: any) {
                     <Text style={styles.itemSub}>
                       T{item.season_number} - E{item.episode_number}
                     </Text>
-                    {item.networks.length > 0 && <Text style={styles.itemPlataforma}>{item.networks.join(", ")}</Text>}
+                    {item.plataformas.length > 0 && <Text style={styles.itemPlataforma}>{item.plataformas.join(", ")}</Text>}
                   </View>
                   {!item.yaSalio && dias != null && (
                     <View style={styles.faltanCol}>

@@ -46,6 +46,48 @@ create table if not exists episodes_cache (
   primary key (series_tmdb_id, season_number, episode_number)
 );
 
+-- Caché COMPARTIDA (entre todos los usuarios, no por persona) de "dónde
+-- ver esto" por país — evita pedirle esto a TMDB cada vez que alguien
+-- abre la app o la ficha de un título; una vez que alguien lo pide para
+-- un país, queda guardado acá y el resto lo reusa hasta que se ponga
+-- viejo (ver STALE_AFTER_HOURS en src/lib/tmdb.ts).
+create table if not exists watch_providers_cache (
+  item_type text not null check (item_type in ('movie', 'series')),
+  tmdb_id integer not null,
+  region text not null, -- código de país TMDB, ej "AR", "US"
+  providers jsonb not null default '[]', -- nombres de plataformas en streaming (flatrate)
+  synced_at timestamptz not null default now(),
+  primary key (item_type, tmdb_id, region)
+);
+alter table watch_providers_cache enable row level security;
+drop policy if exists "watch_providers_cache_select_all" on watch_providers_cache;
+create policy "watch_providers_cache_select_all" on watch_providers_cache for select using (true);
+drop policy if exists "watch_providers_cache_write_auth" on watch_providers_cache;
+create policy "watch_providers_cache_write_auth" on watch_providers_cache for insert to authenticated with check (true);
+drop policy if exists "watch_providers_cache_update_auth" on watch_providers_cache;
+create policy "watch_providers_cache_update_auth" on watch_providers_cache for update to authenticated using (true);
+
+-- Misma idea que watch_providers_cache, pero para "cuándo y cómo se
+-- estrena una película en tal país" (cine, digital, físico) — sale de
+-- /movie/{id}/release_dates, que trae fechas desglosadas por país y tipo
+-- de estreno (a diferencia de movies_cache.release_date, que es una
+-- sola fecha "genérica" elegida por TMDB, no la de cada país).
+create table if not exists movie_release_info_cache (
+  tmdb_id integer not null,
+  region text not null,
+  fecha date,
+  tipo text check (tipo in ('cine', 'digital', 'fisico')), -- null = no hay dato para ese país todavía
+  synced_at timestamptz not null default now(),
+  primary key (tmdb_id, region)
+);
+alter table movie_release_info_cache enable row level security;
+drop policy if exists "movie_release_info_cache_select_all" on movie_release_info_cache;
+create policy "movie_release_info_cache_select_all" on movie_release_info_cache for select using (true);
+drop policy if exists "movie_release_info_cache_write_auth" on movie_release_info_cache;
+create policy "movie_release_info_cache_write_auth" on movie_release_info_cache for insert to authenticated with check (true);
+drop policy if exists "movie_release_info_cache_update_auth" on movie_release_info_cache;
+create policy "movie_release_info_cache_update_auth" on movie_release_info_cache for update to authenticated using (true);
+
 -- ---------- RELACIÓN USUARIO-SERIE / USUARIO-PELÍCULA ----------
 create table if not exists user_series (
   user_id uuid references profiles(id) on delete cascade,

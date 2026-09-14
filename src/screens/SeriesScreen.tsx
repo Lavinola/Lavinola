@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl } from "../lib/tmdb";
+import { getSeriesWatchProvidersCacheado } from "../lib/sync";
 import { marcarEpisodioVisto, episodiosAnterioresNoVistos, marcarVariosEpisodios, getProximoEpisodio } from "../lib/episodes";
 import { impactoLiviano } from "../lib/haptics";
 import ConfirmModal from "../components/ConfirmModal";
@@ -73,6 +74,8 @@ function ListaPendiente({ navigation }: any) {
     episodio: number;
     nombreEpisodio: string | null;
   } | null>(null);
+  const [watchRegion, setWatchRegion] = useState("AR");
+  const [plataformasPorSerie, setPlataformasPorSerie] = useState<Record<number, string[]>>({});
 
   useFocusEffect(
     useCallback(() => {
@@ -80,12 +83,48 @@ function ListaPendiente({ navigation }: any) {
     }, [])
   );
 
+  // Plataformas donde ver cada serie en tu país, para mostrar chiquito
+  // debajo de "T{temporada} - E{capítulo}: nombre" — solo si hay alguna.
+  useEffect(() => {
+    const ids = [...new Set(series.map((s) => s.tmdb_id))];
+    const faltan = ids.filter((id) => !plataformasPorSerie[id]);
+    if (faltan.length === 0) return;
+    let cancelado = false;
+    (async () => {
+      const resultados = await Promise.all(
+        faltan.map(async (id) => {
+          const p = await getSeriesWatchProvidersCacheado(id, watchRegion);
+          return { id, nombres: (p?.flatrate ?? []).map((prov: any) => prov.provider_name) };
+        })
+      );
+      if (!cancelado) {
+        setPlataformasPorSerie((prev) => {
+          const nuevo = { ...prev };
+          resultados.forEach((r) => {
+            nuevo[r.id] = r.nombres;
+          });
+          return nuevo;
+        });
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [series, watchRegion]);
+
   async function cargar(silencioso = false) {
     const miId = ++idCargaRef.current;
     try {
       const { data: userData } = await supabase.auth.getSession();
       const userId = userData.session?.user?.id;
       if (!userId) return;
+
+      supabase
+        .from("profiles")
+        .select("country")
+        .eq("id", userId)
+        .maybeSingle()
+        .then(({ data }) => setWatchRegion(data?.country ?? "AR"));
 
       // Si ya se había precargado en segundo plano (al abrir la app, o en
       // una visita anterior a esta pantalla), lo pintamos al toque en vez
@@ -344,7 +383,7 @@ function ListaPendiente({ navigation }: any) {
         if (section.tipo === "viendo" && viendo.length === 0) {
           return <Text style={styles.vacio}>{t("Agregá series para empezar a trackear.")}</Text>;
         }
-        return <FilaSerie item={s} onTocarTilde={() => tocarSiguienteCapitulo(s)} navigation={navigation} />;
+        return <FilaSerie item={s} onTocarTilde={() => tocarSiguienteCapitulo(s)} navigation={navigation} plataformas={plataformasPorSerie[s.tmdb_id]} />;
       }}
       ListFooterComponent={
         <View style={{ padding: 12, alignItems: "flex-start" }}>
@@ -386,10 +425,12 @@ function FilaSerie({
   item,
   onTocarTilde,
   navigation,
+  plataformas,
 }: {
   item: SerieListado;
   onTocarTilde: () => Promise<void>;
   navigation: any;
+  plataformas?: string[];
 }) {
   const { t } = useT();
   const [marcando, setMarcando] = useState(false);
@@ -456,20 +497,26 @@ function FilaSerie({
           </Animated.Text>
         ) : realmenteSinEstrenar ? (
           item.primer_capitulo_season != null && (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.filaSub} numberOfLines={1}>
-                {`T${item.primer_capitulo_season} - E${item.primer_capitulo_number}${item.primer_capitulo_nombre ? `: ${item.primer_capitulo_nombre}` : ""}`}
-              </Text>
-              {!!item.primer_capitulo_fecha && <Text style={styles.filaFechaEstreno}> · {formatearFecha(item.primer_capitulo_fecha)}</Text>}
+            <View>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.filaSub} numberOfLines={1}>
+                  {`T${item.primer_capitulo_season} - E${item.primer_capitulo_number}${item.primer_capitulo_nombre ? `: ${item.primer_capitulo_nombre}` : ""}`}
+                </Text>
+                {!!item.primer_capitulo_fecha && <Text style={styles.filaFechaEstreno}> · {formatearFecha(item.primer_capitulo_fecha)}</Text>}
+              </View>
+              {plataformas?.length ? <Text style={styles.filaFechaEstreno}>{plataformas.join(", ")}</Text> : null}
             </View>
           )
         ) : (
           item.next_episode_label && (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.filaSub} numberOfLines={1}>
-                {item.next_episode_label}
-              </Text>
-              {episodiosRestantes > 0 && <Text style={styles.filaMasCapitulos}> +{episodiosRestantes}</Text>}
+            <View>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.filaSub} numberOfLines={1}>
+                  {item.next_episode_label}
+                </Text>
+                {episodiosRestantes > 0 && <Text style={styles.filaMasCapitulos}> +{episodiosRestantes}</Text>}
+              </View>
+              {plataformas?.length ? <Text style={styles.filaFechaEstreno}>{plataformas.join(", ")}</Text> : null}
             </View>
           )
         )}

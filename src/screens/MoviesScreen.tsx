@@ -8,7 +8,8 @@ import { SkeletonPosterGrid } from "../components/SkeletonShapes";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
-import { posterUrl, getMovieWatchProviders, getWatchProvidersDisponibles, GrupoPlataforma } from "../lib/tmdb";
+import { posterUrl, getWatchProvidersDisponibles, GrupoPlataforma } from "../lib/tmdb";
+import { getMovieReleaseInfoCacheado, getMovieWatchProvidersCacheado } from "../lib/sync";
 import { formatearFecha, hoyLocalISO } from "../lib/dates";
 import CalificarModal from "../components/CalificarModal";
 import { toggleVistaPelicula } from "../lib/watchStatus";
@@ -60,6 +61,7 @@ export default function MoviesScreen({ navigation }: any) {
   const [calificarModal, setCalificarModal] = useState<{ tmdbId: number; titulo: string; poster: string | null } | null>(null);
   const [movies, setMovies] = useState<PeliculaRow[]>([]);
   const [pendientesConPlataforma, setPendientesConPlataforma] = useState<Set<number> | null>(null);
+  const [infoEstreno, setInfoEstreno] = useState<Record<number, { fecha: string | null; tipo: string | null; plataforma: string | null }>>({});
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
@@ -132,7 +134,7 @@ export default function MoviesScreen({ navigation }: any) {
     (async () => {
       const resultados = await Promise.all(
         candidatas.map(async (m) => {
-          const p = await getMovieWatchProviders(m.tmdb_id, watchRegion);
+          const p = await getMovieWatchProvidersCacheado(m.tmdb_id, watchRegion);
           const idsDisponibles = (p?.flatrate ?? []).map((prov: any) => prov.provider_id);
           const coincideCurada = idsDisponibles.some((id: number) => (esOtras ? universoIds : idsElegidos).includes(id));
           return { id: m.tmdb_id, pasa: esOtras ? !coincideCurada : coincideCurada };
@@ -144,6 +146,76 @@ export default function MoviesScreen({ navigation }: any) {
       cancelado = true;
     };
   }, [plataformas, movies, watchRegion, todasLasPlataformas]);
+
+  // Para "Lista pendiente" en modo lista: qué plataformas tenés disponibles
+  // para cada título en tu país, para mostrarlo chiquito debajo de la
+  // duración (solo si hay alguna — si no, no se muestra nada).
+  const [plataformasPendientes, setPlataformasPendientes] = useState<Record<number, string[]>>({});
+  React.useEffect(() => {
+    if (subTab !== "pendiente") return;
+    const hoyStr = hoyLocalISO();
+    const idsPendientes = [...new Set(movies.filter((m) => !m.watched && (!m.release_date || m.release_date <= hoyStr)).map((m) => m.tmdb_id))];
+    const faltan = idsPendientes.filter((id) => !plataformasPendientes[id]);
+    if (faltan.length === 0) return;
+    let cancelado = false;
+    (async () => {
+      const resultados = await Promise.all(
+        faltan.map(async (id) => {
+          const p = await getMovieWatchProvidersCacheado(id, watchRegion);
+          return { id, nombres: (p?.flatrate ?? []).map((prov: any) => prov.provider_name) };
+        })
+      );
+      if (!cancelado) {
+        setPlataformasPendientes((prev) => {
+          const nuevo = { ...prev };
+          resultados.forEach((r) => {
+            nuevo[r.id] = r.nombres;
+          });
+          return nuevo;
+        });
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [subTab, movies, watchRegion]);
+
+  // Para la pestaña "Próximamente": de dónde sale realmente (cine o una
+  // plataforma puntual) según el país del usuario — movies_cache.release_date
+  // es una fecha "genérica" que puede no coincidir con la de acá.
+  React.useEffect(() => {
+    if (subTab !== "proximamente") return;
+    const hoyStr = hoyLocalISO();
+    const idsProximas = [...new Set(movies.filter((m) => !m.watched && m.release_date && m.release_date > hoyStr).map((m) => m.tmdb_id))];
+    const faltan = idsProximas.filter((id) => !infoEstreno[id]);
+    if (faltan.length === 0) return;
+    let cancelado = false;
+    (async () => {
+      const resultados = await Promise.all(
+        faltan.map(async (id) => {
+          const info = await getMovieReleaseInfoCacheado(id, watchRegion);
+          let plataforma: string | null = null;
+          if (info.tipo === "digital") {
+            const providers = await getMovieWatchProvidersCacheado(id, watchRegion);
+            plataforma = providers?.flatrate?.[0]?.provider_name ?? null;
+          }
+          return { id, fecha: info.fecha, tipo: info.tipo, plataforma };
+        })
+      );
+      if (!cancelado) {
+        setInfoEstreno((prev) => {
+          const nuevo = { ...prev };
+          resultados.forEach((r) => {
+            nuevo[r.id] = { fecha: r.fecha, tipo: r.tipo, plataforma: r.plataforma };
+          });
+          return nuevo;
+        });
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [subTab, movies, watchRegion]);
 
   const hoy = hoyLocalISO();
   let pendientesSinOrdenar = movies.filter((m) => !m.watched && (!m.release_date || m.release_date <= hoy));
@@ -248,6 +320,9 @@ export default function MoviesScreen({ navigation }: any) {
                     {item.runtime_minutes ? (
                       <Text style={styles.cardSubChica}>{`${Math.floor(item.runtime_minutes / 60)} h ${item.runtime_minutes % 60} min`}</Text>
                     ) : null}
+                    {plataformasPendientes[item.tmdb_id]?.length ? (
+                      <Text style={styles.cardSubChica}>{plataformasPendientes[item.tmdb_id].join(", ")}</Text>
+                    ) : null}
                     {orden === "puntuacion_lavinola" && puntuaciones[item.tmdb_id] != null && (
                       <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
                         <Text style={styles.puntuacionListaTexto}>{puntuaciones[item.tmdb_id].toFixed(1).replace(/\.0$/, "")}</Text>
@@ -258,7 +333,13 @@ export default function MoviesScreen({ navigation }: any) {
                 ) : (
                   <>
                     <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardSub}>{t("Estreno: {fecha}").replace("{fecha}", formatearFecha(item.release_date))}</Text>
+                    <Text style={styles.cardSub}>
+                      {t("Estreno: {fecha}").replace("{fecha}", formatearFecha(infoEstreno[item.tmdb_id]?.fecha ?? item.release_date))}
+                    </Text>
+                    {infoEstreno[item.tmdb_id]?.tipo === "cine" && <Text style={styles.cardSubChica}>{t("Cine")}</Text>}
+                    {infoEstreno[item.tmdb_id]?.tipo === "digital" && infoEstreno[item.tmdb_id]?.plataforma && (
+                      <Text style={styles.cardSubChica}>{infoEstreno[item.tmdb_id]!.plataforma}</Text>
+                    )}
                   </>
                 )}
               </View>

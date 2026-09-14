@@ -510,6 +510,37 @@ export async function getMovieCertification(tmdbId: number, country: string): Pr
   return conCertificacion?.certification || null;
 }
 
+/**
+ * Cuándo y cómo se estrena una película en un país puntual: en cine,
+ * directo a una plataforma, o en formato físico. TMDB tipifica cada
+ * fecha con un "type": 1=Premiere, 2=Cine limitado, 3=Cine (estreno
+ * amplio), 4=Digital, 5=Físico, 6=TV. Nos quedamos con la fecha más
+ * temprana del tipo "mejor" disponible: cine (2 o 3) > digital (4) >
+ * físico (5). Si no hay nada para ese país, devuelve todo null (el
+ * llamador cae de respaldo a la fecha genérica de movies_cache).
+ */
+export async function getMovieReleaseInfo(tmdbId: number, country: string): Promise<{ fecha: string | null; tipo: "cine" | "digital" | "fisico" | null }> {
+  const data = await tmdbFetchSinIdioma<any>(`/movie/${tmdbId}/release_dates`);
+  const resultados: any[] = data?.results ?? [];
+  const delPais = resultados.find((r) => r.iso_3166_1 === country);
+  const fechas: any[] = delPais?.release_dates ?? [];
+  if (fechas.length === 0) return { fecha: null, tipo: null };
+
+  function masTemprana(tipos: number[]): string | null {
+    const candidatas = fechas.filter((f) => tipos.includes(f.type)).map((f) => String(f.release_date).slice(0, 10));
+    if (candidatas.length === 0) return null;
+    return candidatas.sort()[0];
+  }
+
+  const fechaCine = masTemprana([2, 3]);
+  if (fechaCine) return { fecha: fechaCine, tipo: "cine" };
+  const fechaDigital = masTemprana([4]);
+  if (fechaDigital) return { fecha: fechaDigital, tipo: "digital" };
+  const fechaFisica = masTemprana([5]);
+  if (fechaFisica) return { fecha: fechaFisica, tipo: "fisico" };
+  return { fecha: null, tipo: null };
+}
+
 /** Normaliza distintos sistemas de clasificación (EEUU, TV Parental Guidelines, etc.) a un formato simple: "ATP" o "+N". */
 const MAPA_CLASIFICACION: Record<string, string> = {
   G: "ATP",

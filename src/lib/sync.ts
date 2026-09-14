@@ -12,7 +12,7 @@
  * ese título (pantalla en blanco, o el "+" que no queda guardado).
  */
 import { supabase } from "./supabase";
-import { getSeriesDetails, getSeasonEpisodes, getMovieDetails, getMovieCredits, getSeriesCredits, getTmdbLanguage } from "./tmdb";
+import { getSeriesDetails, getSeasonEpisodes, getMovieDetails, getMovieCredits, getSeriesCredits, getTmdbLanguage, getSeriesWatchProviders, getMovieWatchProviders, getMovieReleaseInfo } from "./tmdb";
 
 const STALE_AFTER_HOURS = 24;
 
@@ -279,4 +279,60 @@ export async function eliminarPeliculaDeMisPeliculas(userId: string, tmdbId: num
   await supabase.from("movie_watch_events").delete().eq("user_id", userId).eq("movie_tmdb_id", tmdbId);
   const { error } = await supabase.from("user_movies").delete().eq("user_id", userId).eq("movie_tmdb_id", tmdbId);
   if (error) throw error;
+}
+
+// ---------- Caché de Watch Providers (compartida entre TODOS los usuarios) ----------
+// "Dónde ver esto" es lo mismo para cualquier persona en el mismo país, así
+// que no tiene sentido que cada usuario le vuelva a preguntar a TMDB cada
+// vez que abre la app — la primera consulta para una serie/película+país
+// queda guardada acá, y de ahí en más se reusa (hasta que se ponga vieja,
+// mismo criterio de 24hs que el resto de la sincronización con TMDB).
+async function watchProvidersDesdeCache(itemType: "movie" | "series", tmdbId: number, region: string): Promise<any[] | null> {
+  const { data } = await supabase
+    .from("watch_providers_cache")
+    .select("providers, synced_at")
+    .eq("item_type", itemType)
+    .eq("tmdb_id", tmdbId)
+    .eq("region", region)
+    .maybeSingle();
+  if (!data || isStale(data.synced_at)) return null;
+  return (data.providers as any[]) ?? [];
+}
+
+async function guardarWatchProvidersEnCache(itemType: "movie" | "series", tmdbId: number, region: string, flatrate: any[]) {
+  const { error } = await supabase
+    .from("watch_providers_cache")
+    .upsert({ item_type: itemType, tmdb_id: tmdbId, region, providers: flatrate, synced_at: new Date().toISOString() });
+  if (error) console.error("No se pudo guardar la caché de watch providers:", error.message);
+}
+
+/** Igual que getSeriesWatchProviders, pero primero mira la caché compartida en Supabase antes de pedirle a TMDB. */
+export async function getSeriesWatchProvidersCacheado(tmdbId: number, watchRegion: string) {
+  const cacheado = await watchProvidersDesdeCache("series", tmdbId, watchRegion);
+  if (cacheado) return { flatrate: cacheado };
+  const fresco = await getSeriesWatchProviders(tmdbId, watchRegion);
+  await guardarWatchProvidersEnCache("series", tmdbId, watchRegion, fresco?.flatrate ?? []);
+  return fresco;
+}
+
+/** Igual que getMovieWatchProviders, pero primero mira la caché compartida en Supabase antes de pedirle a TMDB. */
+export async function getMovieWatchProvidersCacheado(tmdbId: number, watchRegion: string) {
+  const cacheado = await watchProvidersDesdeCache("movie", tmdbId, watchRegion);
+  if (cacheado) return { flatrate: cacheado };
+  const fresco = await getMovieWatchProviders(tmdbId, watchRegion);
+  await guardarWatchProvidersEnCache("movie", tmdbId, watchRegion, fresco?.flatrate ?? []);
+  return fresco;
+}
+
+/** Igual que getMovieReleaseInfo, pero primero mira la caché compartida en Supabase antes de pedirle a TMDB. */
+export async function getMovieReleaseInfoCacheado(tmdbId: number, region: string): Promise<{ fecha: string | null; tipo: "cine" | "digital" | "fisico" | null }> {
+  const { data } = await supabase.from("movie_release_info_cache").select("fecha, tipo, synced_at").eq("tmdb_id", tmdbId).eq("region", region).maybeSingle();
+  if (data && !isStale(data.synced_at)) return { fecha: data.fecha, tipo: data.tipo as any };
+
+  const fresco = await getMovieReleaseInfo(tmdbId, region);
+  const { error } = await supabase
+    .from("movie_release_info_cache")
+    .upsert({ tmdb_id: tmdbId, region, fecha: fresco.fecha, tipo: fresco.tipo, synced_at: new Date().toISOString() });
+  if (error) console.error("No se pudo guardar la caché de estreno de película:", error.message);
+  return fresco;
 }
