@@ -176,7 +176,7 @@ export default function DiscoverFilterModal({
         <AñoPickerNativo
           value={año ?? new Date().getFullYear()}
           minimumYear={1900}
-          maximumYear={new Date().getFullYear() + 1}
+          maximumYear={new Date().getFullYear() + 3}
           onCerrar={() => setMostrarPickerAño(false)}
           onElegido={setAño}
         />

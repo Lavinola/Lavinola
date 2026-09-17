@@ -225,12 +225,86 @@ const GRUPOS_ARGENTINA: { clave: string; label: string; claves: string[] }[] = [
   { clave: "paramountplus", label: "Paramount+", claves: ["paramount plus", "paramount+"] },
   { clave: "movistartv", label: "Movistar TV", claves: ["movistar"] },
   { clave: "clarovideo", label: "Claro video", claves: ["claro video"] },
-  { clave: "dgo", label: "DGO", claves: ["dgo", "directv go"] },
-  { clave: "googleplay", label: "Google Play Movies", claves: ["google play movies"] },
+  { clave: "universalplus", label: "Universal+", claves: ["universal+", "universal plus", "peacock"] },
   { clave: "flow", label: "Flow", claves: ["flow"] },
 ];
-const PLATAFORMAS_SIEMPRE_GLOBALES = ["netflix", "prime video", "amazon prime video", "hbo max", "max", "disney plus", "disney+", "apple tv"];
-const MAX_PLATAFORMAS = 11;
+
+const GRUPOS_EEUU: { clave: string; label: string; claves: string[] }[] = [
+  { clave: "netflix", label: "Netflix", claves: ["netflix"] },
+  { clave: "primevideo", label: "Prime Video", claves: ["prime video", "amazon prime video"] },
+  { clave: "appletv", label: "Apple TV", claves: ["apple tv"] },
+  { clave: "disneyplus", label: "Disney+", claves: ["disney plus", "disney+"] },
+  { clave: "hbomax", label: "HBO Max", claves: ["hbo max", "max"] },
+  { clave: "hulu", label: "Hulu", claves: ["hulu"] },
+  { clave: "peacock", label: "Peacock", claves: ["peacock"] },
+  { clave: "paramountplus", label: "Paramount+", claves: ["paramount plus", "paramount+"] },
+  { clave: "youtube", label: "YouTube", claves: ["youtube"] },
+  { clave: "plutotv", label: "Pluto TV", claves: ["pluto tv"] },
+];
+
+const GRUPOS_ESPANA: { clave: string; label: string; claves: string[] }[] = [
+  { clave: "netflix", label: "Netflix", claves: ["netflix"] },
+  { clave: "primevideo", label: "Prime Video", claves: ["prime video", "amazon prime video"] },
+  { clave: "hbomax", label: "HBO Max", claves: ["hbo max", "max"] },
+  { clave: "disneyplus", label: "Disney+", claves: ["disney plus", "disney+"] },
+  { clave: "movistarplus", label: "Movistar Plus+", claves: ["movistar plus", "movistar+"] },
+  { clave: "filmin", label: "Filmin", claves: ["filmin"] },
+  { clave: "appletv", label: "Apple TV+", claves: ["apple tv"] },
+  { clave: "skyshowtime", label: "SkyShowtime", claves: ["skyshowtime"] },
+  { clave: "flixole", label: "FlixOlé", claves: ["flixole", "flixolé"] },
+  { clave: "atresplayer", label: "Atresplayer", claves: ["atresplayer", "atres player"] },
+];
+
+const GRUPOS_BRASIL: { clave: string; label: string; claves: string[] }[] = [
+  { clave: "netflix", label: "Netflix", claves: ["netflix"] },
+  { clave: "globoplay", label: "Globoplay", claves: ["globoplay"] },
+  { clave: "disneyplus", label: "Disney+", claves: ["disney plus", "disney+"] },
+  { clave: "hbomax", label: "HBO Max", claves: ["hbo max", "max"] },
+  { clave: "primevideo", label: "Prime Video", claves: ["prime video", "amazon prime video"] },
+  { clave: "paramountplus", label: "Paramount+", claves: ["paramount plus", "paramount+"] },
+  { clave: "appletv", label: "Apple TV", claves: ["apple tv"] },
+  { clave: "mubi", label: "MUBI", claves: ["mubi"] },
+  { clave: "telecine", label: "Telecine", claves: ["telecine"] },
+  { clave: "spcineplay", label: "SPCine Play", claves: ["spcine"] },
+];
+
+const GRUPOS_MEXICO: { clave: string; label: string; claves: string[] }[] = [
+  { clave: "netflix", label: "Netflix", claves: ["netflix"] },
+  { clave: "disneyplus", label: "Disney+", claves: ["disney plus", "disney+"] },
+  { clave: "hbomax", label: "HBO Max", claves: ["hbo max", "max"] },
+  { clave: "primevideo", label: "Prime Video", claves: ["prime video", "amazon prime video"] },
+  { clave: "paramountplus", label: "Paramount+", claves: ["paramount plus", "paramount+"] },
+  { clave: "appletv", label: "Apple TV", claves: ["apple tv"] },
+  { clave: "mubi", label: "MUBI", claves: ["mubi"] },
+  { clave: "clarovideo", label: "Claro video", claves: ["claro video"] },
+  { clave: "youtube", label: "YouTube Premium", claves: ["youtube"] },
+  { clave: "plutotv", label: "Pluto TV", claves: ["pluto tv"] },
+];
+
+const GRUPOS_CANADA: { clave: string; label: string; claves: string[] }[] = [
+  { clave: "primevideo", label: "Prime Video", claves: ["prime video", "amazon prime video"] },
+  { clave: "netflix", label: "Netflix", claves: ["netflix"] },
+  { clave: "disneyplus", label: "Disney+", claves: ["disney plus", "disney+"] },
+  { clave: "crave", label: "Crave", claves: ["crave"] },
+  { clave: "appletv", label: "Apple TV", claves: ["apple tv"] },
+  { clave: "paramountplus", label: "Paramount+", claves: ["paramount plus", "paramount+"] },
+  { clave: "tubi", label: "Tubi", claves: ["tubi"] },
+  { clave: "plutotv", label: "Pluto TV", claves: ["pluto tv"] },
+  { clave: "cbcgem", label: "CBC Gem", claves: ["cbc gem"] },
+  { clave: "kanopy", label: "Kanopy", claves: ["kanopy"] },
+];
+
+const GRUPOS_CURADOS_POR_PAIS: Record<string, { clave: string; label: string; claves: string[] }[]> = {
+  AR: GRUPOS_ARGENTINA,
+  US: GRUPOS_EEUU,
+  ES: GRUPOS_ESPANA,
+  BR: GRUPOS_BRASIL,
+  MX: GRUPOS_MEXICO,
+  CA: GRUPOS_CANADA,
+};
+
+const PLATAFORMAS_SIEMPRE_GLOBALES = ["netflix", "prime video", "amazon prime video", "hbo max", "max", "disney plus", "disney+", "apple tv", "peacock", "universal+"];
+const MAX_PLATAFORMAS = 10;
 
 function coincide(nombreProvider: string, listaClaves: string[]): boolean {
   const n = nombreProvider.toLowerCase();
@@ -280,15 +354,16 @@ export async function getWatchProvidersDisponibles(tipo: "series" | "movie", wat
   // TMDB los devuelve ordenados por "display_priority" (relevancia por país),
   // que es justo el orden en el que conviene mostrarlos.
   const todas = ((data.results ?? []) as any[])
-    .map((p) => ({ ...p, provider_name: normalizarNombrePlataforma(p.provider_name) }))
+    .map((p) => ({ ...p, provider_name: normalizarNombrePlataforma(p.provider_name, watchRegion) }))
     .sort((a, b) => (a.display_priorities?.[watchRegion] ?? 999) - (b.display_priorities?.[watchRegion] ?? 999));
 
   const OTRAS: GrupoPlataforma = { clave: "otras", label: "Otras", logo_path: null, provider_ids: [] };
 
-  if (watchRegion === "AR") {
+  const gruposCurados = GRUPOS_CURADOS_POR_PAIS[watchRegion];
+  if (gruposCurados) {
     const grupos = agruparPorMarca(todas);
     const curadas: GrupoPlataforma[] = [];
-    for (const g of GRUPOS_ARGENTINA) {
+    for (const g of gruposCurados) {
       const encontrado = grupos.find((gr) => coincide(gr.label, g.claves));
       if (encontrado) curadas.push({ ...encontrado, clave: g.clave, label: g.label });
     }
@@ -331,9 +406,13 @@ const cacheWatchProviders = new Map<string, any>();
 // gente realmente dice/reconoce — los acortamos acá, en la fuente, así
 // se corrige en TODA la app (ficha del título, próximamente, filtros,
 // etc.) sin tener que tocar cada pantalla que los muestra.
-export function normalizarNombrePlataforma(nombre: string): string {
+export function normalizarNombrePlataforma(nombre: string, region?: string): string {
   if (nombre === "Disney Plus") return "Disney+";
   if (nombre === "Amazon Prime Video") return "Prime Video";
+  // Universal+ es el mismo servicio que Peacock, con otra marca fuera de
+  // EE.UU. (Latinoamérica, Reino Unido, etc.) — TMDB/JustWatch a veces
+  // catalogan todo como "Peacock" sin importar el país.
+  if (nombre === "Peacock" && region && region !== "US") return "Universal+";
   return nombre;
 }
 
@@ -362,18 +441,20 @@ export function ordenarPlataformasPorPrioridad(nombres: string[]): string[] {
   return [...nombres].sort((a, b) => rankPlataforma(a) - rankPlataforma(b));
 }
 
-function normalizarListaProviders(arr: any[] | undefined): any[] | undefined {
+function normalizarListaProviders(arr: any[] | undefined, region: string): any[] | undefined {
   if (!arr) return arr;
-  return arr.map((p) => ({ ...p, provider_name: normalizarNombrePlataforma(p.provider_name) })).sort((a, b) => rankPlataforma(a.provider_name) - rankPlataforma(b.provider_name));
+  return arr
+    .map((p) => ({ ...p, provider_name: normalizarNombrePlataforma(p.provider_name, region) }))
+    .sort((a, b) => rankPlataforma(a.provider_name) - rankPlataforma(b.provider_name));
 }
 
-function normalizarResultadoProviders(resultado: any): any {
+function normalizarResultadoProviders(resultado: any, region: string): any {
   if (!resultado) return resultado;
   return {
     ...resultado,
-    flatrate: normalizarListaProviders(resultado.flatrate),
-    rent: normalizarListaProviders(resultado.rent),
-    buy: normalizarListaProviders(resultado.buy),
+    flatrate: normalizarListaProviders(resultado.flatrate, region),
+    rent: normalizarListaProviders(resultado.rent, region),
+    buy: normalizarListaProviders(resultado.buy, region),
   };
 }
 
@@ -385,7 +466,7 @@ export async function getSeriesWatchProviders(tmdbId: number, watchRegion: strin
     headers: { Authorization: `Bearer ${TMDB_TOKEN}`, accept: "application/json" },
   });
   const data = await res.json();
-  const resultado = normalizarResultadoProviders(data?.results?.[watchRegion] ?? null); // { flatrate: [...], rent: [...], buy: [...], link }
+  const resultado = normalizarResultadoProviders(data?.results?.[watchRegion] ?? null, watchRegion); // { flatrate: [...], rent: [...], buy: [...], link }
   cacheWatchProviders.set(clave, resultado);
   return resultado;
 }
@@ -398,7 +479,7 @@ export async function getMovieWatchProviders(tmdbId: number, watchRegion: string
     headers: { Authorization: `Bearer ${TMDB_TOKEN}`, accept: "application/json" },
   });
   const data = await res.json();
-  const resultado = normalizarResultadoProviders(data?.results?.[watchRegion] ?? null);
+  const resultado = normalizarResultadoProviders(data?.results?.[watchRegion] ?? null, watchRegion);
   cacheWatchProviders.set(clave, resultado);
   return resultado;
 }
@@ -489,6 +570,11 @@ export function getSeriesVideos(tmdbId: number) {
   return tmdbFetch<any>(`/tv/${tmdbId}/videos`, { include_video_language: "en,es,it,pt,null" }, "en-US");
 }
 
+/** Tráilers propios de UNA temporada puntual (no de la serie en general) — TMDB los separa del endpoint de arriba. */
+export function getSeasonVideos(tmdbId: number, seasonNumber: number) {
+  return tmdbFetch<any>(`/tv/${tmdbId}/season/${seasonNumber}/videos`, { include_video_language: "en,es,it,pt,null" }, "en-US");
+}
+
 export function getMovieVideos(tmdbId: number) {
   return tmdbFetch<any>(`/movie/${tmdbId}/videos`, { include_video_language: "en,es,it,pt,null" }, "en-US");
 }
@@ -572,7 +658,11 @@ export async function getMovieCertification(tmdbId: number, country: string): Pr
 export async function getMovieReleaseInfo(tmdbId: number, country: string): Promise<{ fecha: string | null; tipo: "cine" | "digital" | "fisico" | null }> {
   const data = await tmdbFetchSinIdioma<any>(`/movie/${tmdbId}/release_dates`);
   const resultados: any[] = data?.results ?? [];
-  const delPais = resultados.find((r) => r.iso_3166_1 === country);
+  // La mayoría de las películas, sobre todo las más chicas, al principio
+  // solo tienen cargado el dato de EE.UU. en TMDB (la distribución
+  // internacional se confirma después) — sin este respaldo, quedaban sin
+  // ningún dato para mostrar en la inmensa mayoría de los casos.
+  const delPais = resultados.find((r) => r.iso_3166_1 === country) ?? resultados.find((r) => r.iso_3166_1 === "US");
   const fechas: any[] = delPais?.release_dates ?? [];
   if (fechas.length === 0) return { fecha: null, tipo: null };
 

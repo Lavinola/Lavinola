@@ -300,7 +300,7 @@ async function watchProvidersDesdeCache(itemType: "movie" | "series", tmdbId: nu
   // guardado con el nombre viejo (antes de este arreglo) se corrija al
   // toque, sin esperar a que venza la caché.
   return ((data.providers as any[]) ?? [])
-    .map((p) => ({ ...p, provider_name: normalizarNombrePlataforma(p.provider_name) }))
+    .map((p) => ({ ...p, provider_name: normalizarNombrePlataforma(p.provider_name, region) }))
     .sort((a, b) => rankPlataforma(a.provider_name) - rankPlataforma(b.provider_name));
 }
 
@@ -334,7 +334,7 @@ export async function getSeriesWatchProvidersLoteCacheado(tmdbIds: number[], reg
     const fila = cachePorId.get(id);
     if (fila && !isStale(fila.synced_at)) {
       resultado[id] = ((fila.providers as any[]) ?? [])
-        .map((p: any) => normalizarNombrePlataforma(p.provider_name))
+        .map((p: any) => normalizarNombrePlataforma(p.provider_name, region))
         .sort((a: string, b: string) => rankPlataforma(a) - rankPlataforma(b));
     } else {
       faltan.push(id);

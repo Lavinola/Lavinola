@@ -29,6 +29,7 @@ import {
   getSeriesExternalIds,
   posterUrl,
   getSeriesVideos,
+  getSeasonVideos,
   getMovieVideos,
   agruparTrailersPorIdioma,
   TrailerIdioma,
@@ -694,6 +695,11 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
   const [cantidadFavoritos, setCantidadFavoritos] = useState(0);
   const [cantidadListas, setCantidadListas] = useState(0);
   const [trailersDisponibles, setTrailersDisponibles] = useState<TrailerIdioma[]>([]);
+  // Para series con más de una temporada: tráilers propios de cada
+  // temporada (aparte de los de la serie en general), cuando TMDB los
+  // tiene cargados. Clave "serie" para los generales, "t2", "t3", etc.
+  const [trailersPorFuente, setTrailersPorFuente] = useState<Record<string, TrailerIdioma[]>>({});
+  const [fuenteTrailerElegida, setFuenteTrailerElegida] = useState<string>("serie");
   const [idiomaTrailerElegido, setIdiomaTrailerElegido] = useState<TrailerIdioma["idioma"] | null>(null);
   const [director, setDirector] = useState<string | null>(null);
   const [directorId, setDirectorId] = useState<number | null>(null);
@@ -819,6 +825,30 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
     setTrailersDisponibles(disponibles);
     // Por defecto viene apretado el de inglés, si hay — si no, el primero que haya disponible.
     setIdiomaTrailerElegido(disponibles.find((t) => t.idioma === "en")?.idioma ?? disponibles[0]?.idioma ?? null);
+
+    // Para series con más de una temporada: además del tráiler general,
+    // fijarse si TMDB tiene tráilers propios de la temporada 2, 3, etc.
+    // (una consulta por temporada, en paralelo — solo se agregan como
+    // opción las que de verdad tengan algo cargado).
+    const fuentes: Record<string, TrailerIdioma[]> = { serie: disponibles };
+    if (tipo === "series" && titulo?.total_seasons > 1) {
+      const numerosTemporada = Array.from({ length: titulo.total_seasons - 1 }, (_, i) => i + 2); // 2, 3, 4...
+      const resultadosPorTemporada = await Promise.all(
+        numerosTemporada.map(async (n) => {
+          try {
+            const videosTemporada = await getSeasonVideos(tmdbId, n);
+            return { n, disponibles: agruparTrailersPorIdioma(videosTemporada) };
+          } catch {
+            return { n, disponibles: [] as TrailerIdioma[] };
+          }
+        })
+      );
+      for (const r of resultadosPorTemporada) {
+        if (r.disponibles.length > 0) fuentes[`t${r.n}`] = r.disponibles;
+      }
+    }
+    setTrailersPorFuente(fuentes);
+    setFuenteTrailerElegida("serie");
 
     const recs = tipo === "series" ? await getSeriesRecommendations(tmdbId) : await getMovieRecommendations(tmdbId);
     const crudos: any[] = recs?.results ?? [];
@@ -1038,19 +1068,43 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
         <HistorialVistas eventos={eventosVista} onEditarFecha={editarEventoVista} onEditarFechaSoloAño={editarEventoVistaSoloAño} onEliminar={eliminarEventoVista} fechaEstreno={titulo?.release_date ?? null} />
       )}
 
-      {trailersDisponibles.length > 0 && idiomaTrailerElegido && (
-        <>
-          <Text style={styles.seccionTitulo}>{t("Tráiler")}</Text>
-          <View style={{ marginBottom: 10 }}>
-            <TrailerIdiomaSelector
-              opciones={trailersDisponibles.map((tr) => ({ key: tr.idioma, label: t(NOMBRE_IDIOMA_TRAILER[tr.idioma]) }))}
-              valor={idiomaTrailerElegido}
-              onCambiar={(v) => setIdiomaTrailerElegido(v as TrailerIdioma["idioma"])}
-            />
-          </View>
-          <TrailerEmbed key={idiomaTrailerElegido} youtubeKey={trailersDisponibles.find((tr) => tr.idioma === idiomaTrailerElegido)!.key} />
-        </>
-      )}
+      {(() => {
+        const trailersActuales = trailersPorFuente[fuenteTrailerElegida] ?? [];
+        if (trailersActuales.length === 0 || !idiomaTrailerElegido) return null;
+        const fuentesConTrailer = Object.keys(trailersPorFuente);
+        return (
+          <>
+            <Text style={styles.seccionTitulo}>{t("Tráiler")}</Text>
+            {fuentesConTrailer.length > 1 && (
+              <View style={styles.fuenteTrailerRow}>
+                {fuentesConTrailer.map((fuente) => (
+                  <Pressable
+                    key={fuente}
+                    style={[styles.fuenteTrailerBtn, fuenteTrailerElegida === fuente && styles.fuenteTrailerBtnActivo]}
+                    onPress={() => {
+                      setFuenteTrailerElegida(fuente);
+                      const nuevos = trailersPorFuente[fuente];
+                      setIdiomaTrailerElegido(nuevos.find((tr) => tr.idioma === "en")?.idioma ?? nuevos[0]?.idioma ?? null);
+                    }}
+                  >
+                    <Text style={[styles.fuenteTrailerTexto, fuenteTrailerElegida === fuente && styles.fuenteTrailerTextoActivo]}>
+                      {fuente === "serie" ? t("Serie") : `${t("Temporada")} ${fuente.slice(1)}`}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            <View style={{ marginBottom: 10 }}>
+              <TrailerIdiomaSelector
+                opciones={trailersActuales.map((tr) => ({ key: tr.idioma, label: t(NOMBRE_IDIOMA_TRAILER[tr.idioma]) }))}
+                valor={idiomaTrailerElegido}
+                onCambiar={(v) => setIdiomaTrailerElegido(v as TrailerIdioma["idioma"])}
+              />
+            </View>
+            <TrailerEmbed key={`${fuenteTrailerElegida}-${idiomaTrailerElegido}`} youtubeKey={trailersActuales.find((tr) => tr.idioma === idiomaTrailerElegido)!.key} />
+          </>
+        );
+      })()}
 
       {recomendados.length > 0 && (
         <>
@@ -1485,6 +1539,18 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 10, fontWeight: "700", textTransform: "uppercase", textAlign: "center" },
   sinVer: { fontSize: 13, color: theme.colors.textFaint, marginTop: 16, fontStyle: "italic" },
   seccionTitulo: { fontSize: 16, fontWeight: "700", marginTop: 20, marginBottom: 8 },
+  fuenteTrailerRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
+  fuenteTrailerBtn: {
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: "#000000",
+    borderRadius: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  fuenteTrailerBtnActivo: { backgroundColor: theme.colors.primary },
+  fuenteTrailerTexto: { color: theme.colors.primary, fontSize: 13, fontWeight: "700" },
+  fuenteTrailerTextoActivo: { color: "#000000" },
   dato: { fontSize: 14 },
   plataformasRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   plataformaLogoBox: { width: 48, height: 48, borderRadius: 10, overflow: "hidden", backgroundColor: theme.colors.surfaceAlt },
