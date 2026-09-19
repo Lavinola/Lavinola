@@ -94,9 +94,11 @@ create table if not exists user_series (
   series_tmdb_id integer references series_cache(tmdb_id) on delete cascade,
   in_watchlist boolean default true, -- "la sigo / la quiero ver"
   last_watched_at timestamptz, -- clave para calcular Viendo vs Abandonada
+  abandonada_manual boolean not null default false, -- "Dejar de ver": abandono a mano, no depende de los días de inactividad
   created_at timestamptz default now(),
   primary key (user_id, series_tmdb_id)
 );
+alter table user_series add column if not exists abandonada_manual boolean not null default false;
 
 create table if not exists user_episodes_watched (
   user_id uuid references profiles(id) on delete cascade,

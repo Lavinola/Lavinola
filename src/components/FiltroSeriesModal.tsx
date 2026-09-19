@@ -8,13 +8,14 @@ import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
 
 export type OrdenSeries = "personalizado" | "visto" | "añadido" | "tu_puntuacion" | "alfabetico" | "lanzamiento";
-export type CategoriaSerie = "viendo" | "al_dia" | "terminada" | "sin_comenzar";
+export type CategoriaSerie = "viendo" | "al_dia" | "terminada" | "sin_comenzar" | "abandonada";
 
 export const CATEGORIAS_SERIE: { key: CategoriaSerie; label: string }[] = [
   { key: "viendo", label: "Viendo" },
   { key: "al_dia", label: "Al día" },
   { key: "terminada", label: "Finalizadas" },
   { key: "sin_comenzar", label: "Sin comenzar" },
+  { key: "abandonada", label: "Abandonadas" },
 ];
 
 interface Props {
@@ -119,7 +120,7 @@ export default function FiltroSeriesModal({
                 )}
               </Pressable>
               <Pressable style={[styles.pill, styles.pillPuntuacion, orden === "lanzamiento" && styles.pillActivo]} onPress={elegirLanzamiento}>
-                <Text style={[styles.pillTexto, orden === "lanzamiento" && styles.pillTextoActivo]}>{t("Fecha de lanzamiento")}</Text>
+                <Text style={[styles.pillTexto, orden === "lanzamiento" && styles.pillTextoActivo]}>{t("Fecha de estreno")}</Text>
                 {orden === "lanzamiento" && (
                   <Ionicons name={ascendente ? "arrow-up" : "arrow-down"} size={13} color="#000000" style={{ marginLeft: 4 }} />
                 )}

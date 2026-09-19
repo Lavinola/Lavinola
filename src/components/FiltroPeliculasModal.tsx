@@ -114,7 +114,7 @@ export default function FiltroPeliculasModal({
                 )}
               </Pressable>
               <Pressable style={[styles.pill, styles.pillPuntuacion, orden === "lanzamiento" && styles.pillActivo]} onPress={elegirLanzamiento}>
-                <Text style={[styles.pillTexto, orden === "lanzamiento" && styles.pillTextoActivo]}>{t("Fecha de lanzamiento")}</Text>
+                <Text style={[styles.pillTexto, orden === "lanzamiento" && styles.pillTextoActivo]}>{t("Fecha de estreno")}</Text>
                 {orden === "lanzamiento" && (
                   <Ionicons name={ascendente ? "arrow-up" : "arrow-down"} size={13} color="#000000" style={{ marginLeft: 4 }} />
                 )}

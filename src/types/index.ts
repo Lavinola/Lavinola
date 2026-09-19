@@ -59,16 +59,20 @@ export interface UserMovie {
  * - al_dia: 100% visto + status Returning Series
  * - sin_comenzar: 0 episodios vistos
  * - viendo: parcial + actividad hace < 20 días
- * - abandonada: parcial + actividad hace > 20 días
+ * - abandonada: parcial + actividad hace > 20 días, O el usuario tocó
+ *   "Dejar de ver" a mano (abandonadaManual) — en ese caso es abandonada
+ *   sin importar los días de inactividad.
  */
 export function computeSeriesStatus(params: {
   episodesWatched: number;
   totalEpisodes: number;
   tmdbStatus: string;
   lastWatchedAt: string | null;
+  abandonadaManual?: boolean;
 }): SeriesStatusFilter {
-  const { episodesWatched, totalEpisodes, tmdbStatus, lastWatchedAt } = params;
+  const { episodesWatched, totalEpisodes, tmdbStatus, lastWatchedAt, abandonadaManual } = params;
 
+  if (abandonadaManual) return "abandonada";
   if (episodesWatched === 0) return "sin_comenzar";
 
   const completa = totalEpisodes > 0 && episodesWatched >= totalEpisodes;

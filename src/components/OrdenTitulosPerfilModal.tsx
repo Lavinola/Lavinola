@@ -21,7 +21,7 @@ export default function OrdenTitulosPerfilModal({ visible, onCerrar, orden, asce
   const opciones: { key: OrdenTitulosPerfil; label: string; conEstrella?: boolean }[] = [
     { key: "ultima_vista", label: labelUltimaVista },
     { key: "alfabetico", label: t("Alfabético") },
-    { key: "fecha_lanzamiento", label: t("Fecha de lanzamiento") },
+    { key: "fecha_lanzamiento", label: t("Fecha de estreno") },
     { key: "puntuacion", label: t("Su"), conEstrella: true },
   ];
 

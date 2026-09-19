@@ -17,9 +17,9 @@ interface Props {
 }
 
 const OPCIONES: { key: CriterioOrdenPelicula; label: string }[] = [
+  { key: "año", label: "Fecha de estreno" },
   { key: "añadida", label: "Última añadida" },
   { key: "alfabetico", label: "Alfabético" },
-  { key: "año", label: "Año de estreno" },
   { key: "puntuacion_lavinola", label: "Puntuación Lavinola" },
 ];
 

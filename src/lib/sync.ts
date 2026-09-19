@@ -273,6 +273,19 @@ export async function eliminarSerieDeMisSeries(userId: string, tmdbId: number) {
   if (error) throw error;
 }
 
+/**
+ * "Dejar de ver" / "Seguir viendo" — marca (o desmarca) una serie como
+ * abandonada A MANO, sin borrar nada de tu historial. A diferencia del
+ * "abandonada" automático (30 días sin actividad), esto no depende del
+ * tiempo: la serie queda así hasta que vos mismo la reactivás. Mientras
+ * esté así, desaparece de Lista Pendiente (ni "ver a continuación" ni
+ * "sin ver por un tiempo") y pasa a la categoría "Abandonadas" en Mis Series.
+ */
+export async function marcarAbandonoManual(userId: string, tmdbId: number, abandonar: boolean) {
+  const { error } = await supabase.from("user_series").update({ abandonada_manual: abandonar }).eq("user_id", userId).eq("series_tmdb_id", tmdbId);
+  if (error) throw error;
+}
+
 /** Saca una película de "tus películas" (si la habías marcado como vista, se pierde ese estado). */
 /** Saca una película de "tus películas" (se pierde también todo el historial de vistas, no solo el estado). */
 export async function eliminarPeliculaDeMisPeliculas(userId: string, tmdbId: number) {

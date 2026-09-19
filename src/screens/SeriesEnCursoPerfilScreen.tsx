@@ -76,7 +76,7 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
           ListHeaderComponent={
             items.length > 0 ? (
               <View style={styles.seccionTituloWrap}>
-                <Text style={styles.seccionTitulo}>{t("Vistas/Viendo")}</Text>
+                <Text style={styles.seccionTitulo}>{t("Vistas/Viendo/Abandonadas")}</Text>
               </View>
             ) : null
           }
@@ -101,7 +101,7 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
                     <UltimoCapituloBadge temporada={item.ultima_temporada_vista!} capitulo={item.ultimo_capitulo_visto} />
                   </View>
                 )}
-                <SeriesProgressBar estado={item.estado} porcentaje={item.porcentaje} />
+                <SeriesProgressBar estado={item.estado} porcentaje={item.porcentaje} abandonadaManual={item.abandonada_manual} />
               </View>
             </Pressable>
           )}
@@ -116,7 +116,7 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
           ListHeaderComponent={
             items.length > 0 ? (
               <View style={styles.seccionTituloWrap}>
-                <Text style={styles.seccionTitulo}>{t("Vistas/Viendo")}</Text>
+                <Text style={styles.seccionTitulo}>{t("Vistas/Viendo/Abandonadas")}</Text>
               </View>
             ) : null
           }
@@ -143,7 +143,7 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
                       />
                     )}
                   </View>
-                  <SeriesProgressBar estado={item.estado} porcentaje={item.porcentaje} />
+                  <SeriesProgressBar estado={item.estado} porcentaje={item.porcentaje} abandonadaManual={item.abandonada_manual} />
                 </Pressable>
               ))}
               {fila.length < 3 && Array.from({ length: 3 - fila.length }).map((_, i) => <View key={`vacio-${i}`} style={styles.item} />)}

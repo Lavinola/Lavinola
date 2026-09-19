@@ -274,7 +274,9 @@ function ListaPendiente({ navigation }: any) {
   const viendo = [...yaOrdenados, ...nuevos];
   ordenViendoRef.current = viendo.map((s) => s.tmdb_id);
 
-  const abandonadas = series.filter((s) => s.estado === "abandonada").sort((a, b) => (b.last_watched_at ?? "").localeCompare(a.last_watched_at ?? ""));
+  const abandonadas = series
+    .filter((s) => s.estado === "abandonada" && !s.abandonada_manual)
+    .sort((a, b) => (b.last_watched_at ?? "").localeCompare(a.last_watched_at ?? ""));
   const sinComenzar = series.filter((s) => s.estado === "sin_comenzar").sort((a, b) => b.added_at.localeCompare(a.added_at));
 
   // Más reciente arriba, más viejo abajo — orden natural de "visto

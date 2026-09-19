@@ -28,6 +28,7 @@ export interface SerieListado {
   primer_capitulo_fecha: string | null;
   ultima_temporada_vista: number | null; // hasta dónde vas — para el badge "T2 E4" sobre el poster
   ultimo_capitulo_visto: number | null;
+  abandonada_manual: boolean; // true si la abandonó a mano ("Dejar de ver") — para la barra roja y para sacarla de Lista Pendiente
 }
 
 export interface EventoHistorial {
@@ -45,6 +46,7 @@ export interface ProgresoSerie {
   porcentaje: number; // 0-100, solo relevante cuando estado es "viendo" o "abandonada"
   ultima_temporada_vista: number | null; // hasta dónde vas — para el badge "T2 E4" sobre el poster
   ultimo_capitulo_visto: number | null;
+  abandonada_manual: boolean; // true si la abandonó a mano ("Dejar de ver") — para la barra roja en vez de amarilla
 }
 
 /**
@@ -56,7 +58,7 @@ export async function progresoDeSeries(userId: string): Promise<Record<number, P
   const rows = await fetchAllRows((desde, hasta) =>
     supabase
       .from("user_series")
-      .select("series_tmdb_id, last_watched_at, series_cache(status, total_episodes)")
+      .select("series_tmdb_id, last_watched_at, abandonada_manual, series_cache(status, total_episodes)")
       .eq("user_id", userId)
       .range(desde, hasta)
   );
@@ -107,6 +109,7 @@ export async function progresoDeSeries(userId: string): Promise<Record<number, P
       totalEpisodes,
       tmdbStatus: cache?.status ?? "",
       lastWatchedAt: ultimaVistaPorSerie[row.series_tmdb_id] ?? null,
+      abandonadaManual: !!(row as any).abandonada_manual,
     });
 
     resultado[row.series_tmdb_id] = {
@@ -114,6 +117,7 @@ export async function progresoDeSeries(userId: string): Promise<Record<number, P
       porcentaje: totalEpisodes > 0 ? Math.min(100, Math.round((episodesWatched / totalEpisodes) * 100)) : 0,
       ultima_temporada_vista: ultimaTemporadaPorSerie[row.series_tmdb_id] ?? null,
       ultimo_capitulo_visto: ultimoCapituloPorSerie[row.series_tmdb_id] ?? null,
+      abandonada_manual: !!(row as any).abandonada_manual,
     };
   }
   return resultado;
@@ -122,7 +126,7 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
   const rows = await fetchAllRows((desde, hasta) =>
     supabase
       .from("user_series")
-      .select("series_tmdb_id, last_watched_at, custom_poster_path, rating, created_at, series_cache(*)")
+      .select("series_tmdb_id, last_watched_at, custom_poster_path, rating, created_at, abandonada_manual, series_cache(*)")
       .eq("user_id", userId)
       .range(desde, hasta)
   );
@@ -226,6 +230,7 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
       totalEpisodes: cache?.total_episodes ?? 0,
       tmdbStatus: cache?.status ?? "",
       lastWatchedAt: ultimaVistaPorSerie.get(row.series_tmdb_id) ?? null,
+      abandonadaManual: !!(row as any).abandonada_manual,
     });
 
     let nextLabel: string | null = null;
@@ -248,7 +253,9 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
     // el próximo capítulo REAL (que ya tiene en cuenta la fecha de estreno)
     // como la fuente de verdad: si no hay nada para ver todavía, es "al
     // día", no "viendo" — recién pasa a "viendo" cuando ese capítulo sale.
-    if ((estado === "viendo" || estado === "abandonada") && !proximo && count > 0) {
+    // (Si la abandonaste a mano, este ajuste no aplica — se queda
+    // "abandonada" pase lo que pase con el próximo capítulo.)
+    if (!(row as any).abandonada_manual && (estado === "viendo" || estado === "abandonada") && !proximo && count > 0) {
       estado = "al_dia";
     }
 
@@ -322,6 +329,7 @@ export async function listarSeriesConEstado(userId: string): Promise<SerieListad
       primer_capitulo_fecha: primerCapitulo?.air_date ?? null,
       ultima_temporada_vista: ultimaTemporadaVista,
       ultimo_capitulo_visto: ultimoCapituloVisto,
+      abandonada_manual: !!(row as any).abandonada_manual,
     });
   }
   return resultado;

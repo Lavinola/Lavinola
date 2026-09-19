@@ -26,6 +26,7 @@ export interface SeriePerfilItem {
   total_seasons: number;
   ultima_temporada_vista: number | null; // hasta dónde va — para el badge "T2 E4" sobre el poster
   ultimo_capitulo_visto: number | null;
+  abandonada_manual: boolean; // true si la abandonó a mano ("Dejar de ver") — para la barra roja
 }
 
 function ordenar<T extends { rating: number | null }>(
@@ -95,7 +96,7 @@ export async function listarSeriesEnCursoDeUsuario(
   const rows = await fetchAllRows((desde, hasta) =>
     supabase
       .from("user_series")
-      .select("series_tmdb_id, rating, series_cache(name, poster_path, first_air_date, status, total_episodes, total_seasons)")
+      .select("series_tmdb_id, rating, abandonada_manual, series_cache(name, poster_path, first_air_date, status, total_episodes, total_seasons)")
       .eq("user_id", targetUserId)
       .range(desde, hasta)
   );
@@ -132,6 +133,7 @@ export async function listarSeriesEnCursoDeUsuario(
       totalEpisodes: cache?.total_episodes ?? 0,
       tmdbStatus: cache?.status ?? "",
       lastWatchedAt: ultimaVistaPorSerie[row.series_tmdb_id] ?? null,
+      abandonadaManual: !!(row as any).abandonada_manual,
     });
     if (estado === "sin_comenzar") continue;
 
@@ -147,6 +149,7 @@ export async function listarSeriesEnCursoDeUsuario(
       total_seasons: cache?.total_seasons ?? 0,
       ultima_temporada_vista: ultimaTemporadaPorSerie[row.series_tmdb_id] ?? null,
       ultimo_capitulo_visto: ultimoCapituloPorSerie[row.series_tmdb_id] ?? null,
+      abandonada_manual: !!(row as any).abandonada_manual,
     });
   }
 

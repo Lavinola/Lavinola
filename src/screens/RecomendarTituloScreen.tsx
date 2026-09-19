@@ -206,7 +206,7 @@ export default function RecomendarTituloScreen({ route, navigation }: Props) {
                   <SeriesProgressBar estado={peliculasVistas[item.id] ? "terminada" : "sin_comenzar"} porcentaje={100} />
                 )}
                 {item.tipo === "series" && progresoSeries[item.id] && (
-                  <SeriesProgressBar estado={progresoSeries[item.id].estado} porcentaje={progresoSeries[item.id].porcentaje} />
+                  <SeriesProgressBar estado={progresoSeries[item.id].estado} porcentaje={progresoSeries[item.id].porcentaje} abandonadaManual={progresoSeries[item.id].abandonada_manual} />
                 )}
               </View>
               <View style={{ flex: 1 }}>

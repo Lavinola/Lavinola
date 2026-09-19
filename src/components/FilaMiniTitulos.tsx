@@ -74,7 +74,7 @@ export default function FilaMiniTitulos({ titulo, items, tipo, navigation, progr
                   )}
               </View>
               {tipo === "series" && progreso?.[item.tmdb_id] && (
-                <SeriesProgressBar estado={progreso[item.tmdb_id].estado} porcentaje={progreso[item.tmdb_id].porcentaje} />
+                <SeriesProgressBar estado={progreso[item.tmdb_id].estado} porcentaje={progreso[item.tmdb_id].porcentaje} abandonadaManual={progreso[item.tmdb_id].abandonada_manual} />
               )}
               {tipo === "movie" && <SeriesProgressBar estado={item.watched ? "terminada" : "sin_comenzar"} porcentaje={100} />}
             </Pressable>

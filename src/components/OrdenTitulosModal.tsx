@@ -18,7 +18,7 @@ interface Props {
 
 const OPCIONES: { key: CriterioOrdenTitulos; label: string }[] = [
   { key: "alfabetico", label: "Alfabético" },
-  { key: "fecha", label: "Fecha de lanzamiento" },
+  { key: "fecha", label: "Fecha de estreno" },
   { key: "ultimo_visto", label: "Lo último que has visto" },
 ];
 

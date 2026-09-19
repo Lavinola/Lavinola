@@ -27,6 +27,7 @@ interface ItemPropio {
   estado?: SeriesStatusFilter;
   porcentaje?: number;
   total_seasons?: number;
+  abandonada_manual?: boolean;
   // Comunes
   anio?: string | null;
   rating?: number | null;
@@ -116,6 +117,7 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
         estado: progreso[r.series_tmdb_id]?.estado,
         porcentaje: progreso[r.series_tmdb_id]?.porcentaje ?? 0,
         total_seasons: r.series_cache?.total_seasons ?? 0,
+        abandonada_manual: progreso[r.series_tmdb_id]?.abandonada_manual ?? false,
         anio: r.series_cache?.first_air_date ? String(r.series_cache.first_air_date).slice(0, 4) : null,
         rating: r.rating ?? null,
       }));
@@ -456,7 +458,7 @@ export default function SeleccionarTituloPostScreen({ navigation }: any) {
                     {tipo === "movie" ? (
                       <SeriesProgressBar estado={item.watched ? "terminada" : "sin_comenzar"} porcentaje={100} />
                     ) : (
-                      <SeriesProgressBar estado={item.estado ?? "sin_comenzar"} porcentaje={item.porcentaje ?? 0} />
+                      <SeriesProgressBar estado={item.estado ?? "sin_comenzar"} porcentaje={item.porcentaje ?? 0} abandonadaManual={item.abandonada_manual} />
                     )}
                   </View>
                   <View style={{ flex: 1 }}>

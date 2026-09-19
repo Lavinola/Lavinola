@@ -20,9 +20,8 @@ import { theme } from "../theme";
 
 type Orden = OrdenSeries | "personalizado";
 
-/** "Sin ver por un tiempo" ya no es una categoría aparte para filtrar/agrupar acá — cuenta como "Viendo". */
+/** Ahora "Abandonadas" tiene su propia categoría — ya no se mezcla con "Viendo". */
 function categoriaDe(s: SerieListado): CategoriaSerie {
-  if (s.estado === "abandonada") return "viendo";
   return s.estado as CategoriaSerie;
 }
 
@@ -265,7 +264,7 @@ export default function AllSeriesScreen({ route, navigation }: any) {
                     <UltimoCapituloBadge temporada={item.ultima_temporada_vista!} capitulo={item.ultimo_capitulo_visto} />
                   </View>
                 )}
-                {!soloLectura && <SeriesProgressBar estado={item.estado} porcentaje={progreso[item.tmdb_id]?.porcentaje ?? 0} />}
+                {!soloLectura && <SeriesProgressBar estado={item.estado} porcentaje={progreso[item.tmdb_id]?.porcentaje ?? 0} abandonadaManual={item.abandonada_manual} />}
               </View>
             </Pressable>
           )}
@@ -307,7 +306,7 @@ export default function AllSeriesScreen({ route, navigation }: any) {
                       />
                     )}
                   </View>
-                  {!soloLectura && <SeriesProgressBar estado={item.estado} porcentaje={progreso[item.tmdb_id]?.porcentaje ?? 0} />}
+                  {!soloLectura && <SeriesProgressBar estado={item.estado} porcentaje={progreso[item.tmdb_id]?.porcentaje ?? 0} abandonadaManual={item.abandonada_manual} />}
                 </Pressable>
               ))}
               {fila.length < 3 && Array.from({ length: 3 - fila.length }).map((_, i) => <View key={`vacio-${i}`} style={styles.item} />)}

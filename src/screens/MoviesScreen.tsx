@@ -49,7 +49,7 @@ export default function MoviesScreen({ navigation }: any) {
   const { t } = useT();
   const [subTab, setSubTab] = useState<SubTab>("pendiente");
   const [vista, setVista] = useState<Vista>("grilla");
-  const [orden, setOrden] = useState<"añadida" | "alfabetico" | "año" | "puntuacion_lavinola">("añadida");
+  const [orden, setOrden] = useState<"añadida" | "alfabetico" | "año" | "puntuacion_lavinola">("año");
   const [ascendente, setAscendente] = useState(false);
   const [ordenModalVisible, setOrdenModalVisible] = useState(false);
   const [filtroVisible, setFiltroVisible] = useState(false);
@@ -62,6 +62,7 @@ export default function MoviesScreen({ navigation }: any) {
   const [movies, setMovies] = useState<PeliculaRow[]>([]);
   const [pendientesConPlataforma, setPendientesConPlataforma] = useState<Set<number> | null>(null);
   const [infoEstreno, setInfoEstreno] = useState<Record<number, { fecha: string | null; tipo: string | null; plataforma: string | null }>>({});
+  const [cargandoInfoProximamente, setCargandoInfoProximamente] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
@@ -188,7 +189,11 @@ export default function MoviesScreen({ navigation }: any) {
     const hoyStr = hoyLocalISO();
     const idsProximas = [...new Set(movies.filter((m) => !m.watched && m.release_date && m.release_date > hoyStr).map((m) => m.tmdb_id))];
     const faltan = idsProximas.filter((id) => !infoEstreno[id]);
-    if (faltan.length === 0) return;
+    if (faltan.length === 0) {
+      setCargandoInfoProximamente(false);
+      return;
+    }
+    setCargandoInfoProximamente(true);
     let cancelado = false;
     (async () => {
       const resultados = await Promise.all(
@@ -210,6 +215,7 @@ export default function MoviesScreen({ navigation }: any) {
           });
           return nuevo;
         });
+        setCargandoInfoProximamente(false);
       }
     })();
     return () => {
@@ -231,7 +237,11 @@ export default function MoviesScreen({ navigation }: any) {
   });
   const proximas = movies
     .filter((m) => !m.watched && m.release_date && m.release_date > hoy)
-    .sort((a, b) => (a.release_date! < b.release_date! ? -1 : 1));
+    .sort((a, b) => {
+      const fechaA = infoEstreno[a.tmdb_id]?.fecha ?? a.release_date!;
+      const fechaB = infoEstreno[b.tmdb_id]?.fecha ?? b.release_date!;
+      return fechaA < fechaB ? -1 : 1;
+    });
   const listado = subTab === "pendiente" ? pendientes : proximas;
 
   return (
@@ -263,7 +273,7 @@ export default function MoviesScreen({ navigation }: any) {
         </View>
       )}
 
-      {loading ? (
+      {loading || (subTab === "proximamente" && cargandoInfoProximamente) ? (
         <SkeletonPosterGrid />
       ) : subTab === "pendiente" && vista === "grilla" ? (
         <FlatList

@@ -41,7 +41,7 @@ import {
   obtenerOverviewLocalizado,
   getContentLanguageCruda,
 } from "../lib/tmdb";
-import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMisSeries, eliminarPeliculaDeMisPeliculas, getSeriesWatchProvidersCacheado, getMovieWatchProvidersCacheado, getMovieReleaseInfoCacheado } from "../lib/sync";
+import { seguirSerie, agregarPelicula, syncSeries, syncMovie, eliminarSerieDeMisSeries, eliminarPeliculaDeMisPeliculas, getSeriesWatchProvidersCacheado, getMovieWatchProvidersCacheado, getMovieReleaseInfoCacheado, marcarAbandonoManual } from "../lib/sync";
 import { getNotaImdb, NotaImdb } from "../lib/imdb";
 import { supabase } from "../lib/supabase";
 import { esFavorito, toggleFavorito, contarFavoritosDeTitulo } from "../lib/favorites";
@@ -108,6 +108,8 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
   const [userId, setUserId] = useState<string | null>(null);
   const [favorito, setFavorito] = useState(false);
   const [agregada, setAgregada] = useState(true); // arranca en true para no mostrar el botón un instante de más mientras carga
+  const [abandonadaManual, setAbandonadaManual] = useState(false);
+  const [confirmAbandonarVisible, setConfirmAbandonarVisible] = useState(false);
   const [customPoster, setCustomPoster] = useState<string | null>(null);
   const [customBackdrop, setCustomBackdrop] = useState<string | null>(null);
   const [mostrarConfetti, setMostrarConfetti] = useState(false);
@@ -195,7 +197,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
           esFavorito(uid, tipo, tmdbId),
           supabase
             .from(tablaUsuario)
-            .select(`${columnaId}, custom_poster_path, custom_backdrop_path${tipo === "movie" ? ", watched" : ""}`)
+            .select(`${columnaId}, custom_poster_path, custom_backdrop_path${tipo === "movie" ? ", watched" : ", abandonada_manual"}`)
             .eq("user_id", uid)
             .eq(columnaId, tmdbId)
             .maybeSingle(),
@@ -207,6 +209,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
         setCustomPoster((fila as any)?.custom_poster_path ?? null);
         setCustomBackdrop((fila as any)?.custom_backdrop_path ?? null);
         if (tipo === "movie") setVista(!!(fila as any)?.watched);
+        if (tipo === "series") setAbandonadaManual(!!(fila as any)?.abandonada_manual);
 
         const paisCert = profileResultado.data?.country ?? "US";
         const cert = tipo === "series" ? await getSeriesCertification(tmdbId, paisCert) : await getMovieCertification(tmdbId, paisCert);
@@ -240,6 +243,18 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       setVista(nuevoValor);
       if (nuevoValor) setAgregada(true);
       setVistaVersion((v) => v + 1);
+    } catch (e: any) {
+      Alert.alert(t("No se pudo guardar"), e.message);
+    }
+  }
+
+  async function toggleAbandonoManual() {
+    if (!userId) return;
+    const nuevoValor = !abandonadaManual;
+    try {
+      await marcarAbandonoManual(userId, tmdbId, nuevoValor);
+      setAbandonadaManual(nuevoValor);
+      setVistaVersion((v) => v + 1); // fuerza a que se refresque el estado en el resto de la ficha
     } catch (e: any) {
       Alert.alert(t("No se pudo guardar"), e.message);
     }
@@ -372,7 +387,12 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
               <>
                 {titulo.first_air_date && <Text style={styles.subInfo}>{titulo.first_air_date.slice(0, 4)}</Text>}
                 <Text style={styles.subInfo}>{titulo.total_seasons ? `${titulo.total_seasons} ${titulo.total_seasons === 1 ? t("temporada") : t("temporadas")}` : ""}</Text>
-                <Text style={styles.subInfo}>{t(etiquetaEstadoSerie(titulo.status, titulo.first_air_date))}</Text>
+                <Text style={styles.subInfo}>
+                  {t(etiquetaEstadoSerie(titulo.status, titulo.first_air_date))}
+                  {etiquetaEstadoSerie(titulo.status, titulo.first_air_date) === "Próximamente" && titulo.first_air_date
+                    ? ` (${formatearFecha(titulo.first_air_date)})`
+                    : ""}
+                </Text>
               </>
             ) : (
               <>
@@ -551,6 +571,19 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
                     setMenuCuandoSerieVisible(true);
                   },
                 },
+                {
+                  label: abandonadaManual ? t("Seguir viendo") : t("Dejar de ver"),
+                  icono: "stop-circle-outline" as const,
+                  onPress: () => {
+                    setMenuVisible(false);
+                    if (abandonadaManual) {
+                      // Reactivarla no hace falta confirmarlo, es una acción que no pierde nada.
+                      toggleAbandonoManual();
+                    } else {
+                      setConfirmAbandonarVisible(true);
+                    }
+                  },
+                },
               ]
             : []),
           ...(agregada
@@ -579,6 +612,19 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
         botones={[
           { label: "Cancelar", onPress: () => {} },
           { label: "Eliminar", destacado: true, onPress: eliminarDeMisTitulos },
+        ]}
+      />
+
+      <ConfirmModal
+        visible={confirmAbandonarVisible}
+        onCerrar={() => setConfirmAbandonarVisible(false)}
+        titulo={t("Dejar de ver")}
+        mensaje={t(
+          '"{nombre}" ya no te va a aparecer en tus pendientes (ni en "Ver a continuación" ni en "Sin ver por un tiempo"). No se borra nada de tu historial ni de tus capítulos vistos — solo pasa a la categoría "Abandonadas" en Mis Series. Podés volver a activarla cuando quieras desde acá mismo.'
+        ).replace("{nombre}", nombre)}
+        botones={[
+          { label: t("Cancelar"), onPress: () => {} },
+          { label: t("Dejar de ver"), destacado: true, onPress: toggleAbandonoManual },
         ]}
       />
 
@@ -975,21 +1021,33 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       )}
 
       <Text style={styles.seccionTitulo}>{t("Dónde verlo")}</Text>
-      {providers?.flatrate?.length ? (
-        <View style={styles.plataformasRow}>
-          {providers.flatrate.map((p: any) => (
-            <View key={p.provider_id} style={styles.plataformaLogoBox}>
-              {p.logo_path ? (
-                <Image source={{ uri: posterUrl(p.logo_path, "w185")! }} style={styles.plataformaLogo} />
-              ) : (
-                <Text style={styles.dato}>{p.provider_name}</Text>
+      {(() => {
+        const fechaEstrenoSerie = tipo === "series" ? titulo.first_air_date : null;
+        const aunNoEstreno = tipo === "series" && !!fechaEstrenoSerie && fechaEstrenoSerie > hoyLocalISO();
+        if (providers?.flatrate?.length) {
+          return (
+            <>
+              {aunNoEstreno && (
+                <Text style={styles.dato}>
+                  {t("Aún no disponible. Se estrenará el {fecha} en:").replace("{fecha}", formatearFecha(fechaEstrenoSerie))}
+                </Text>
               )}
-            </View>
-          ))}
-        </View>
-      ) : (
-        <Text style={styles.dato}>{t("Aún no disponible en ninguna plataforma")}</Text>
-      )}
+              <View style={styles.plataformasRow}>
+                {providers.flatrate.map((p: any) => (
+                  <View key={p.provider_id} style={styles.plataformaLogoBox}>
+                    {p.logo_path ? (
+                      <Image source={{ uri: posterUrl(p.logo_path, "w185")! }} style={styles.plataformaLogo} />
+                    ) : (
+                      <Text style={styles.dato}>{p.provider_name}</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </>
+          );
+        }
+        return <Text style={styles.dato}>{t("Aún no disponible en ninguna plataforma")}</Text>;
+      })()}
 
       {titulo.overview && (
         <>
