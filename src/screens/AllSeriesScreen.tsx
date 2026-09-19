@@ -20,8 +20,9 @@ import { theme } from "../theme";
 
 type Orden = OrdenSeries | "personalizado";
 
-/** Ahora "Abandonadas" tiene su propia categoría — ya no se mezcla con "Viendo". */
+/** Las auto-abandonadas por inactividad (sin acción manual) siguen contando como "Viendo" acá — solo las que tocaste "Dejar de ver" van a la categoría "Abandonadas". */
 function categoriaDe(s: SerieListado): CategoriaSerie {
+  if (s.estado === "abandonada" && !s.abandonada_manual) return "viendo";
   return s.estado as CategoriaSerie;
 }
 

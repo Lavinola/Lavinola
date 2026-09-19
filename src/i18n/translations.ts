@@ -414,7 +414,7 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
   "Editar fecha": { en: "Edit date", pt: "Editar data", it: "Modifica data" },
   "Eliminar vista": { en: "Remove watch", pt: "Remover visualização", it: "Rimuovi visione" },
   "Eliminar de mis series": { en: "Remove from my series", pt: "Remover das minhas séries", it: "Rimuovi dalle mie serie" },
-  "Dejar de ver": { en: "Stop watching", pt: "Parar de assistir", it: "Smetti di guardare" },
+  "Dejar de ver (abandonada)": { en: "Stop watching (drop)", pt: "Parar de assistir (abandonada)", it: "Smetti di guardare (abbandonata)" },
   "Seguir viendo": { en: "Keep watching", pt: "Continuar assistindo", it: "Continua a guardare" },
   Abandonadas: { en: "Dropped", pt: "Abandonadas", it: "Abbandonate" },
   '"{nombre}" ya no te va a aparecer en tus pendientes (ni en "Ver a continuación" ni en "Sin ver por un tiempo"). No se borra nada de tu historial ni de tus capítulos vistos — solo pasa a la categoría "Abandonadas" en Mis Series. Podés volver a activarla cuando quieras desde acá mismo.': {
