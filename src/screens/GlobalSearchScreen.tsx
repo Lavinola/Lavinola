@@ -38,6 +38,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   const idPedidoRef = useRef(0);
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
   const [titulos, setTitulos] = useState<ResultadoTitulo[]>([]);
+  const [filtroTipoTitulo, setFiltroTipoTitulo] = useState<"todo" | "movie" | "series">("todo");
   const [usuarios, setUsuarios] = useState<UsuarioBasico[]>([]);
   const [personas, setPersonas] = useState<ResultadoPersona[]>([]);
   const [loading, setLoading] = useState(false);
@@ -318,6 +319,22 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
         multilinea
       />
 
+      {tab === "titulos" && (
+        <View style={styles.filtroTipoRow}>
+          {(["todo", "movie", "series"] as const).map((f) => (
+            <Pressable
+              key={f}
+              style={[styles.filtroTipoBtn, filtroTipoTitulo === f && styles.filtroTipoBtnActivo]}
+              onPress={() => setFiltroTipoTitulo(f)}
+            >
+              <Text style={[styles.filtroTipoTexto, filtroTipoTitulo === f && styles.filtroTipoTextoActivo]}>
+                {f === "todo" ? t("Todo") : f === "movie" ? t("Películas") : t("Series")}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {loading && <ActivityIndicator style={{ marginTop: 16 }} />}
       {errorBusqueda && !loading && (
         <Text style={{ color: "#FF6B6B", textAlign: "center", marginTop: 16, paddingHorizontal: 16 }}>
@@ -328,7 +345,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
       {tab === "titulos" && (
         <FlatList
           keyboardShouldPersistTaps="handled"
-          data={titulos}
+          data={filtroTipoTitulo === "todo" ? titulos : titulos.filter((i) => i.tipo === filtroTipoTitulo)}
           keyExtractor={(i) => `${i.tipo}-${i.id}`}
           contentContainerStyle={{ padding: 12 }}
           ListEmptyComponent={
@@ -466,6 +483,19 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  filtroTipoRow: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingTop: 10 },
+  filtroTipoBtn: {
+    flex: 1,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: "#000000",
+    borderRadius: 4,
+    paddingVertical: 7,
+  },
+  filtroTipoBtnActivo: { backgroundColor: theme.colors.primary },
+  filtroTipoTexto: { color: theme.colors.primary, fontSize: 13, fontWeight: "700" },
+  filtroTipoTextoActivo: { color: "#000000" },
   buscadorConLupa: {
     flexDirection: "row",
     alignItems: "center",

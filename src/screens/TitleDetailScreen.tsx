@@ -1023,13 +1023,20 @@ function InformacionTab({ tmdbId, tipo, titulo, userId, navigation, vista, vista
       <Text style={styles.seccionTitulo}>{t("Dónde verlo")}</Text>
       {(() => {
         const fechaEstrenoSerie = tipo === "series" ? titulo.first_air_date : null;
-        const aunNoEstreno = tipo === "series" && !!fechaEstrenoSerie && fechaEstrenoSerie > hoyLocalISO();
+        // Antes esto exigía SÍ o SÍ una fecha confirmada para activar el
+        // aviso — si la serie todavía no tiene first_air_date en TMDB
+        // (anuncio grande sin fecha exacta todavía, pasa seguido), se
+        // saltaba directo a mostrar el logo como si ya estuviera
+        // disponible, sin ningún aviso de que todavía no salió.
+        const aunNoEstreno = tipo === "series" && (!fechaEstrenoSerie || fechaEstrenoSerie > hoyLocalISO());
         if (providers?.flatrate?.length) {
           return (
             <>
               {aunNoEstreno && (
                 <Text style={styles.dato}>
-                  {t("Aún no disponible. Se estrenará el {fecha} en:").replace("{fecha}", formatearFecha(fechaEstrenoSerie))}
+                  {fechaEstrenoSerie
+                    ? t("Aún no disponible. Se estrenará el {fecha} en:").replace("{fecha}", formatearFecha(fechaEstrenoSerie))
+                    : t("Aún no disponible. Se estrenará en:")}
                 </Text>
               )}
               <View style={styles.plataformasRow}>

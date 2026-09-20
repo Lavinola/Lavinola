@@ -691,11 +691,17 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     pt: "Ainda não disponível. Vai estrear em {fecha} em:",
     it: "Non ancora disponibile. Uscirà il {fecha} su:",
   },
+  "Aún no disponible. Se estrenará en:": {
+    en: "Not available yet. It will premiere on:",
+    pt: "Ainda não disponível. Vai estrear em:",
+    it: "Non ancora disponibile. Uscirà su:",
+  },
   "¿Dónde lo viste?": { en: "Where did you watch it?", pt: "Onde você assistiu?", it: "Dove l'hai visto?" },
   Sinopsis: { en: "Synopsis", pt: "Sinopse", it: "Trama" },
   Reparto: { en: "Cast", pt: "Elenco", it: "Cast" },
   Vista: { en: "Watched", pt: "Assistido", it: "Visto" },
   "No vista": { en: "Not watched", pt: "Não assistido", it: "Non visto" },
+  "No vista (pendientes)": { en: "Not watched (pending)", pt: "Não assistido (pendentes)", it: "Non visto (da vedere)" },
   "¿Cómo te sentiste?": { en: "How did you feel?", pt: "Como você se sentiu?", it: "Come ti sei sentito?" },
   "Cómo te sentiste": { en: "How you felt", pt: "Como você se sentiu", it: "Come ti sei sentito" },
   "¿Cómo te sentiste? (elegí hasta 2)": {
@@ -1620,7 +1626,18 @@ export const traducciones: Record<string, Partial<Record<Idioma, string>>> = {
     it: "Iniziamo!",
   },
   "Ver más": { en: "See more", pt: "Ver mais", it: "Vedi di più" },
+  "Descubrí más": { en: "Discover more", pt: "Descubra mais", it: "Scopri di più" },
   "Cómo funciona": { en: "How it works", pt: "Como funciona", it: "Come funziona" },
+  "Agregás la película o serie a tus pendientes.": {
+    en: "Adds the movie or show to your pending list.",
+    pt: "Adiciona o filme ou série aos seus pendentes.",
+    it: "Aggiunge il film o la serie ai tuoi da vedere.",
+  },
+  "Agregás la película o serie a tus títulos ya vistos.": {
+    en: "Adds the movie or show to your already watched titles.",
+    pt: "Adiciona o filme ou série aos títulos que você já assistiu.",
+    it: "Aggiunge il film o la serie ai titoli già visti.",
+  },
   "Cómo usar Lavinola": {
     en: "How to use Lavinola",
     pt: "Como usar o Lavinola",

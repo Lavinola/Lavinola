@@ -18,7 +18,7 @@ const OPCIONES_ORDEN: { key: OrdenPeliculas; label: string }[] = [
 const OPCIONES_ESTADO: { key: FiltroEstadoPelicula; label: string }[] = [
   { key: "todo", label: "Todo" },
   { key: "vista", label: "Vista" },
-  { key: "no_vista", label: "No vista" },
+  { key: "no_vista", label: "No vista (pendientes)" },
 ];
 
 interface Props {

@@ -81,8 +81,24 @@ export default function OnboardingModal({ visible, onCerrar }: Props) {
             ))}
           </ScrollView>
 
+          <View style={styles.explicacionFila}>
+            <View style={styles.miniBtn}>
+              <Ionicons name="add" size={16} color={theme.colors.primaryLight} />
+            </View>
+            <Ionicons name="arrow-forward" size={14} color={theme.colors.textMuted} style={styles.explicacionFlecha} />
+            <Text style={styles.explicacionTexto}>{t("Agregás la película o serie a tus pendientes.")}</Text>
+          </View>
+          <View style={styles.explicacionFila}>
+            <View style={styles.miniBtn}>
+              <Ionicons name="eye" size={14} color={theme.colors.primaryLight} />
+            </View>
+            <Ionicons name="arrow-forward" size={14} color={theme.colors.textMuted} style={styles.explicacionFlecha} />
+            <Text style={styles.explicacionTexto}>{t("Agregás la película o serie a tus títulos ya vistos.")}</Text>
+          </View>
+
           <Pressable style={styles.verMasBtn} onPress={verComoFunciona}>
             <Text style={styles.verMasTexto}>{t("Cómo funciona")}</Text>
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.primaryLight} />
           </Pressable>
 
           <Pressable style={styles.boton} onPress={onCerrar}>
@@ -130,6 +146,32 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   botonTexto: { fontSize: 14, fontWeight: "800", color: "#000000" },
-  verMasBtn: { alignSelf: "center", paddingVertical: 4, paddingHorizontal: 10, marginTop: 2 },
-  verMasTexto: { fontSize: 12, fontWeight: "700", color: theme.colors.primaryLight, textDecorationLine: "underline" },
+  explicacionFila: { flexDirection: "row", alignItems: "center", alignSelf: "stretch", gap: 6, marginTop: 8 },
+  miniBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+    backgroundColor: "rgba(10,10,10,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  explicacionFlecha: { marginHorizontal: 1 },
+  explicacionTexto: { flex: 1, fontSize: 11, color: theme.colors.textMuted, lineHeight: 14 },
+  verMasBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    alignSelf: "stretch",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 12,
+    borderRadius: theme.radius.md,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceAlt,
+  },
+  verMasTexto: { fontSize: 13.5, fontWeight: "800", color: theme.colors.primaryLight },
 });

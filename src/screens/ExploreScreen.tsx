@@ -406,6 +406,14 @@ function Descubrir({ navigation }: any) {
         vacioTexto={t("Agregá algunas series para que empecemos a recomendarte.")}
         onVerMas={() => navigation.navigate("DescubrirMas", { tipoInicial: "series", ordenInicial: "recomendado" })}
       />
+
+      <Pressable
+        style={styles.descubrirMasBtn}
+        onPress={() => navigation.navigate("DescubrirMas", { tipoInicial: "movie", ordenInicial: "tendencias" })}
+      >
+        <Text style={styles.descubrirMasTexto}>{t("Descubrí más")} +</Text>
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+      </Pressable>
     </ScrollView>
     <ConfirmModal
       visible={!!descartarItem}
@@ -540,6 +548,21 @@ function FilaHorizontal({
 }
 
 const styles = StyleSheet.create({
+  descubrirMasBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: "#000000",
+  },
+  descubrirMasTexto: { color: theme.colors.primary, fontSize: 14, fontWeight: "700" },
   buscadorFalso: { flexDirection: "row", alignItems: "center", gap: 8, margin: 12, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 12 },
   buscadorTexto: { flex: 1, color: theme.colors.textFaint, fontSize: 11.5 },
   container: { flex: 1 },

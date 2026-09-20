@@ -274,7 +274,10 @@ export default function MoviesScreen({ navigation }: any) {
       )}
 
       {loading || (subTab === "proximamente" && cargandoInfoProximamente) ? (
-        <SkeletonPosterGrid />
+        <>
+          <Text style={styles.cargandoTexto}>{t("Cargando...")}</Text>
+          <SkeletonPosterGrid />
+        </>
       ) : subTab === "pendiente" && vista === "grilla" ? (
         <FlatList
           key="grilla"
@@ -428,6 +431,7 @@ export default function MoviesScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  cargandoTexto: { textAlign: "center", color: theme.colors.textMuted, marginTop: 24, marginBottom: 8 },
   container: { flex: 1 },
   vistaToggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12, paddingTop: 8, gap: 12 },
   vistaToggleBtn: { padding: 6 },
