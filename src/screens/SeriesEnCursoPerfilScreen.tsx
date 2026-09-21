@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { View, FlatList, Image, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Text } from "../components/Themed";
+import { Alert } from "../lib/alert";
 import EstadoVacio from "../components/EstadoVacio";
 import RatingStars from "../components/RatingStars";
 import SeriesProgressBar from "../components/SeriesProgressBar";
 import UltimoCapituloBadge from "../components/UltimoCapituloBadge";
 import OrdenTitulosPerfilModal from "../components/OrdenTitulosPerfilModal";
+import ConfirmModal from "../components/ConfirmModal";
+import CalificarModal from "../components/CalificarModal";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { listarSeriesEnCursoDeUsuario, SeriePerfilItem, OrdenTitulosPerfil } from "../lib/perfilTitulos";
+import { progresoDeSeries, ProgresoSerie } from "../lib/seriesList";
+import { seguirSerie } from "../lib/sync";
+import { marcarTodaLaSerieVista } from "../lib/episodes";
+import { hoyLocalISO } from "../lib/dates";
 import { posterUrl } from "../lib/tmdb";
 import { nombreOUsuario } from "../components/NombreUsuario";
 import { useT } from "../i18n/i18n";
@@ -31,6 +38,15 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
   const [orden, setOrden] = useState<OrdenTitulosPerfil>("ultima_vista");
   const [ascendente, setAscendente] = useState(false);
 
+  // Tu propio progreso (no el de la persona cuyo perfil estás mirando)
+  // para cada serie que aparece acá — así los botones de + y ojito
+  // arrancan ya apretados si vos ya la seguís/la tenés vista.
+  const [userId, setUserId] = useState<string | null>(null);
+  const [progresoPropio, setProgresoPropio] = useState<Record<number, ProgresoSerie>>({});
+  const [marcandoVisto, setMarcandoVisto] = useState<number | null>(null);
+  const [confirmSerieVisible, setConfirmSerieVisible] = useState<SeriePerfilItem | null>(null);
+  const [calificarModal, setCalificarModal] = useState<{ tmdbId: number; titulo: string; posterPath: string | null } | null>(null);
+
   useEffect(() => {
     supabase
       .from("profiles")
@@ -49,6 +65,69 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
       .catch((e) => console.error("Error al cargar series del perfil:", e))
       .finally(() => setLoading(false));
   }, [targetUserId, orden, ascendente]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user?.id ?? null;
+      setUserId(uid);
+      if (uid) progresoDeSeries(uid).then(setProgresoPropio);
+    });
+  }, []);
+
+  function agregada(tmdbId: number) {
+    return !!progresoPropio[tmdbId];
+  }
+  function vista(tmdbId: number) {
+    const estado = progresoPropio[tmdbId]?.estado;
+    return estado === "terminada" || estado === "al_dia";
+  }
+
+  async function agregarRapido(item: SeriePerfilItem) {
+    if (!userId) return;
+    try {
+      await seguirSerie(userId, item.tmdb_id);
+      setProgresoPropio((prev) => ({ ...prev, [item.tmdb_id]: prev[item.tmdb_id] ?? { estado: "sin_comenzar", porcentaje: 0, ultima_temporada_vista: null, ultimo_capitulo_visto: null, abandonada_manual: false } }));
+    } catch (e: any) {
+      Alert.alert(t("No se pudo agregar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    }
+  }
+
+  function marcarVistaRapida(item: SeriePerfilItem) {
+    if (!userId || vista(item.tmdb_id)) return;
+    if (item.first_air_date && item.first_air_date > hoyLocalISO()) return; // todavía no se estrenó
+    setConfirmSerieVisible(item);
+  }
+
+  async function confirmarMarcarSerieVista() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    setMarcandoVisto(item.tmdb_id);
+    try {
+      await seguirSerie(userId, item.tmdb_id);
+      await marcarTodaLaSerieVista(userId, item.tmdb_id);
+      setProgresoPropio((prev) => ({ ...prev, [item.tmdb_id]: { estado: "terminada", porcentaje: 100, ultima_temporada_vista: prev[item.tmdb_id]?.ultima_temporada_vista ?? null, ultimo_capitulo_visto: prev[item.tmdb_id]?.ultimo_capitulo_visto ?? null, abandonada_manual: false } }));
+      setCalificarModal({ tmdbId: item.tmdb_id, titulo: item.name, posterPath: item.poster_path });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo marcar como vista"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    } finally {
+      setMarcandoVisto(null);
+    }
+  }
+
+  /** "No, no la vi toda": se agrega igual (para que quede en tus pendientes) y se abre directo en episodios, para marcar a mano hasta dónde viste. */
+  async function noVistaCompleta() {
+    const item = confirmSerieVisible;
+    setConfirmSerieVisible(null);
+    if (!item || !userId) return;
+    try {
+      await seguirSerie(userId, item.tmdb_id);
+      setProgresoPropio((prev) => ({ ...prev, [item.tmdb_id]: prev[item.tmdb_id] ?? { estado: "sin_comenzar", porcentaje: 0, ultima_temporada_vista: null, ultimo_capitulo_visto: null, abandonada_manual: false } }));
+      navigation.navigate("DetalleTitulo", { tmdbId: item.tmdb_id, tipo: "series", tabInicial: "episodios" });
+    } catch (e: any) {
+      Alert.alert(t("No se pudo agregar"), e.message ?? t("Revisá tu conexión y probá de nuevo."));
+    }
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -122,35 +201,86 @@ export default function SeriesEnCursoPerfilScreen({ route, navigation }: any) {
           }
           renderItem={({ item: fila }) => (
             <View style={{ flexDirection: "row" }}>
-              {fila.map((item) => (
-                <Pressable key={item.tmdb_id} style={styles.item} onPress={() => navigation.navigate("DetalleTitulo", { tmdbId: item.tmdb_id, tipo: "series" })}>
-                  <View style={{ position: "relative" }}>
-                    {item.poster_path ? (
-                      <Image source={{ uri: posterUrl(item.poster_path, "w342")! }} style={styles.poster} />
-                    ) : (
-                      <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
-                    )}
-                    {mostrarEstrellas && item.rating != null && (
-                      <View style={styles.estrellasOverlay}>
-                        <RatingStars rating={item.rating} size={11} />
-                      </View>
-                    )}
-                    {(item.estado === "viendo" || item.estado === "abandonada") && item.ultimo_capitulo_visto != null && (
-                      <UltimoCapituloBadge
-                        temporada={item.ultima_temporada_vista!}
-                        capitulo={item.ultimo_capitulo_visto}
-                        style={styles.capituloOverlayGrilla}
-                      />
-                    )}
-                  </View>
-                  <SeriesProgressBar estado={item.estado} porcentaje={item.porcentaje} abandonadaManual={item.abandonada_manual} />
-                </Pressable>
-              ))}
+              {fila.map((item) => {
+                const aunNoEstrena = !!item.first_air_date && item.first_air_date > hoyLocalISO();
+                const yaVista = vista(item.tmdb_id);
+                const yaAgregada = agregada(item.tmdb_id);
+                return (
+                  <Pressable key={item.tmdb_id} style={styles.item} onPress={() => navigation.navigate("DetalleTitulo", { tmdbId: item.tmdb_id, tipo: "series" })}>
+                    <View style={{ position: "relative" }}>
+                      {item.poster_path ? (
+                        <Image source={{ uri: posterUrl(item.poster_path, "w342")! }} style={styles.poster} />
+                      ) : (
+                        <View style={[styles.poster, { backgroundColor: theme.colors.surfaceAlt }]} />
+                      )}
+                      {mostrarEstrellas && item.rating != null && (
+                        <View style={styles.estrellasOverlay}>
+                          <RatingStars rating={item.rating} size={11} />
+                        </View>
+                      )}
+                      {(item.estado === "viendo" || item.estado === "abandonada") && item.ultimo_capitulo_visto != null && (
+                        <UltimoCapituloBadge
+                          temporada={item.ultima_temporada_vista!}
+                          capitulo={item.ultimo_capitulo_visto}
+                          style={styles.capituloOverlayGrilla}
+                        />
+                      )}
+                      {userId && (
+                        <>
+                          <Pressable
+                            style={[styles.ojoBtn, yaVista && styles.botonActivo, aunNoEstrena && styles.ojoBtnApagado]}
+                            onPress={() => marcarVistaRapida(item)}
+                            disabled={yaVista || marcandoVisto === item.tmdb_id || aunNoEstrena}
+                            hitSlop={6}
+                          >
+                            {marcandoVisto === item.tmdb_id ? (
+                              <ActivityIndicator size="small" color={theme.colors.primaryLight} />
+                            ) : (
+                              <Ionicons name="eye" size={14} color={yaVista ? "#000000" : aunNoEstrena ? theme.colors.textFaint : theme.colors.primaryLight} />
+                            )}
+                          </Pressable>
+                          <Pressable
+                            style={[styles.masBtn, yaAgregada && styles.botonActivo]}
+                            onPress={() => agregarRapido(item)}
+                            disabled={yaAgregada}
+                            hitSlop={6}
+                          >
+                            <Text style={[styles.masBtnTexto, yaAgregada && styles.masBtnTextoActivo]}>{yaAgregada ? "✓" : "+"}</Text>
+                          </Pressable>
+                        </>
+                      )}
+                    </View>
+                    <SeriesProgressBar estado={item.estado} porcentaje={item.porcentaje} abandonadaManual={item.abandonada_manual} />
+                  </Pressable>
+                );
+              })}
               {fila.length < 3 && Array.from({ length: 3 - fila.length }).map((_, i) => <View key={`vacio-${i}`} style={styles.item} />)}
             </View>
           )}
         />
       )}
+
+      {calificarModal && (
+        <CalificarModal
+          visible={!!calificarModal}
+          onCerrar={() => setCalificarModal(null)}
+          tipo="series"
+          tmdbId={calificarModal.tmdbId}
+          titulo={calificarModal.titulo}
+          posterPath={calificarModal.posterPath}
+          navigation={navigation}
+        />
+      )}
+      <ConfirmModal
+        visible={!!confirmSerieVisible}
+        onCerrar={() => setConfirmSerieVisible(null)}
+        titulo={t("¿Viste toda la serie?")}
+        mensaje={t("Marcar todos los episodios como vistos")}
+        botones={[
+          { label: t("No"), onPress: noVistaCompleta },
+          { label: t("Sí"), destacado: true, onPress: confirmarMarcarSerieVista },
+        ]}
+      />
 
       <OrdenTitulosPerfilModal
         visible={ordenVisible}
@@ -184,6 +314,36 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   miniPoster: { width: 40, height: 60, borderRadius: 4, marginRight: 10 },
+  masBtn: {
+    position: "absolute",
+    top: 40,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+    backgroundColor: "rgba(10,10,10,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ojoBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+    backgroundColor: "rgba(10,10,10,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ojoBtnApagado: { borderColor: theme.colors.textFaint, opacity: 0.5 },
+  botonActivo: { backgroundColor: theme.colors.primary },
+  masBtnTexto: { color: theme.colors.primaryLight, fontSize: 15, fontWeight: "800", lineHeight: 15 },
+  masBtnTextoActivo: { color: "#000000" },
   capituloOverlayGrilla: { position: "absolute", top: 4, left: 4 },
   capituloListaRow: { alignItems: "flex-end", marginTop: 2 },
   filaLista: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border },

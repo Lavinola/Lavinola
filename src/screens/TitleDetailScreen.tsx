@@ -176,15 +176,36 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       setUserId(uid);
 
       const tabla = tipo === "series" ? "series_cache" : "movies_cache";
-      try {
-        if (tipo === "series") await syncSeries(tmdbId);
-        else await syncMovie(tmdbId);
-      } catch (e) {
-        console.error("No se pudo sincronizar con TMDB, seguimos con lo que haya en caché:", e);
+
+      async function sincronizarYActualizar() {
+        try {
+          if (tipo === "series") await syncSeries(tmdbId);
+          else await syncMovie(tmdbId);
+        } catch (e) {
+          console.error("No se pudo sincronizar con TMDB, seguimos con lo que haya en caché:", e);
+        }
+        const { data, error } = await supabase.from(tabla).select("*").eq("tmdb_id", tmdbId).single();
+        if (!error && data) setTitulo(data);
+        return { error };
       }
-      const { data: cache, error } = await supabase.from(tabla).select("*").eq("tmdb_id", tmdbId).single();
-      if (error) throw error;
-      setTitulo(cache);
+
+      // Si ya había algo guardado en caché, lo mostramos de una y
+      // sincronizamos con TMDB en segundo plano, sin bloquear la
+      // pantalla — la sincronización solo hace falta la mayoría de las
+      // veces para chequear que no haya cambios, así que esperarla
+      // siempre (como hacíamos antes) hacía que la ficha tardara de más
+      // en aparecer casi siempre para nada. Si es la primera vez que
+      // alguien ve este título (no había nada guardado todavía), ahí sí
+      // no hay nada más para mostrar mientras tanto, así que esperamos.
+      const { data: cacheExistente } = await supabase.from(tabla).select("*").eq("tmdb_id", tmdbId).maybeSingle();
+      if (cacheExistente) {
+        setTitulo(cacheExistente);
+        setLoading(false);
+        sincronizarYActualizar();
+      } else {
+        const { error } = await sincronizarYActualizar();
+        if (error) throw error;
+      }
 
       if (uid) {
         // Estos 3 pedidos no dependen entre sí (ninguno necesita el

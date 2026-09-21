@@ -5,6 +5,7 @@ import { Text } from "../components/Themed";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { getTrendingSeries, getTrendingMovies, posterUrl } from "../lib/tmdb";
+import { hoyLocalISO } from "../lib/dates";
 import { fetchAllRows } from "../lib/pagination";
 import { recomendarSeries, recomendarPeliculas, marcarNoMeInteresa } from "../lib/recommendations";
 import { syncSeries, syncMovie, seguirSerie, agregarPelicula } from "../lib/sync";
@@ -63,6 +64,7 @@ interface ItemFila {
   titulo: string;
   poster_path: string | null;
   tipo: "series" | "movie";
+  fecha_estreno: string | null; // para saber si todavía no se estrenó y no dejar marcarla como vista
 }
 
 /**
@@ -230,10 +232,10 @@ function Descubrir({ navigation }: any) {
   }
 
   function mapSerie(s: any): ItemFila {
-    return { id: s.id, titulo: s.name, poster_path: s.poster_path, tipo: "series" };
+    return { id: s.id, titulo: s.name, poster_path: s.poster_path, tipo: "series", fecha_estreno: s.first_air_date || null };
   }
   function mapPelicula(p: any): ItemFila {
-    return { id: p.id, titulo: p.title, poster_path: p.poster_path, tipo: "movie" };
+    return { id: p.id, titulo: p.title, poster_path: p.poster_path, tipo: "movie", fecha_estreno: p.release_date || null };
   }
 
   async function abrir(item: ItemFila) {
@@ -270,6 +272,7 @@ function Descubrir({ navigation }: any) {
    */
   async function marcarVistaRapida(item: ItemFila) {
     if (!userId) return;
+    if (item.fecha_estreno && item.fecha_estreno > hoyLocalISO()) return; // todavía no se estrenó
     const clave = `${item.tipo}-${item.id}`;
     if (vistosEnSesion.has(clave)) return;
     if (item.tipo === "series") {
@@ -506,6 +509,7 @@ function FilaHorizontal({
             titulosAgregados.has(normalizarTitulo(item.titulo));
           const clave = `${item.tipo}-${item.id}`;
           const yaVisto = vistosEnSesion.has(clave);
+          const aunNoEstrena = !!item.fecha_estreno && item.fecha_estreno > hoyLocalISO();
           return (
             <View style={styles.card}>
               <Pressable onPress={() => onPress(item)} onLongPress={onLongPress ? () => onLongPress(item) : undefined}>
@@ -516,15 +520,15 @@ function FilaHorizontal({
                 )}
               </Pressable>
               <Pressable
-                style={[styles.ojoBtn, yaVisto && styles.masBtnAgregado]}
+                style={[styles.ojoBtn, yaVisto && styles.masBtnAgregado, aunNoEstrena && styles.ojoBtnApagado]}
                 onPress={() => onMarcarVista(item)}
-                disabled={yaVisto || marcandoVisto === clave}
+                disabled={yaVisto || marcandoVisto === clave || aunNoEstrena}
                 hitSlop={6}
               >
                 {marcandoVisto === clave ? (
                   <ActivityIndicator size="small" color={theme.colors.primaryLight} />
                 ) : (
-                  <Ionicons name="eye" size={14} color={yaVisto ? "#000000" : theme.colors.primaryLight} />
+                  <Ionicons name="eye" size={14} color={yaVisto ? "#000000" : aunNoEstrena ? theme.colors.textFaint : theme.colors.primaryLight} />
                 )}
               </Pressable>
               <Pressable
@@ -610,6 +614,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   masBtnAgregado: { backgroundColor: theme.colors.primary },
+  ojoBtnApagado: { borderColor: theme.colors.textFaint, opacity: 0.5 },
   masBtnTexto: { color: theme.colors.primaryLight, fontSize: 15, fontWeight: "800", lineHeight: 15 },
   masBtnTextoAgregado: { color: "#000000" },
   cardTitulo: { fontSize: 12, marginTop: 4 },
