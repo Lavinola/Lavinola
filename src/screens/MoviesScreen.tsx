@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { posterUrl, getWatchProvidersDisponibles, GrupoPlataforma } from "../lib/tmdb";
-import { getMovieReleaseInfoCacheado, getMovieWatchProvidersCacheado } from "../lib/sync";
+import { getMovieWatchProvidersCacheado, getMovieReleaseInfoLoteCacheado, getMovieWatchProvidersLoteCacheado } from "../lib/sync";
 import { formatearFecha, hoyLocalISO } from "../lib/dates";
 import CalificarModal from "../components/CalificarModal";
 import { toggleVistaPelicula } from "../lib/watchStatus";
@@ -160,17 +160,12 @@ export default function MoviesScreen({ navigation }: any) {
     if (faltan.length === 0) return;
     let cancelado = false;
     (async () => {
-      const resultados = await Promise.all(
-        faltan.map(async (id) => {
-          const p = await getMovieWatchProvidersCacheado(id, watchRegion);
-          return { id, nombres: (p?.flatrate ?? []).map((prov: any) => prov.provider_name) };
-        })
-      );
+      const providersPorId = await getMovieWatchProvidersLoteCacheado(faltan, watchRegion);
       if (!cancelado) {
         setPlataformasPendientes((prev) => {
           const nuevo = { ...prev };
-          resultados.forEach((r) => {
-            nuevo[r.id] = r.nombres;
+          faltan.forEach((id) => {
+            nuevo[id] = providersPorId[id] ?? [];
           });
           return nuevo;
         });
@@ -196,22 +191,15 @@ export default function MoviesScreen({ navigation }: any) {
     setCargandoInfoProximamente(true);
     let cancelado = false;
     (async () => {
-      const resultados = await Promise.all(
-        faltan.map(async (id) => {
-          const info = await getMovieReleaseInfoCacheado(id, watchRegion);
-          let plataforma: string | null = null;
-          if (info.tipo === "digital") {
-            const providers = await getMovieWatchProvidersCacheado(id, watchRegion);
-            plataforma = providers?.flatrate?.[0]?.provider_name ?? null;
-          }
-          return { id, fecha: info.fecha, tipo: info.tipo, plataforma };
-        })
-      );
+      const infoPorId = await getMovieReleaseInfoLoteCacheado(faltan, watchRegion);
+      const idsDigitales = faltan.filter((id) => infoPorId[id]?.tipo === "digital");
+      const providersPorId = idsDigitales.length > 0 ? await getMovieWatchProvidersLoteCacheado(idsDigitales, watchRegion) : {};
       if (!cancelado) {
         setInfoEstreno((prev) => {
           const nuevo = { ...prev };
-          resultados.forEach((r) => {
-            nuevo[r.id] = { fecha: r.fecha, tipo: r.tipo, plataforma: r.plataforma };
+          faltan.forEach((id) => {
+            const info = infoPorId[id] ?? { fecha: null, tipo: null };
+            nuevo[id] = { fecha: info.fecha, tipo: info.tipo, plataforma: providersPorId[id]?.[0] ?? null };
           });
           return nuevo;
         });

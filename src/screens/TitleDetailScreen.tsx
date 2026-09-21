@@ -618,13 +618,13 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
       <ConfirmModal
         visible={confirmAbandonarVisible}
         onCerrar={() => setConfirmAbandonarVisible(false)}
-        titulo={t("Dejar de ver (abandonada)")}
+        titulo={t("Dejar de ver")}
         mensaje={t(
           '"{nombre}" ya no te va a aparecer en tus pendientes (ni en "Ver a continuación" ni en "Sin ver por un tiempo"). No se borra nada de tu historial ni de tus capítulos vistos — solo pasa a la categoría "Abandonadas" en Mis Series. Podés volver a activarla cuando quieras desde acá mismo.'
         ).replace("{nombre}", nombre)}
         botones={[
           { label: t("Cancelar"), onPress: () => {} },
-          { label: t("Dejar de ver (abandonada)"), destacado: true, onPress: toggleAbandonoManual },
+          { label: t("Dejar de ver"), destacado: true, onPress: toggleAbandonoManual },
         ]}
       />
 

@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
   boton: { flex: 1, paddingVertical: 12, borderRadius: theme.radius.md, alignItems: "center" },
   botonNormal: { backgroundColor: theme.colors.surfaceAlt },
   botonDestacado: { backgroundColor: theme.colors.primary },
-  botonTexto: { fontSize: 14, fontWeight: "700", color: theme.colors.text },
+  botonTexto: { fontSize: 14, fontWeight: "700", color: theme.colors.text, textAlign: "center" },
   botonTextoDestacado: { color: "#000000" },
 });

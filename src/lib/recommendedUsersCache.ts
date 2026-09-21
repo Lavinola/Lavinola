@@ -40,3 +40,16 @@ export function limpiarCacheUsuariosRecomendados() {
   cachePromise = null;
   cacheUserId = null;
 }
+
+/**
+ * Para cuando seguís/dejás de seguir a alguien desde la lista de
+ * recomendados: sin esto, la caché en memoria queda con el dato viejo
+ * durante el resto de la sesión (hasta que se recalculen las
+ * recomendaciones desde cero), aunque la pantalla vuelva a pedir la
+ * lista. `quitar: true` saca directamente a la persona de la lista
+ * (para cuando la seguís — ya no tiene sentido seguir recomendándotela).
+ */
+export function actualizarSeguidoEnCache(userId: string, targetId: string, siguiendo: boolean, quitar = false) {
+  if (cacheUserId !== userId || !cache) return;
+  cache = quitar ? cache.filter((u) => u.id !== targetId) : cache.map((u) => (u.id === targetId ? { ...u, siguiendo, solicitudPendiente: false } : u));
+}

@@ -399,3 +399,84 @@ export async function getMovieReleaseInfoCacheado(tmdbId: number, region: string
   if (error) console.error("No se pudo guardar la caché de estreno de película:", error.message);
   return fresco;
 }
+
+/**
+ * Igual que getMovieReleaseInfoCacheado, pero para VARIAS películas de
+ * una — una sola consulta a la base para todas juntas en vez de una por
+ * película (el mismo problema que ya resolvimos para series: aunque todo
+ * estuviera cacheado, tardaba porque hacía N idas y vueltas a Supabase).
+ */
+export async function getMovieReleaseInfoLoteCacheado(
+  tmdbIds: number[],
+  region: string
+): Promise<Record<number, { fecha: string | null; tipo: "cine" | "digital" | "fisico" | null }>> {
+  const idsUnicos = [...new Set(tmdbIds)];
+  if (idsUnicos.length === 0) return {};
+
+  const { data } = await supabase.from("movie_release_info_cache").select("tmdb_id, fecha, tipo, synced_at").eq("region", region).in("tmdb_id", idsUnicos);
+  const cachePorId = new Map((data ?? []).map((d: any) => [d.tmdb_id, d]));
+  const resultado: Record<number, { fecha: string | null; tipo: "cine" | "digital" | "fisico" | null }> = {};
+  const faltan: number[] = [];
+
+  idsUnicos.forEach((id) => {
+    const fila = cachePorId.get(id);
+    if (fila && !isStale(fila.synced_at)) {
+      resultado[id] = { fecha: fila.fecha, tipo: fila.tipo };
+    } else {
+      faltan.push(id);
+    }
+  });
+
+  if (faltan.length > 0) {
+    await Promise.all(
+      faltan.map(async (id) => {
+        const fresco = await getMovieReleaseInfo(id, region);
+        resultado[id] = fresco;
+        const { error } = await supabase
+          .from("movie_release_info_cache")
+          .upsert({ tmdb_id: id, region, fecha: fresco.fecha, tipo: fresco.tipo, synced_at: new Date().toISOString() });
+        if (error) console.error("No se pudo guardar la caché de estreno de película:", error.message);
+      })
+    );
+  }
+
+  return resultado;
+}
+
+/** Igual que getMovieWatchProvidersCacheado, pero para VARIAS películas de una — una sola consulta a la base para todas juntas. */
+export async function getMovieWatchProvidersLoteCacheado(tmdbIds: number[], region: string): Promise<Record<number, string[]>> {
+  const idsUnicos = [...new Set(tmdbIds)];
+  if (idsUnicos.length === 0) return {};
+
+  const { data } = await supabase
+    .from("watch_providers_cache")
+    .select("tmdb_id, providers, synced_at")
+    .eq("item_type", "movie")
+    .eq("region", region)
+    .in("tmdb_id", idsUnicos);
+
+  const cachePorId = new Map((data ?? []).map((d: any) => [d.tmdb_id, d]));
+  const resultado: Record<number, string[]> = {};
+  const faltan: number[] = [];
+
+  idsUnicos.forEach((id) => {
+    const fila = cachePorId.get(id);
+    if (fila && !isStale(fila.synced_at)) {
+      resultado[id] = ((fila.providers as any[]) ?? []).map((p: any) => normalizarNombrePlataforma(p.provider_name, region)).sort((a, b) => rankPlataforma(a) - rankPlataforma(b));
+    } else {
+      faltan.push(id);
+    }
+  });
+
+  if (faltan.length > 0) {
+    await Promise.all(
+      faltan.map(async (id) => {
+        const fresco = await getMovieWatchProviders(id, region);
+        resultado[id] = (fresco?.flatrate ?? []).map((p: any) => p.provider_name);
+        await guardarWatchProvidersEnCache("movie", id, region, fresco?.flatrate ?? []);
+      })
+    );
+  }
+
+  return resultado;
+}

@@ -96,21 +96,24 @@ export async function obtenerNotificacion(notificationId: string): Promise<Notif
 }
 
 /**
- * Junta notificaciones de "like"/"follow" consecutivas (en el orden en que
- * ya vienen, de la más nueva a la más vieja) que apunten a lo mismo — así
+ * Junta notificaciones de "like" consecutivas (en el orden en que ya
+ * vienen, de la más nueva a la más vieja) que apunten a lo mismo — así
  * "Juan reaccionó a tu comentario", "María reaccionó a tu comentario" y
  * "Pedro reaccionó a tu comentario" (si pasaron una cerca de la otra) se
  * ven como una sola fila: "Juan y 2 personas más reaccionaron a tu
  * comentario", en vez de una línea por cada una — así se siente la app
  * cuando tiene más uso real, en vez de sentirse "spameada".
  *
- * Deliberadamente NO se agrupan las respuestas ("reply") ni las
- * recomendaciones — cada una tiene contenido propio que vale la pena ver
- * por separado, a diferencia de un like o un follow, que es más "ruido"
- * cuando se repiten.
+ * Deliberadamente NO se agrupan las respuestas ("reply"), las
+ * recomendaciones, ni los follows — cada una tiene contenido propio
+ * (o, en el caso de follows, alguien puntual que quizás quieras ver e
+ * ir a ver su perfil) que vale la pena ver por separado. Los follows SÍ
+ * se agrupaban antes ("Fulano y 2 más empezaron a seguirte"), pero ahí
+ * no había forma de enterarse quiénes eran esos "2 más" — por eso se
+ * sacó, y ahora cada seguidor nuevo tiene su propia notificación.
  */
 function agruparNotificaciones(notis: Notificacion[]): Notificacion[] {
-  const AGRUPABLES = new Set(["like", "follow"]);
+  const AGRUPABLES = new Set(["like"]);
   const resultado: Notificacion[] = [];
   let i = 0;
   while (i < notis.length) {

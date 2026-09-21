@@ -15,7 +15,7 @@ import { toggleVistaPelicula } from "../lib/watchStatus";
 import CalificarModal from "../components/CalificarModal";
 import ConfirmModal from "../components/ConfirmModal";
 import { buscarUsuarios, dejarDeSeguir, UsuarioBasico } from "../lib/follows";
-import { obtenerUsuariosRecomendados } from "../lib/recommendedUsersCache";
+import { obtenerUsuariosRecomendados, actualizarSeguidoEnCache } from "../lib/recommendedUsersCache";
 import { seguirRespetandoPrivacidad } from "../lib/followRequests";
 import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/pagination";
@@ -102,6 +102,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
   }
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const siguiendoEnCursoRef = useRef<Set<string>>(new Set());
 
   // Se llama en cada tecla — pero la búsqueda de verdad espera un
   // poquito (debounce) antes de disparar. Sin esto, cada letra que
@@ -279,17 +280,34 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
 
   async function toggleFollow(u: UsuarioBasico) {
     if (!userId || u.solicitudPendiente) return;
+    if (siguiendoEnCursoRef.current.has(u.id)) return; // ya hay un toque en curso para esta persona — evita el doble tap que mandaba dos pedidos a la vez
+    siguiendoEnCursoRef.current.add(u.id);
     seleccion();
     try {
       if (u.siguiendo) {
         await dejarDeSeguir(userId, u.id);
+        actualizarSeguidoEnCache(userId, u.id, false);
+        setUsuarios((prev) => prev.map((x) => (x.id === u.id ? { ...x, siguiendo: false, solicitudPendiente: false } : x)));
       } else {
-        await seguirRespetandoPrivacidad(userId, u.id);
+        const resultado = await seguirRespetandoPrivacidad(userId, u.id);
+        const quedaPendiente = resultado === "solicitado";
+        // Si ya la seguís (o le mandaste solicitud), no tiene sentido
+        // seguir sugiriéndotela — la sacamos de la lista de
+        // recomendados directamente. En los resultados de búsqueda, en
+        // cambio, se queda (tiene sentido seguir viéndola ahí), solo
+        // cambia a "Siguiendo"/"Solicitud enviada".
+        const esRecomendados = !query.trim();
+        actualizarSeguidoEnCache(userId, u.id, !quedaPendiente, esRecomendados && !quedaPendiente);
+        if (esRecomendados && !quedaPendiente) {
+          setUsuarios((prev) => prev.filter((x) => x.id !== u.id));
+        } else {
+          setUsuarios((prev) => prev.map((x) => (x.id === u.id ? { ...x, siguiendo: !quedaPendiente, solicitudPendiente: quedaPendiente } : x)));
+        }
       }
-      if (query.trim().length >= 2) buscar(query);
-      else cargarRecomendaciones(userId, "usuarios");
     } catch (e: any) {
       Alert.alert(t("No se pudo actualizar"), e.message);
+    } finally {
+      siguiendoEnCursoRef.current.delete(u.id);
     }
   }
 
