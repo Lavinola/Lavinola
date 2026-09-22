@@ -21,6 +21,7 @@ import { supabase } from "../lib/supabase";
 import { fetchAllRows } from "../lib/pagination";
 import { useT } from "../i18n/i18n";
 import { theme } from "../theme";
+import { hoyLocalISO } from "../lib/dates";
 
 type Tab = "titulos" | "personas" | "usuarios";
 
@@ -204,6 +205,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
    */
   async function marcarVistaRapida(item: ResultadoTitulo) {
     if (!userId) return;
+    if (item.fecha_estreno && item.fecha_estreno > hoyLocalISO()) return; // todavía no se estrenó
     const clave = `${item.tipo}-${item.id}`;
     if (vistos.has(clave)) return;
     if (item.tipo === "series") {
@@ -372,6 +374,7 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
           renderItem={({ item }) => {
             const yaAgregado = agregados.has(`${item.tipo}-${item.id}`);
             const yaVista = vistos.has(`${item.tipo}-${item.id}`);
+            const aunNoEstrena = !!item.fecha_estreno && item.fecha_estreno > hoyLocalISO();
             return (
               <Pressable style={styles.card} onPress={() => abrirTitulo(item)} disabled={abriendo === item.id}>
                 {item.poster_path ? (
@@ -398,15 +401,15 @@ export default function GlobalSearchScreen({ route, navigation }: any) {
                   </Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.addBtn, yaVista && styles.addBtnAgregado, { marginLeft: 6 }]}
+                  style={[styles.addBtn, yaVista && styles.addBtnAgregado, aunNoEstrena && styles.addBtnApagado, { marginLeft: 6 }]}
                   onPress={() => marcarVistaRapida(item)}
-                  disabled={yaVista || marcandoVisto === item.id}
+                  disabled={yaVista || marcandoVisto === item.id || aunNoEstrena}
                   hitSlop={8}
                 >
                   {marcandoVisto === item.id ? (
                     <ActivityIndicator size="small" color={theme.colors.primaryLight} />
                   ) : (
-                    <Ionicons name="eye" size={16} color={yaVista ? "#000000" : theme.colors.primaryLight} />
+                    <Ionicons name="eye" size={16} color={yaVista ? "#000000" : aunNoEstrena ? theme.colors.textFaint : theme.colors.primaryLight} />
                   )}
                 </Pressable>
               </Pressable>
@@ -542,6 +545,7 @@ const styles = StyleSheet.create({
   addBtn: { width: 30, height: 30, borderRadius: 8, borderWidth: 1.5, borderColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
   addBtnTexto: { color: theme.colors.primaryLight, fontSize: 16, fontWeight: "800", lineHeight: 16 },
   addBtnAgregado: { backgroundColor: theme.colors.primary },
+  addBtnApagado: { borderColor: theme.colors.textFaint, opacity: 0.5 },
   addBtnTextoAgregado: { color: "#000000" },
   joinBtn: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, paddingVertical: 6, paddingHorizontal: 12 },
 });

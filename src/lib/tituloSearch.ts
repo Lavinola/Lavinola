@@ -7,6 +7,7 @@ export interface ResultadoTitulo {
   poster_path: string | null;
   tipo: "series" | "movie";
   anio: string | null;
+  fecha_estreno: string | null; // fecha completa — para saber si todavía no se estrenó
   popularidad: number;
 }
 
@@ -17,6 +18,7 @@ function mapearSerie(s: any): ResultadoTitulo {
     poster_path: s.poster_path,
     tipo: "series",
     anio: s.first_air_date ? s.first_air_date.slice(0, 4) : null,
+    fecha_estreno: s.first_air_date || null,
     popularidad: s.popularity ?? 0,
   };
 }
@@ -28,6 +30,7 @@ function mapearPelicula(p: any): ResultadoTitulo {
     poster_path: p.poster_path,
     tipo: "movie",
     anio: p.release_date ? p.release_date.slice(0, 4) : null,
+    fecha_estreno: p.release_date || null,
     popularidad: p.popularity ?? 0,
   };
 }

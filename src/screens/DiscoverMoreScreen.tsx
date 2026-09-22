@@ -13,6 +13,7 @@ import { posterUrl, getWatchProvidersDisponibles, GrupoPlataforma } from "../lib
 import { syncSeries, syncMovie, seguirSerie, agregarPelicula } from "../lib/sync";
 import { marcarTodaLaSerieVista } from "../lib/episodes";
 import { toggleVistaPelicula } from "../lib/watchStatus";
+import { hoyLocalISO } from "../lib/dates";
 import { formatearFecha } from "../lib/dates";
 import CalificarModal from "../components/CalificarModal";
 import ConfirmModal from "../components/ConfirmModal";
@@ -183,6 +184,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
    */
   async function marcarVistaRapida(item: ItemDescubrir) {
     if (!userId) return;
+    if (item.fechaEstreno && item.fechaEstreno > hoyLocalISO()) return; // todavía no se estrenó
     const clave = `${item.tipo}-${item.id}`;
     if (vistos.has(clave)) return;
     if (item.tipo === "series") {
@@ -281,6 +283,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
             const clave = `${item.tipo}-${item.id}`;
             const yaAgregado = agregados.has(clave);
             const yaVista = vistos.has(clave);
+            const aunNoEstrena = !!item.fechaEstreno && item.fechaEstreno > hoyLocalISO();
             return (
               <Pressable style={styles.card} onPress={() => abrir(item)} disabled={abriendo === item.id}>
                 {item.poster_path ? (
@@ -317,15 +320,15 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
                       <Text style={[styles.masBtnTexto, yaAgregado && styles.masBtnTextoAgregado]}>{yaAgregado ? "✓" : "+"}</Text>
                     </Pressable>
                     <Pressable
-                      style={[styles.masBtn, yaVista && styles.masBtnAgregado, { marginLeft: 6 }]}
+                      style={[styles.masBtn, yaVista && styles.masBtnAgregado, aunNoEstrena && styles.masBtnApagado, { marginLeft: 6 }]}
                       onPress={() => marcarVistaRapida(item)}
-                      disabled={yaVista || marcandoVisto === item.id}
+                      disabled={yaVista || marcandoVisto === item.id || aunNoEstrena}
                       hitSlop={8}
                     >
                       {marcandoVisto === item.id ? (
                         <ActivityIndicator size="small" color={theme.colors.primaryLight} />
                       ) : (
-                        <Ionicons name="eye" size={16} color={yaVista ? "#000000" : theme.colors.primaryLight} />
+                        <Ionicons name="eye" size={16} color={yaVista ? "#000000" : aunNoEstrena ? theme.colors.textFaint : theme.colors.primaryLight} />
                       )}
                     </Pressable>
                   </>
@@ -394,6 +397,7 @@ const styles = StyleSheet.create({
   sub: { fontSize: 12, color: theme.colors.textMuted, marginTop: 3 },
   masBtn: { width: 30, height: 30, borderRadius: 8, borderWidth: 1.5, borderColor: theme.colors.primary, alignItems: "center", justifyContent: "center" },
   masBtnAgregado: { backgroundColor: theme.colors.primary },
+  masBtnApagado: { borderColor: theme.colors.textFaint, opacity: 0.5 },
   masBtnTexto: { color: theme.colors.primaryLight, fontSize: 16, fontWeight: "800", lineHeight: 16 },
   masBtnTextoAgregado: { color: "#000000" },
 });
