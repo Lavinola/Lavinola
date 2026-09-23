@@ -82,6 +82,7 @@ export async function syncSeries(tmdbId: number): Promise<void> {
     total_seasons: details.number_of_seasons ?? 0,
     genre_ids: (details.genres ?? []).map((g: any) => g.id),
     networks: (details.networks ?? []).map((n: any) => n.name),
+    origin_country: details.origin_country?.[0] || null,
     seasons_meta: (details.seasons ?? [])
       .filter((s: any) => s.season_number > 0)
       .map((s: any) => ({ season_number: s.season_number, air_date: s.air_date || null, episode_count: s.episode_count ?? 0, name: s.name })),
@@ -225,6 +226,7 @@ export async function syncMovie(tmdbId: number): Promise<void> {
     runtime_minutes: details.runtime ?? null,
     release_date: details.release_date || null,
     genre_ids: (details.genres ?? []).map((g: any) => g.id),
+    origin_country: details.production_countries?.[0]?.iso_3166_1 || null,
     director,
     director_id: directorId,
     cast_top: castTop,

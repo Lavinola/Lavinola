@@ -25,6 +25,20 @@ function diasHasta(fecha: string | null): number {
   const destino = new Date(fecha + "T00:00:00");
   return Math.max(0, Math.round((destino.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)));
 }
+/** "aaaa-mm-dd" de hace N días, en hora local. */
+function fechaHaceNDias(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  const anio = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+}
+// Hasta cuántos días atrás (desde hoy) seguimos chequeando la fecha de
+// estreno por país de una película, en vez de asumir directamente que
+// ya se estrenó en todos lados — así cubrimos el caso de "ya salió en
+// su país de origen, pero en el mío todavía no".
+const VENTANA_CHEQUEO_PAIS_DIAS = 180;
 import TopPills from "../components/TopPills";
 import AgregarButton from "../components/AgregarButton";
 import { useT } from "../i18n/i18n";
@@ -148,42 +162,26 @@ export default function MoviesScreen({ navigation }: any) {
     };
   }, [plataformas, movies, watchRegion, todasLasPlataformas]);
 
-  // Para "Lista pendiente" en modo lista: qué plataformas tenés disponibles
-  // para cada título en tu país, para mostrarlo chiquito debajo de la
-  // duración (solo si hay alguna — si no, no se muestra nada).
-  const [plataformasPendientes, setPlataformasPendientes] = useState<Record<number, string[]>>({});
+  // Para la pestaña "Próximamente" Y para saber qué es "pendiente" de
+  // verdad: movies_cache.release_date es la fecha "genérica" de TMDB
+  // (muchas veces la del país de origen), que puede no coincidir con la
+  // de tu país. Una película sigue en "Próximamente" hasta que se
+  // estrena EN TU PAÍS — pero eso no significa que el ojito (marcar como
+  // vista) tenga que esperar lo mismo: en cuanto se estrena en su país
+  // de origen (la fecha genérica), ya se puede marcar como vista en
+  // cualquier lugar de la app (es plausible que alguien ya la haya
+  // visto, aunque acá todavía no esté disponible formalmente).
+  //
+  // Por eso hace falta resolver la fecha por país de cualquier título
+  // "reciente" — no solo los que todavía no salieron según la fecha
+  // genérica, sino también los de los últimos ${VENTANA_CHEQUEO_PAIS_DIAS}
+  // días (por si ya salieron en su país de origen pero todavía no en el
+  // tuyo). Más viejo que eso, asumimos que ya se estrenó en todos lados
+  // y no hace falta chequear más.
   React.useEffect(() => {
-    if (subTab !== "pendiente") return;
-    const hoyStr = hoyLocalISO();
-    const idsPendientes = [...new Set(movies.filter((m) => !m.watched && (!m.release_date || m.release_date <= hoyStr)).map((m) => m.tmdb_id))];
-    const faltan = idsPendientes.filter((id) => !plataformasPendientes[id]);
-    if (faltan.length === 0) return;
-    let cancelado = false;
-    (async () => {
-      const providersPorId = await getMovieWatchProvidersLoteCacheado(faltan, watchRegion);
-      if (!cancelado) {
-        setPlataformasPendientes((prev) => {
-          const nuevo = { ...prev };
-          faltan.forEach((id) => {
-            nuevo[id] = providersPorId[id] ?? [];
-          });
-          return nuevo;
-        });
-      }
-    })();
-    return () => {
-      cancelado = true;
-    };
-  }, [subTab, movies, watchRegion]);
-
-  // Para la pestaña "Próximamente": de dónde sale realmente (cine o una
-  // plataforma puntual) según el país del usuario — movies_cache.release_date
-  // es una fecha "genérica" que puede no coincidir con la de acá.
-  React.useEffect(() => {
-    if (subTab !== "proximamente") return;
-    const hoyStr = hoyLocalISO();
-    const idsProximas = [...new Set(movies.filter((m) => !m.watched && m.release_date && m.release_date > hoyStr).map((m) => m.tmdb_id))];
-    const faltan = idsProximas.filter((id) => !infoEstreno[id]);
+    const limiteAtras = fechaHaceNDias(VENTANA_CHEQUEO_PAIS_DIAS);
+    const idsCandidatos = [...new Set(movies.filter((m) => !m.watched && m.release_date && m.release_date > limiteAtras).map((m) => m.tmdb_id))];
+    const faltan = idsCandidatos.filter((id) => !infoEstreno[id]);
     if (faltan.length === 0) {
       setCargandoInfoProximamente(false);
       return;
@@ -209,12 +207,49 @@ export default function MoviesScreen({ navigation }: any) {
     return () => {
       cancelado = true;
     };
-  }, [subTab, movies, watchRegion]);
+  }, [movies, watchRegion]);
 
   const hoy = hoyLocalISO();
-  let pendientesSinOrdenar = movies.filter((m) => !m.watched && (!m.release_date || m.release_date <= hoy));
+  const limiteAtras = fechaHaceNDias(VENTANA_CHEQUEO_PAIS_DIAS);
+  /** La fecha "real" contra la que hay que comparar: la de tu país si ya
+   * la sabemos (y el título es lo bastante reciente como para haberla
+   * chequeado), si no la genérica de TMDB. */
+  function fechaResuelta(m: PeliculaRow): string | null {
+    if (!m.release_date) return null;
+    if (m.release_date <= limiteAtras) return m.release_date; // muy vieja, no hace falta chequear por país
+    return infoEstreno[m.tmdb_id]?.fecha ?? m.release_date;
+  }
+  let pendientesSinOrdenar = movies.filter((m) => !m.watched && (!m.release_date || (fechaResuelta(m) ?? m.release_date) <= hoy));
   if (generoId !== null) pendientesSinOrdenar = pendientesSinOrdenar.filter((m) => m.genre_ids.includes(generoId));
   if (pendientesConPlataforma !== null) pendientesSinOrdenar = pendientesSinOrdenar.filter((m) => pendientesConPlataforma.has(m.tmdb_id));
+  const pendientesIds = pendientesSinOrdenar.map((m) => m.tmdb_id);
+
+  // Para "Lista pendiente" en modo lista: qué plataformas tenés disponibles
+  // para cada título en tu país, para mostrarlo chiquito debajo de la
+  // duración (solo si hay alguna — si no, no se muestra nada).
+  const [plataformasPendientes, setPlataformasPendientes] = useState<Record<number, string[]>>({});
+  React.useEffect(() => {
+    if (subTab !== "pendiente") return;
+    const faltan = pendientesIds.filter((id) => !plataformasPendientes[id]);
+    if (faltan.length === 0) return;
+    let cancelado = false;
+    (async () => {
+      const providersPorId = await getMovieWatchProvidersLoteCacheado(faltan, watchRegion);
+      if (!cancelado) {
+        setPlataformasPendientes((prev) => {
+          const nuevo = { ...prev };
+          faltan.forEach((id) => {
+            nuevo[id] = providersPorId[id] ?? [];
+          });
+          return nuevo;
+        });
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [subTab, pendientesIds.join(","), watchRegion]);
+
   const pendientes = [...pendientesSinOrdenar].sort((a, b) => {
     let cmp = 0;
     if (orden === "añadida") cmp = a.added_at.localeCompare(b.added_at);
@@ -224,10 +259,10 @@ export default function MoviesScreen({ navigation }: any) {
     return ascendente ? cmp : -cmp;
   });
   const proximas = movies
-    .filter((m) => !m.watched && m.release_date && m.release_date > hoy)
+    .filter((m) => !m.watched && m.release_date && m.release_date > limiteAtras && (fechaResuelta(m) ?? m.release_date) > hoy)
     .sort((a, b) => {
-      const fechaA = infoEstreno[a.tmdb_id]?.fecha ?? a.release_date!;
-      const fechaB = infoEstreno[b.tmdb_id]?.fecha ?? b.release_date!;
+      const fechaA = fechaResuelta(a) ?? a.release_date!;
+      const fechaB = fechaResuelta(b) ?? b.release_date!;
       return fechaA < fechaB ? -1 : 1;
     });
   const listado = subTab === "pendiente" ? pendientes : proximas;

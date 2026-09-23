@@ -22,7 +22,8 @@ export interface ItemDescubrir {
   titulo: string;
   poster_path: string | null;
   anio: string | null;
-  fechaEstreno?: string | null; // fecha completa (aaaa-mm-dd) — solo se usa/completa con el orden "Próximos estrenos"
+  fechaEstreno?: string | null; // fecha a MOSTRAR (aaaa-mm-dd) — genérica, salvo con "Próximos estrenos" que se intenta mejorar con la del país del usuario
+  fechaEstrenoGenerica?: string | null; // fecha genérica de TMDB, siempre — para decidir si ya se puede marcar como vista (eso se habilita con el estreno en el país de origen, no el del usuario)
   tipo: "series" | "movie";
   genero_ids: number[];
   total_seasons?: number | null;
@@ -120,6 +121,7 @@ function mapearResultadoTmdb(tipo: "series" | "movie", r: any): ItemDescubrir {
     poster_path: r.poster_path,
     anio: fechaCompleta?.slice(0, 4) ?? null,
     fechaEstreno: fechaCompleta || null, // fecha genérica de TMDB — para "Próximos estrenos" se intenta mejorar con la del país más abajo
+    fechaEstrenoGenerica: fechaCompleta || null,
     tipo,
     genero_ids: r.genre_ids ?? [],
     total_seasons: null,

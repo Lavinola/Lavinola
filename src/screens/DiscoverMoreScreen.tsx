@@ -184,7 +184,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
    */
   async function marcarVistaRapida(item: ItemDescubrir) {
     if (!userId) return;
-    if (item.fechaEstreno && item.fechaEstreno > hoyLocalISO()) return; // todavía no se estrenó
+    if (item.fechaEstrenoGenerica && item.fechaEstrenoGenerica > hoyLocalISO()) return; // todavía no se estrenó en su país de origen
     const clave = `${item.tipo}-${item.id}`;
     if (vistos.has(clave)) return;
     if (item.tipo === "series") {
@@ -283,7 +283,7 @@ export default function DiscoverMoreScreen({ route, navigation }: Props) {
             const clave = `${item.tipo}-${item.id}`;
             const yaAgregado = agregados.has(clave);
             const yaVista = vistos.has(clave);
-            const aunNoEstrena = !!item.fechaEstreno && item.fechaEstreno > hoyLocalISO();
+            const aunNoEstrena = !!item.fechaEstrenoGenerica && item.fechaEstrenoGenerica > hoyLocalISO();
             return (
               <Pressable style={styles.card} onPress={() => abrir(item)} disabled={abriendo === item.id}>
                 {item.poster_path ? (

@@ -25,6 +25,7 @@ create table if not exists series_cache (
   total_episodes integer default 0,
   synced_at timestamptz default now()
 );
+alter table series_cache add column if not exists origin_country text; -- código de país (ISO 3166-1) del país de origen de la serie
 
 create table if not exists movies_cache (
   tmdb_id integer primary key,
@@ -35,6 +36,7 @@ create table if not exists movies_cache (
   release_date date,
   synced_at timestamptz default now()
 );
+alter table movies_cache add column if not exists origin_country text; -- código de país (ISO 3166-1) del país de origen de la película
 
 create table if not exists episodes_cache (
   series_tmdb_id integer references series_cache(tmdb_id) on delete cascade,

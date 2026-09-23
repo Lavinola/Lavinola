@@ -3,6 +3,12 @@ export interface Pais {
   label: string;
 }
 
+/** Nombre en español de un país por su código, o el código mismo si no lo encuentra. */
+export function nombrePais(code: string | null | undefined): string {
+  if (!code) return "";
+  return PAISES.find((p) => p.code === code)?.label ?? code;
+}
+
 // Lista completa de países (ISO 3166-1 alpha-2), nombre en español, orden alfabético.
 export const PAISES: Pais[] = [
   { code: "AF", label: "Afganistán" },

@@ -83,6 +83,7 @@ import {
 } from "../lib/episodes";
 import { theme } from "../theme";
 import { formatearFecha, formatearFechaVista, hoyLocalISO } from "../lib/dates";
+import { nombrePais } from "../lib/countries";
 import { GENEROS_PELICULAS } from "../lib/tmdbGenres";
 
 interface Props {
@@ -137,6 +138,7 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [certificacion, setCertificacion] = useState<string | null>(null);
   const [fechaEstrenoPais, setFechaEstrenoPais] = useState<string | null>(null);
+  const [paisEstreno, setPaisEstreno] = useState<string | null>(null);
 
   useEffect(() => {
     cargar();
@@ -150,9 +152,15 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
         const { data: profile } = await supabase.from("profiles").select("country").eq("id", userId).maybeSingle();
         const watchRegion = profile?.country ?? "AR";
         const info = await getMovieReleaseInfoCacheado(tmdbId, watchRegion);
-        if (!cancelado) setFechaEstrenoPais(info.fecha ?? null);
+        if (!cancelado) {
+          setFechaEstrenoPais(info.fecha ?? null);
+          setPaisEstreno(info.fecha ? watchRegion : null);
+        }
       } catch {
-        if (!cancelado) setFechaEstrenoPais(null);
+        if (!cancelado) {
+          setFechaEstrenoPais(null);
+          setPaisEstreno(null);
+        }
       }
     })();
     return () => {
@@ -406,7 +414,12 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
             <TituloConTraduccion tipo={tipo} id={tmdbId} titulo={nombre} style={styles.nombre} styleSecundario={{ paddingLeft: 16 }} />
             {tipo === "series" ? (
               <>
-                {titulo.first_air_date && <Text style={styles.subInfo}>{titulo.first_air_date.slice(0, 4)}</Text>}
+                {titulo.first_air_date && (
+                  <Text style={styles.subInfo}>
+                    {titulo.first_air_date.slice(0, 4)}
+                    {titulo.origin_country ? ` · ${nombrePais(titulo.origin_country)}` : ""}
+                  </Text>
+                )}
                 <Text style={styles.subInfo}>{titulo.total_seasons ? `${titulo.total_seasons} ${titulo.total_seasons === 1 ? t("temporada") : t("temporadas")}` : ""}</Text>
                 <Text style={styles.subInfo}>
                   {t(etiquetaEstadoSerie(titulo.status, titulo.first_air_date))}
@@ -418,9 +431,17 @@ export default function TitleDetailScreen({ route, navigation }: Props) {
             ) : (
               <>
                 {titulo.runtime_minutes ? (
-                  <Text style={styles.subInfo}>{`${Math.floor(titulo.runtime_minutes / 60)} h ${titulo.runtime_minutes % 60} min`}</Text>
+                  <Text style={styles.subInfo}>
+                    {`${Math.floor(titulo.runtime_minutes / 60)} h ${titulo.runtime_minutes % 60} min`}
+                    {titulo.origin_country ? ` · ${nombrePais(titulo.origin_country)}` : ""}
+                  </Text>
                 ) : null}
-                {titulo.release_date && <Text style={styles.subInfo}>{formatearFecha(fechaEstrenoPais ?? titulo.release_date)}</Text>}
+                {titulo.release_date && (
+                  <Text style={styles.subInfo}>
+                    {formatearFecha(fechaEstrenoPais ?? titulo.release_date)}
+                    {paisEstreno && fechaEstrenoPais && fechaEstrenoPais !== titulo.release_date ? ` (${nombrePais(paisEstreno)})` : ""}
+                  </Text>
+                )}
                 {(titulo.genre_ids ?? []).length > 0 && (
                   <Text style={styles.subInfo}>
                     {(titulo.genre_ids ?? []).map((id: number) => GENEROS_PELICULAS[id]).filter(Boolean).map((g: string) => t(g)).slice(0, 3).join(", ")}
