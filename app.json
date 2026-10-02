@@ -51,7 +51,16 @@
           "project": "lavinola"
         }
       ],
-      "expo-updates"
+      "expo-updates",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
     ],
     "runtimeVersion": {
       "policy": "appVersion"
