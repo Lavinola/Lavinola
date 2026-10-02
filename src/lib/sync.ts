@@ -226,7 +226,14 @@ export async function syncMovie(tmdbId: number): Promise<void> {
     runtime_minutes: details.runtime ?? null,
     release_date: details.release_date || null,
     genre_ids: (details.genres ?? []).map((g: any) => g.id),
-    origin_country: details.production_countries?.[0]?.iso_3166_1 || null,
+    // TMDB casi nunca da un país "de origen" único y confiable para
+    // películas (a diferencia de series, que sí lo tienen) — production_countries
+    // suele listar varios países coproductores (financiación/impuestos),
+    // sin ningún orden que refleje cuál es "el país real" de la película.
+    // El país de origen de la PRODUCTORA principal (la primera de la
+    // lista) es mucho más confiable — por eso una peli de Hollywood con
+    // financiación de UK/Francia/Alemania sigue mostrando Estados Unidos.
+    origin_country: details.production_companies?.[0]?.origin_country || details.production_countries?.[0]?.iso_3166_1 || null,
     director,
     director_id: directorId,
     cast_top: castTop,

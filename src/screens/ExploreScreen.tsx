@@ -540,7 +540,7 @@ function FilaHorizontal({
                 <Text style={[styles.masBtnTexto, yaAgregado && styles.masBtnTextoAgregado]}>{yaAgregado ? "✓" : "+"}</Text>
               </Pressable>
               <Text numberOfLines={2} style={styles.cardTitulo}>
-                {item.titulo}
+                {item.fecha_estreno ? `${item.titulo} (${item.fecha_estreno.slice(0, 4)})` : item.titulo}
               </Text>
             </View>
           );
@@ -617,5 +617,5 @@ const styles = StyleSheet.create({
   ojoBtnApagado: { borderColor: theme.colors.textFaint, opacity: 0.5 },
   masBtnTexto: { color: theme.colors.primaryLight, fontSize: 15, fontWeight: "800", lineHeight: 15 },
   masBtnTextoAgregado: { color: "#000000" },
-  cardTitulo: { fontSize: 12, marginTop: 4 },
+  cardTitulo: { fontSize: 12, marginTop: 4, textAlign: "center" },
 });
