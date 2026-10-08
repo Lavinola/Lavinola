@@ -49,7 +49,8 @@ export function getTmdbLanguage() {
 
 async function tmdbFetch<T>(path: string, params: Record<string, string> = {}, idiomaForzado?: string): Promise<T> {
   const url = new URL(`${TMDB_BASE}${path}`);
-  const conIdioma = { language: idiomaForzado ?? currentLanguage, ...params };
+  // include_adult=false SIEMPRE: pisa cualquier valor que venga en params.
+  const conIdioma = { language: idiomaForzado ?? currentLanguage, ...params, include_adult: "false" };
   Object.entries(conIdioma).forEach(([k, v]) => url.searchParams.set(k, v));
 
   const res = await fetch(url.toString(), {
@@ -62,7 +63,38 @@ async function tmdbFetch<T>(path: string, params: Record<string, string> = {}, i
   if (!res.ok) {
     throw new Error(`TMDB ${path} -> ${res.status}`);
   }
-  return res.json() as Promise<T>;
+  const data = await res.json();
+  return filtrarContenidoAdulto(path, data) as T;
+}
+
+/** Error que se lanza al pedir el detalle de un título marcado como adulto por TMDB. */
+export const ERROR_CONTENIDO_ADULTO = "CONTENIDO_ADULTO";
+
+const esAdulto = (x: any) => x?.adult === true;
+
+/**
+ * Red de seguridad de contenido adulto (política de Google Play para contenido
+ * generado por usuarios). Además de pedir include_adult=false, descarta
+ * cualquier ítem con adult=true de listas (búsqueda, trending, discover,
+ * recomendaciones, filmografías) y bloquea el detalle de un título adulto,
+ * lo que impide agregarlo, publicarlo o enviarlo (todo pasa por sync).
+ */
+function filtrarContenidoAdulto(path: string, data: any): any {
+  if (!data || typeof data !== "object") return data;
+  // Detalle de película, serie o persona: /movie/123, /tv/123, /person/123
+  // (una persona con adult=true es alguien de la industria porno: su ficha se bloquea).
+  if (/^\/(movie|tv|person)\/\d+$/.test(path) && esAdulto(data)) {
+    throw new Error(ERROR_CONTENIDO_ADULTO);
+  }
+  if (Array.isArray(data.results)) {
+    data.results = data.results.filter((r: any) => !esAdulto(r));
+    for (const r of data.results) {
+      if (Array.isArray(r?.known_for)) r.known_for = r.known_for.filter((k: any) => !esAdulto(k));
+    }
+  }
+  if (Array.isArray(data.cast)) data.cast = data.cast.filter((r: any) => !esAdulto(r));
+  if (Array.isArray(data.crew)) data.crew = data.crew.filter((r: any) => !esAdulto(r));
+  return data;
 }
 
 // ---------- Series ----------
